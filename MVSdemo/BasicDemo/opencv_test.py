@@ -178,7 +178,7 @@ def identify_different_devices(deviceList):
  
 # 输入需要连接的相机的序号
 def input_num_camera(deviceList):
-    nConnectionNum = input("please input the number of the device to connect:")
+    nConnectionNum = 0#input("please input the number of the device to connect:")
     if int(nConnectionNum) >= deviceList.nDeviceNum:
         print("intput error!")
         sys.exit()
@@ -494,7 +494,7 @@ def image_callback(pData, pFrameInfo, pUser):
         data = np.frombuffer(img_buff , count = int(stFrameInfo.nWidth*stFrameInfo.nHeight) , dtype = np.uint8)
         image_control(data=data, stFrameInfo=stFrameInfo)
         del img_buff
-    elif img_buff is None and stFrameInfo.enPixelType == 17301512:
+    elif img_buff is None and stFrameInfo.enPixelType == 17301512: # 做這份
         img_buff = (c_ubyte * stFrameInfo.nWidth*stFrameInfo.nHeight)()
         cdll.msvcrt.memcpy(byref(img_buff) , pData , stFrameInfo.nWidth*stFrameInfo.nHeight)
         data = np.frombuffer(img_buff , count = int(stFrameInfo.nWidth*stFrameInfo.nHeight) , dtype = np.uint8)
@@ -591,7 +591,7 @@ def main():
     # 获取设备的一些参数
     # get_value = get_Value(cam , param_type = "int_value" , node_name = "PayloadSize")
  
-    stdcall = input("回调方式取流显示请输入 0    主动取流方式显示请输入 1:")
+    stdcall =0 #input("回调方式取流显示请输入 0    主动取流方式显示请输入 1:")
     if int(stdcall) == 0:
         # 回调方式抓取图像
         call_back_get_image(cam)
