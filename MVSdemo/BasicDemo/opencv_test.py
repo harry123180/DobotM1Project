@@ -411,6 +411,11 @@ def image_control(data , stFrameInfo):
         data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth, -1)
         image = cv2.cvtColor(data, cv2.COLOR_YUV2BGR_Y422)
         image_show(image = image, name = stFrameInfo.nHeight)
+    elif stFrameInfo.enPixelType ==17301512:
+        data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth, -1)
+        image = cv2.cvtColor(data, cv2.COLOR_BAYER_GR2RGB)
+        image_show(image = image, name = stFrameInfo.nHeight)
+
  
 # 主动图像采集
 def access_get_image(cam , active_way = "getImagebuffer"):
@@ -482,13 +487,19 @@ def image_callback(pData, pFrameInfo, pUser):
     img_buff = None
     stFrameInfo = cast(pFrameInfo, POINTER(MV_FRAME_OUT_INFO_EX)).contents
     if stFrameInfo:
-        print ("get one frame: Width[%d], HeightFFFF[%d], nFrameNum[%d]" % (stFrameInfo.nWidth, stFrameInfo.nHeight, stFrameInfo.nFrameNum))
+        print ("get one frame: Width[%d], HeightFFFF[%d], nFrameNum[%d] stFrameInfo[%d]" % (stFrameInfo.nWidth, stFrameInfo.nHeight, stFrameInfo.nFrameNum,stFrameInfo.enPixelType))
     if img_buff is None and stFrameInfo.enPixelType == 17301505:
         img_buff = (c_ubyte * stFrameInfo.nWidth*stFrameInfo.nHeight)()
         cdll.msvcrt.memcpy(byref(img_buff) , pData , stFrameInfo.nWidth*stFrameInfo.nHeight)
         data = np.frombuffer(img_buff , count = int(stFrameInfo.nWidth*stFrameInfo.nHeight) , dtype = np.uint8)
         image_control(data=data, stFrameInfo=stFrameInfo)
         del img_buff
+    elif img_buff is None and stFrameInfo.enPixelType == 17301512:
+        img_buff = (c_ubyte * stFrameInfo.nWidth*stFrameInfo.nHeight)()
+        cdll.msvcrt.memcpy(byref(img_buff) , pData , stFrameInfo.nWidth*stFrameInfo.nHeight)
+        data = np.frombuffer(img_buff , count = int(stFrameInfo.nWidth*stFrameInfo.nHeight) , dtype = np.uint8)
+        image_control(data=data, stFrameInfo=stFrameInfo)
+        del img_buff    
     elif img_buff is None and stFrameInfo.enPixelType == 17301514:
         img_buff = (c_ubyte * stFrameInfo.nWidth*stFrameInfo.nHeight)()
         cdll.msvcrt.memcpy(byref(img_buff) , pData , stFrameInfo.nWidth*stFrameInfo.nHeight)
