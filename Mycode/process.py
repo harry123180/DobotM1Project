@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 # 8行11列棋盘角点
-CHECKERBOARD = (8, 11)
+CHECKERBOARD = (17, 12)
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 # 世界坐标中的3D角点，z恒为0
@@ -29,6 +29,7 @@ for i in range(len(images)):
     # 查找棋盘角点
     ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_ADAPTIVE_THRESH +
                                              cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_NORMALIZE_IMAGE)
+    print(ret)
     """
     使用cornerSubPix优化探测到的角点
     """
@@ -43,8 +44,8 @@ for i in range(len(images)):
         new_img.save('chessboard_{}.png'.format(i))
         # plt.imshow(img)
         # plt.show()
-        cv2.imshow('img', img)
-        cv2.waitKey(0)
+    #cv2.imshow('img', gray)
+    #cv2.waitKey(0)
 
 # cv2.destroyAllWindows()
 # 标定
