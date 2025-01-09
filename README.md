@@ -8,6 +8,8 @@
 * CUDA版本12.1.0
 * cuDnn版本9.1.0
 * 測試單GPU多模型的執行速度
+opencvtest.py 測試完成mks driver done 
+
 
 # 待辦事項
 
