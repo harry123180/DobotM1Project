@@ -18,6 +18,26 @@ DEVICE_INFO = {
     "設備GUID": "2BDFA1831623",
     "設備家族名稱": "未知"
 }
+def set_exposure_time(cam, exposure_time):
+    """
+    設置攝影機的曝光時間。
+    :param cam: MvCamera 實例
+    :param exposure_time: 曝光時間，單位微秒
+    """
+    # 關閉自動曝光模式
+    ret = cam.MV_CC_SetEnumValue("ExposureAuto", 0)
+    if ret != 0:
+        print(f"無法設置自動曝光模式為手動，返回值: [0x{ret:x}]")
+        return ret
+
+    # 設置曝光時間
+    ret = cam.MV_CC_SetFloatValue("ExposureTime", exposure_time)
+    if ret != 0:
+        print(f"無法設置曝光時間，返回值: [0x{ret:x}]")
+        return ret
+
+    print(f"曝光時間設置成功: {exposure_time} 微秒")
+    return ret
 
 # 枚舉設備
 def enum_devices(device=0, device_way=False):
@@ -104,18 +124,19 @@ def set_grab_strategy(cam, grabstrategy=0, outputqueuesize=1):
         print("成功設定取流策略為 %d" % grabstrategy)
 
 # 開啟設備並顯示圖像
+# 開啟設備並顯示圖像
 def open_device_and_display():
     def set_default_parameters(cam):
         """設置攝影機的默認參數，例如分辨率和像素格式"""
-        ret = cam.MV_CC_SetEnumValue("PixelFormat", 17301512)  # 設置像素格式為 BayerGR8  # 設置像素格式，例如 BayerRG8
+        ret = cam.MV_CC_SetEnumValue("PixelFormat", 17301512)  # 設置像素格式為 BayerGR8
         if ret != 0:
             print("設置像素格式失敗，返回值 [0x%x]" % ret)
             sys.exit()
-        ret = cam.MV_CC_SetIntValue("Width", 1280)  # 設置寬度
+        ret = cam.MV_CC_SetIntValue("Width", 2592)  # 設置寬度
         if ret != 0:
             print("設置寬度失敗，返回值 [0x%x]" % ret)
             sys.exit()
-        ret = cam.MV_CC_SetIntValue("Height", 720)  # 設置高度
+        ret = cam.MV_CC_SetIntValue("Height", 1944)  # 設置高度
         if ret != 0:
             print("設置高度失敗，返回值 [0x%x]" % ret)
             sys.exit()
@@ -123,14 +144,28 @@ def open_device_and_display():
         if ret != 0:
             print("設置觸發模式失敗，返回值 [0x%x]" % ret)
             sys.exit()
-        ret = cam.MV_CC_SetImageNodeNum(10)  # 設置緩存節點數為 10
+
+    def set_exposure_time(cam, exposure_time):
+        """
+        設置攝影機的曝光時間。
+        :param cam: MvCamera 實例
+        :param exposure_time: 曝光時間，單位微秒
+        """
+        # 關閉自動曝光模式
+        ret = cam.MV_CC_SetEnumValue("ExposureAuto", 0)
         if ret != 0:
-            print("設置影像緩存節點數失敗，返回值 [0x%x]" % ret)
-            sys.exit()
-        ret = cam.MV_CC_SetFloatValue("AcquisitionFrameRate", 10.0)  # 設置幀率為 10 fps
+            print(f"無法設置自動曝光模式為手動，返回值: [0x{ret:x}]")
+            return ret
+
+        # 設置曝光時間
+        ret = cam.MV_CC_SetFloatValue("ExposureTime", exposure_time)
         if ret != 0:
-            print("設置幀率失敗，返回值 [0x%x]" % ret)
-            sys.exit()
+            print(f"無法設置曝光時間，返回值: [0x{ret:x}]")
+            return ret
+
+        print(f"曝光時間設置成功: {exposure_time} 微秒")
+        return ret
+
     deviceList = enum_devices(device=0, device_way=False)
     identify_different_devices(deviceList)
     cam = MvCamera()
@@ -146,8 +181,13 @@ def open_device_and_display():
         print("開啟設備失敗，返回值 [0x%x]" % ret)
         sys.exit()
     print("成功開啟設備！")
+
     # 設置默認參數
     set_default_parameters(cam)
+
+    # 設置曝光時間 (例如設置為 20000 微秒)
+    exposure_time = 60000.0  # 曝光時間為 20 毫秒
+    set_exposure_time(cam, exposure_time)
 
     # 設定取流
     ret = cam.MV_CC_StartGrabbing()
@@ -158,7 +198,7 @@ def open_device_and_display():
     # 獲取圖像並顯示
     stOutFrame = MV_FRAME_OUT()
     memset(byref(stOutFrame), 0, sizeof(stOutFrame))
-    i=0
+    i = 0
     while True:
         ret = cam.MV_CC_GetImageBuffer(stOutFrame, 3000)  # 增加超時時間
         if ret == 0:
@@ -171,16 +211,18 @@ def open_device_and_display():
                     stOutFrame.stFrameInfo.nHeight, stOutFrame.stFrameInfo.nWidth
                 )
                 image = cv2.cvtColor(data, cv2.COLOR_BAYER_GR2RGB)  # 將 BayerGR8 轉換為 RGB
-                cv2.imshow("Camera Image", image)
+                new_size = (800, 600)
+                resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_LINEAR)
+                cv2.imshow("Camera Image", resized_image)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             print("獲取圖像失敗，返回值 [0x%x]" % ret)
-            i+=1
-            if i >5:
+            i += 1
+            if i > 5:
                 break
-            continue  
+            continue
         ret = cam.MV_CC_FreeImageBuffer(stOutFrame)
         if ret != 0:
             print("釋放影像緩存失敗，返回值 [0x%x]" % ret)
@@ -200,6 +242,8 @@ def open_device_and_display():
     ret = cam.MV_CC_DestroyHandle()
     if ret != 0:
         print("銷毀句柄失敗，返回值 [0x%x]" % ret)
+
+
 
 # 主
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 import glob
-
 import cv2
 import numpy as np
 from PIL import Image
@@ -16,6 +15,7 @@ imgpoints = []
 # 利用棋盘定义世界坐标系中的角点
 objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
 objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
+objp = objp*20 # 20mm 
 
 # 从文件夹中读取所有图片
 images = glob.glob('C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\*.jpg')
@@ -24,6 +24,8 @@ for i in range(len(images)):
     
     fname = images[i]
     img = cv2.imread(fname)
+    new_size = (800, 600)
+    img = cv2.resize(img, new_size, interpolation=cv2.INTER_LINEAR)
     print(i,fname)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # 查找棋盘角点
@@ -38,6 +40,7 @@ for i in range(len(images)):
         objpoints.append(objp)
         corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
         imgpoints.append(corners2)
+        
         # 显示角点
         img = cv2.drawChessboardCorners(img, CHECKERBOARD, corners2, ret)
         new_img = Image.fromarray(img.astype(np.uint8))

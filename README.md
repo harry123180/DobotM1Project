@@ -23,20 +23,45 @@ opencvtest.py 測試完成mks driver done
 | 置左  | 置右 | 置中 |
 ## 重投影误差 (Reprojection Error)
 
-$$ RE = 0.7145324159629237 $$
+$$ RE = 0.21439245149643946 $$
+
 ## 内参矩阵 (Intrinsic Parameters)
 $$
 \mathbf{K} =
 \begin{bmatrix}
-5182.30692 & 0.00000 & 1203.18707 \\
-0.00000 & 5222.57059 & 1236.24816 \\
+5527.91522 & 0.00000 & 1249.56097 \\
+0.00000 & 5523.37409 & 997.41524 \\
 0.00000 & 0.00000 & 1.00000
 \end{bmatrix}
 $$
+
 ## 畸变系数 (Distortion Coefficients)
 $$
 \mathbf{D} =
 \begin{bmatrix}
--0.05605587 & -0.20169196 & -0.00238904 & -0.00015880 & 3.00955822
+-0.06833483 & 0.00056340 & 0.00137019 & 0.00055740 & 4.80949681
 \end{bmatrix}
 $$
+
+# 當前檔案結構 
+```
+├─converted_jpgs
+├─DobotDemo
+│  ├─files
+│  │  └─__pycache__
+│  ├─images
+│  ├─picture
+│  └─__pycache__
+├─MVSdemo
+│  └─BasicDemo
+│      └─__pycache__
+└─Mycode
+    ├─chessboard <這邊放標記完的棋盤格JPG>
+    ├─converted_jpgs <這邊放還沒標記棋盤格JPG>
+    ├─datafile  <海康原圖bmp 格式>
+    ├─files <不動>
+    │  └─__pycache__
+    ├─__pycache__
+    ├─procces.py <處理內部參數計算>    
+
+```
