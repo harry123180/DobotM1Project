@@ -12,15 +12,17 @@ import numpy as np
 
 # 相機內參矩陣
 K = np.array([
-    [1668.42113, 0.0, 358.871384],
-    [0.0, 1669.95338, 322.634217],
-    [0.0, 0.0, 1.0]
+    [7.42157429, 0, 1.23308448],
+    [0.0, 7.47157429, 0.99655374],
+    [0.0, 0.0, 1]
 ])
+R = np.array([[ 9.99999756e-01, -6.98131644e-04,  0.00000000e+00],
+              [ 6.98131644e-04,  9.99999756e-01,  0.00000000e+00],
+              [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
 
-# 畸變係數
-D = np.array([[0.134033521, -13.3657634, 0.0017456255, 0.00384629814, 147.592155]])
-
-
+t = np.array([[-265.16868344+80], [-108.02824767], [654.6123158]])
+# 畸變參數
+D = np.array([[-0.111665041, 0.706682197, 0.000284510564, 0.000578235313, 0.0]])
 # 設備資訊定義
 DEVICE_INFO = {
     "設備型號": "MV-CE050-30UC",
@@ -75,7 +77,16 @@ def enum_devices(device=0, device_way=False):
             pass
     elif device_way == True:
         pass
+def pixel_to_world(u, v, depth, K, R, t):
+    uv_homogeneous = np.array([u, v, 720])  # 齊次像素坐標 (u, v, 1)
+    K_inv = np.linalg.inv(K)  # 計算內參矩陣的逆矩陣
+    cam_coords = np.dot(K_inv, uv_homogeneous)  # 相機坐標 (X_c, Y_c, Z_c)
 
+    # 將相機坐標轉換到世界坐標系
+    #cam_coords = cam_coords.reshape(3, 1)  # 確保為列向量
+    world_coords = np.dot(R.T, cam_coords - t.ravel())  # 世界坐標  # 世界坐標系 (X_w, Y_w, Z_w)
+
+    return world_coords.flatten()
 # 判斷不同類型設備
 def identify_different_devices(deviceList):
     # 判斷不同類型設備，並輸出相關資訊
@@ -111,7 +122,25 @@ def identify_different_devices(deviceList):
             for per in mvcc_dev_info.SpecialInfo.stUsb3VInfo.chVendorName:
                 strmanufacturerName = strmanufacturerName + chr(per)
             print("製造商名稱: %s" % strmanufacturerName)
-
+def resize_image(img, ratio):
+    """
+    等比例縮放圖像。
+    
+    :param img: 原始圖像 (NumPy 數組)
+    :param ratio: 縮放比例 (float)，如 0.5 表示縮小一半
+    :return: 縮放後的圖像 (NumPy 數組)
+    """
+    # 獲取原始圖像尺寸
+    original_height, original_width = img.shape[:2]
+    
+    # 計算縮放後的尺寸
+    new_width = int(original_width * ratio)
+    new_height = int(original_height * ratio)
+    
+    # 使用 cv2.resize 進行縮放
+    resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+    
+    return resized_img
 # 設定 SDK 內部圖像緩存節點個數
 def set_image_Node_num(cam, Num=50):
     ret = cam.MV_CC_SetImageNodeNum(nNum=50)
@@ -199,16 +228,23 @@ def process_and_detect_circles(image, circle_threshold=0.85):
 
                 # 在右下角標記編號、座標與面積
                 text = f"#{circle_count} ({int(x)}, {int(y)}) area: {area:.2f} c: {circularity:.2f}"
+                world_coords = pixel_to_world(x, y, 1000, K, R, t)
+                print(world_coords,text)
+                #print(text)
                 text_position = (center[0] + 10, center[1] + 10)
                 cv2.putText(img, text, text_position, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
         results[key] = img
 
     # 顯示結果
-    cv2.imshow("Original Image with Circles", results["Original"])
-    cv2.imshow("Corrected Image with Circles", results["Corrected"])
+    #cv2.imshow("Original Image with Circles", results["Original"])
+    #cv2.namedWindow('Corrected Image with Circles', cv2.WINDOW_NORMAL)
+    #new_size = (800, 600)
+    #resized_image = cv2.resize(results["Corrected"], new_size, interpolation=cv2.INTER_LINEAR)
+    #resized_image = resize_image(results["Corrected"],0.5)
+    cv2.imshow("Corrected Image with Circles", results["Original"])
 
-    return results["Corrected"]
+    return results["Original"]
 
 def open_device_and_display():
     def set_default_parameters(cam):
@@ -296,9 +332,9 @@ def open_device_and_display():
                     stOutFrame.stFrameInfo.nHeight, stOutFrame.stFrameInfo.nWidth
                 )
                 image = cv2.cvtColor(data, cv2.COLOR_BAYER_GR2RGB)  # 將 BayerGR8 轉換為 RGB
-                new_size = (800, 600)
-                resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_LINEAR)
-                cv2.imshow("Camera Image", resized_image)
+                #new_size = (800, 600)
+                #resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_LINEAR)
+                cv2.imshow("Camera Image", image)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -406,6 +442,7 @@ def open_device_and_display_with_circle_detection():
 
     stOutFrame = MV_FRAME_OUT()
     memset(byref(stOutFrame), 0, sizeof(stOutFrame))
+    
 
     # 獲取圖像並檢測圓
     while True:
@@ -417,11 +454,15 @@ def open_device_and_display_with_circle_detection():
                 stOutFrame.stFrameInfo.nHeight, stOutFrame.stFrameInfo.nWidth
             )
             image = cv2.cvtColor(data, cv2.COLOR_BAYER_GR2RGB)
-            new_size = (800, 600)
-            resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_LINEAR)
+             # 校正畸變
+            h, w = image.shape[:2]
+            #new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
+            #undistorted_img = cv2.undistort(image, K, D, None, new_camera_matrix)
+            #new_size = (800, 600)
+            #resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_LINEAR)
 
             # 呼叫處理函數
-            processed_image = process_and_detect_circles(resized_image)
+            processed_image = process_and_detect_circles(image) 
 
             # 顯示處理後的影像
             cv2.imshow("Processed Image", processed_image)

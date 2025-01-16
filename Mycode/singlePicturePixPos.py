@@ -10,6 +10,15 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
 objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
 objp = objp * 10  # 單位 10mm
+# 相機內參矩陣
+K = np.array([
+    [5527.91522, 0.00000, 1249.56097],
+    [0.00000, 5523.37409, 997.41524],
+    [0.00000, 0.00000, 1.00000]
+])
+
+# 畸變參數
+D = np.array([[-1.00165192e-01, 3.87301467e-01, 4.33722260e-04, 2.34339794e-03, 2.56601953e+00]])
 
 # 單張圖片路徑
 image_path = 'C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\2053.jpg'
@@ -18,7 +27,11 @@ img = cv2.imread(image_path)
 if img is None:
     print("無法讀取圖片，請確認路徑正確。")
 else:
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+     # 校正畸變
+    h, w = img.shape[:2]
+    new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
+    undistorted_img = cv2.undistort(img, K, D, None, new_camera_matrix)
+    gray = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2GRAY)
 
     # 查找棋盤角點
     ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_ADAPTIVE_THRESH +

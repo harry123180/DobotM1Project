@@ -3,16 +3,61 @@ import numpy as np
 
 # 相機內參矩陣
 K = np.array([
-    [5527.91522, 0.0, 1249.56097],
-    [0.0, 5523.37409, 997.41524],
-    [0.0, 0.0, 1.0]
+    [7.42157429, 0, 1.23308448],
+    [0.0, 7.47157429, 0.99655374],
+    [0.0, 0.0, 1]
 ])
 
 # 畸變係數
-D = np.array([[-0.06833483, 0.00056340, 0.00137019, 0.00055740, 4.80949681]])
+D = np.array([[-0.111665041, 0.706682197, 0.000284510564, 0.000578235313, 0.0]])
+
 
 # 3D 世界座標點
 
+def rotate_x(matrix, angle_deg):
+    """
+    繞 X 軸旋轉
+    :param matrix: 原始 3x3 矩陣
+    :param angle_deg: 旋轉角度（度）
+    :return: 繞 X 軸旋轉後的矩陣
+    """
+    angle_rad = np.radians(angle_deg)
+    rotation_x = np.array([
+        [1, 0, 0],
+        [0, np.cos(angle_rad), -np.sin(angle_rad)],
+        [0, np.sin(angle_rad), np.cos(angle_rad)]
+    ])
+    return np.dot(rotation_x, matrix)
+
+def rotate_y(matrix, angle_deg):
+    """
+    繞 Y 軸旋轉
+    :param matrix: 原始 3x3 矩陣
+    :param angle_deg: 旋轉角度（度）
+    :return: 繞 Y 軸旋轉後的矩陣
+    """
+    angle_rad = np.radians(angle_deg)
+    rotation_y = np.array([
+        [np.cos(angle_rad), 0, np.sin(angle_rad)],
+        [0, 1, 0],
+        [-np.sin(angle_rad), 0, np.cos(angle_rad)]
+    ])
+    return np.dot(rotation_y, matrix)
+
+def rotate_z(matrix, angle_deg):
+    """
+    繞 Z 軸旋轉
+    :param matrix: 原始 3x3 矩陣
+    :param angle_deg: 旋轉角度（度）
+    :return: 繞 Z 軸旋轉後的矩陣
+    """
+    angle_rad = np.radians(angle_deg)
+    rotation_z = np.array([
+        [np.cos(angle_rad), -np.sin(angle_rad), 0],
+        [np.sin(angle_rad), np.cos(angle_rad), 0],
+        [0, 0, 1]
+    ])
+    return np.dot(rotation_z, matrix)
 
 
 import numpy as np
@@ -22,8 +67,8 @@ t = 0  # 點的編號
 real_world_points = []  # 用於存放真實座標點的列表
 
 # 生成真實座標點數據
-for j in range(17):
-    for i in range(12):
+for i in range(12):
+    for j in range(17):
         x = 307.77 + (10 * i)  # x 坐標
         y = 202.58 - (10 * j)  # y 坐標
         z = 0  # 假設 z 坐標為 0
@@ -33,10 +78,11 @@ for j in range(17):
 # 轉換為 NumPy 陣列
 # 3D 世界座標點
 object_points = np.array(real_world_points)
-
+real_world_points = np.array(real_world_points)
 
 # 将像素坐标 (u, v) 转换为 NumPy 数组
 # 2D 像素座標點
+# 棋盤格角點像素座標（u, v）
 image_points = np.array([
     [1201.81, 1418.52], [1202.14, 1344.56], [1202.53, 1270.53], [1202.74, 1196.70],
     [1203.23, 1122.58], [1203.50, 1048.67], [1203.92, 974.53], [1204.28, 900.87],
@@ -92,19 +138,95 @@ image_points = np.array([
 ])
 
 # 使用 solvePnP 計算外參矩陣
-success, rvec, tvec = cv2.solvePnP(object_points, image_points, K, D)
+success, rvec, tvec = cv2.solvePnP(object_points, image_points, K, None)
 
 if success:
-    print("PnP 求解成功！")
-    print("旋轉向量 (rvec):", rvec.flatten(),type(rvec.flatten()),rvec.flatten().shape)
-    print("平移向量 (tvec):", tvec.flatten(),type(tvec.flatten()),tvec.flatten().shape)
+    #print("PnP 求解成功！")
+    #print("旋轉向量 (rvec):", rvec.flatten(),type(rvec.flatten()),rvec.flatten().shape)
+    #print("平移向量 (tvec):", tvec.flatten(),type(tvec.flatten()),tvec.flatten().shape)
 
     # 將旋轉向量轉換為旋轉矩陣
     R, _ = cv2.Rodrigues(rvec)
-    print("旋轉矩陣 (R):\n", R)
+    #print("旋轉矩陣 (R):\n", R)
 
     # 將外參矩陣組合為 [R | t]
     extrinsic_matrix = np.hstack((R, tvec))
-    print("外參矩陣 [R | t]:\n", extrinsic_matrix)
+    #print("外參矩陣 [R | t]:\n", extrinsic_matrix)
 else:
     print("PnP 求解失敗！")
+
+import matplotlib.pyplot as plt
+
+
+# 外参矩阵 R 和 t
+"""
+R = np.array([
+    [0.15309632, -0.98190597, -0.11145486],
+    [-0.03286641, 0.10766279, -0.99364406],
+    [0.98766458, 0.15578637, -0.01578894]
+])
+"""
+
+R = np.array([[ 9.99999756e-01, -6.98131644e-04,  0.00000000e+00],
+              [ 6.98131644e-04,  9.99999756e-01,  0.00000000e+00],
+              [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
+
+t = np.array([[-265.16868344-80], [-108.02824767], [654.6123158]])
+# 像素座標轉換到世界坐標
+transformed_points = []
+image_points_np = []
+for u, v in image_points:
+    image_points_np.append(np.array([u,v]))
+    uv_homogeneous = np.array([u, v, 720])  # 齊次像素座標
+    K_inv = np.linalg.inv(K)  # 相機內參矩陣的逆矩陣
+    cam_coords = np.dot(K_inv, uv_homogeneous)  # 相機坐標 (假設深度為1)
+    world_coords = np.dot(R.T, cam_coords - t.ravel())  # 世界坐標
+    transformed_points.append(world_coords[:2])
+
+image_points_np = np.array(image_points_np)
+transformed_points = np.array(transformed_points)
+
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+# 定義顏色映射
+colormap = cm.get_cmap('viridis')  # 使用 Viridis 漸變色
+norm = mcolors.Normalize(vmin=0, vmax=255)  # 正規化範圍 0 ~ 255
+
+# 繪製函數
+def plot_points_with_gradient(points, label, size=50):
+    for idx, point in enumerate(points):
+        color = colormap(norm(idx))  # 根據點數索引獲取顏色
+        plt.scatter(point[0], point[1], color=color, s=size, edgecolor='black', label=label if idx == 0 else None)
+
+# 可視化
+plt.figure(figsize=(10, 10))
+
+# 像素座標 (綠色漸變)
+plt.scatter(image_points[:, 0], image_points[:, 1], color='green', label='Pixel Coordinates (Image)', s=50)
+plt.scatter(image_points[0, 0], image_points[0, 1], color='gold', label='Image Points (First)', s=100, edgecolor='black')
+plt.scatter(image_points[1, 0], image_points[1, 1], color='brown', label='Image Points (Second)', s=100, edgecolor='black')
+plt.scatter(image_points[-1, 0], image_points[-1, 1], color='purple', label='Image Points (Last)', s=100, edgecolor='black')
+
+# 真實世界座標 (藍色漸變)
+plt.scatter(real_world_points[:, 0], real_world_points[:, 1], color='blue', label='Real World Coordinates', s=50)
+plt.scatter(real_world_points[0, 0], real_world_points[0, 1], color='gold', s=100, edgecolor='black')
+plt.scatter(real_world_points[1, 0], real_world_points[1, 1], color='brown', s=100, edgecolor='black')
+plt.scatter(real_world_points[-1, 0], real_world_points[-1, 1], color='purple', s=100, edgecolor='black')
+
+# 轉換後的真實世界座標 (橘色漸變)
+plt.scatter(transformed_points[:, 0], transformed_points[:, 1], color='orange', label='Transformed World Coordinates', s=50)
+plt.scatter(transformed_points[0, 0], transformed_points[0, 1], color='gold', s=100, edgecolor='black')
+plt.scatter(transformed_points[1, 0], transformed_points[1, 1], color='brown', s=100, edgecolor='black')
+plt.scatter(transformed_points[-1, 0], transformed_points[-1, 1], color='purple', s=100, edgecolor='black')
+# 標題和圖例
+plt.title('Coordinate Visualization with Gradient Colors')
+plt.xlabel('X Coordinate')
+plt.ylabel('Y Coordinate')
+plt.legend()
+plt.grid(True)
+plt.show()
+real_dx = real_world_points[0][0] - real_world_points[1][0]
+real_dy = real_world_points[0][1] - real_world_points[1][1]
+trans_dx = transformed_points[0][0] - transformed_points[1][0]
+trans_dy = transformed_points[0][1] - transformed_points[1][1]
+print(f"real dx ={real_dx} , real dy = {real_dy} trans dx = { trans_dx} trans dy = { trans_dy}")
