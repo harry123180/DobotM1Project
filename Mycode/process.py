@@ -15,7 +15,7 @@ imgpoints = []
 # 利用棋盘定义世界坐标系中的角点
 objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
 objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
-objp = objp*20 # 20mm 
+objp = objp*10 # 20mm 
 
 # 从文件夹中读取所有图片
 images = glob.glob('C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\*.jpg')
@@ -24,8 +24,8 @@ for i in range(len(images)):
     
     fname = images[i]
     img = cv2.imread(fname)
-    new_size = (800, 600)
-    img = cv2.resize(img, new_size, interpolation=cv2.INTER_LINEAR)
+    #new_size = (800, 600)
+    #img = cv2.resize(img, new_size, interpolation=cv2.INTER_LINEAR)
     print(i,fname)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # 查找棋盘角点
@@ -40,7 +40,12 @@ for i in range(len(images)):
         objpoints.append(objp)
         corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
         imgpoints.append(corners2)
-        
+        # 显示角点并标注编号
+        for idx, corner in enumerate(corners2):
+            corner_pos = tuple(corner.ravel().astype(int))
+            cv2.circle(img, corner_pos, 5, (0, 255, 0), -1)  # 绘制圆点
+            cv2.putText(img, str(idx), (corner_pos[0] + 5, corner_pos[1] - 5), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 0), 1)  # 标注编号
         # 显示角点
         img = cv2.drawChessboardCorners(img, CHECKERBOARD, corners2, ret)
         new_img = Image.fromarray(img.astype(np.uint8))
@@ -59,8 +64,8 @@ print("内参 : \n")
 print(mtx)
 print("畸变 : \n")
 print(dist)
-print("旋转向量 : \n")
-print(rvecs)
-print("平移向量 : \n")
-print(tvecs)
+#print("旋转向量 : \n")
+#print(rvecs)
+#print("平移向量 : \n")
+#print(tvecs)
 
