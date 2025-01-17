@@ -9,21 +9,7 @@ from ctypes import *
 sys.path.append("../MvImport")
 from MvCameraControl_class import *
 import numpy as np
-"""
-# 相機內參矩陣
-K = np.array([
-    [7.42157429, 0, 1.23308448],
-    [0.0, 7.47157429, 0.99655374],
-    [0.0, 0.0, 1]
-])
-R = np.array([[ 9.99999756e-01, -6.98131644e-04,  0.00000000e+00],
-              [ 6.98131644e-04,  9.99999756e-01,  0.00000000e+00],
-              [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
 
-t = np.array([[-265.16868344+80], [-108.02824767], [654.6123158]])
-# 畸變參數
-D = np.array([[-0.111665041, 0.706682197, 0.000284510564, 0.000578235313, 0.0]])
-"""
 # 相機內參矩陣
 K = np.array([
     [7.35533899e+00, 0, 1.24451771e+00],
@@ -499,5 +485,140 @@ def open_device_and_display_with_circle_detection():
     cam.MV_CC_CloseDevice()
     cam.MV_CC_DestroyHandle()
 
-if __name__ == "__main__":
-    open_device_and_display_with_circle_detection()
+
+class Camera:
+    def __init__(self, name="DefaultCamera", device_number=0, port=0, resolution=(1920, 1080), exposure_time=20000):
+        """
+        初始化相機物件
+        :param name: 相機名稱
+        :param device_number: 設備號
+        :param port: 通訊埠號
+        :param resolution: 解析度 (寬, 高)
+        :param exposure_time: 曝光時間，單位微秒
+        """
+        
+        self.name = name
+        self.device_number = device_number
+        self.port = port
+        self.resolution = resolution
+        self.exposure_time = exposure_time
+        self.camera = None  # 用於保存 MvCamera 實例
+
+        # 相機內參矩陣
+        self.K = np.array([
+            [7.35533899e+00, 0, 1.24451771e+00],
+            [0.0, 7.35687528e+00, 1.02655760e+00],
+            [0.0, 0.0, 1.0]
+        ])
+
+        # 畸變係數
+        self.D = np.array([[-9.63028822e-02, 2.74658814e-01, 1.36385496e-03, 5.80934112e-04, 2.95541140e+00]])
+
+        # 外參矩陣
+        self.R = np.array([
+            [-9.99913875e-01,  -1.31241329e-02, -3.55145363e-06],
+            [-1.31241329e-02,  9.99913875e-01, -2.47572387e-06],
+            [3.58363949e-06, -2.42890090e-06, -1.00000000e+00]
+        ])
+
+        self.t = np.array([[352.96520021], [-109.49788733], [0.86068216]])
+
+    def initialize_camera(self):
+        """初始化相機設備"""
+        print(f"初始化相機: {self.name}, 設備號: {self.device_number}")
+        device_list = MV_CC_DEVICE_INFO_LIST()
+        tlayerType = MV_GIGE_DEVICE | MV_USB_DEVICE
+        ret = MvCamera.MV_CC_EnumDevices(tlayerType, device_list)
+        if ret != 0 or device_list.nDeviceNum <= self.device_number:
+            raise Exception("無法找到指定的設備或設備不存在！")
+
+        self.camera = MvCamera()
+        device_info = cast(device_list.pDeviceInfo[self.device_number], POINTER(MV_CC_DEVICE_INFO)).contents
+        ret = self.camera.MV_CC_CreateHandle(device_info)
+        if ret != 0:
+            raise Exception(f"創建相機句柄失敗，返回值 [0x{ret:x}]")
+
+        ret = self.camera.MV_CC_OpenDevice(MV_ACCESS_Exclusive, self.port)
+        if ret != 0:
+            raise Exception(f"開啟相機失敗，返回值 [0x{ret:x}]")
+
+        #print("相機初始化成功！")
+        self.set_resolution(*self.resolution)
+        self.set_exposure_time(self.exposure_time)
+
+    def set_resolution(self, width, height):
+        """設置相機解析度"""
+        print(f"設定解析度為 {width}x{height}")
+        ret = self.camera.MV_CC_SetIntValue("Width", width)
+        if ret != 0:
+            raise Exception(f"無法設置寬度，返回值 [0x{ret:x}]")
+
+        ret = self.camera.MV_CC_SetIntValue("Height", height)
+        if ret != 0:
+            raise Exception(f"無法設置高度，返回值 [0x{ret:x}]")
+
+    def set_exposure_time(self, exposure_time):
+        """設置曝光時間"""
+        print(f"設置曝光時間為 {exposure_time} 微秒")
+        ret = self.camera.MV_CC_SetEnumValue("ExposureAuto", 0)
+        if ret != 0:
+            raise Exception(f"無法設置自動曝光模式為手動，返回值 [0x{ret:x}]")
+
+        ret = self.camera.MV_CC_SetFloatValue("ExposureTime", exposure_time)
+        if ret != 0:
+            raise Exception(f"無法設置曝光時間，返回值 [0x{ret:x}]")
+
+    def capture_image(self):
+        """捕獲影像並返回 NumPy 數組"""
+        #print("捕獲影像...")
+        ret = self.camera.MV_CC_StartGrabbing()
+        if ret != 0:
+            raise Exception(f"開始取流失敗，返回值 [0x{ret:x}]")
+
+        stOutFrame = MV_FRAME_OUT()
+        memset(byref(stOutFrame), 0, sizeof(stOutFrame))
+
+        ret = self.camera.MV_CC_GetImageBuffer(stOutFrame, 3000)
+        if ret != 0:
+            raise Exception(f"獲取圖像失敗，返回值 [0x{ret:x}]")
+
+        data = (c_ubyte * stOutFrame.stFrameInfo.nFrameLen)()
+        cdll.msvcrt.memcpy(byref(data), stOutFrame.pBufAddr, stOutFrame.stFrameInfo.nFrameLen)
+        image = np.frombuffer(data, dtype=np.uint8).reshape(
+            stOutFrame.stFrameInfo.nHeight, stOutFrame.stFrameInfo.nWidth
+        )
+
+        self.camera.MV_CC_FreeImageBuffer(stOutFrame)
+        self.camera.MV_CC_StopGrabbing()
+
+        #print("影像捕獲成功！")
+        return image
+
+    def release_camera(self):
+        """釋放相機資源"""
+        print("釋放相機資源...")
+        if self.camera:
+            self.camera.MV_CC_CloseDevice()
+            self.camera.MV_CC_DestroyHandle()
+        print("相機已釋放")
+    def pixel_to_world(self, u, v, depth=720):
+        """
+        將像素座標轉換為世界座標 (x, y)。
+        :param u: 像素座標 x
+        :param v: 像素座標 y
+        :param depth: 深度值 (默認為 1.0，根據場景調整)
+        :return: 世界座標 (x, y)
+        """
+        # 像素坐標轉換為齊次像素坐標
+        uv_homogeneous = np.array([u, v, depth])
+
+        # 計算相機坐標
+        K_inv = np.linalg.inv(self.K)  # 內參矩陣的逆矩陣
+        cam_coords = np.dot(K_inv, uv_homogeneous) 
+
+        # 計算世界坐標
+        world_coords = np.dot(self.R.T, cam_coords - self.t.ravel())
+
+        # 返回世界座標中的 x 和 y
+        return world_coords[0], world_coords[1]
+    

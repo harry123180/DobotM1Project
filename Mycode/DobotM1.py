@@ -122,10 +122,11 @@ if __name__ == '__main__':
     feed_thread1.setDaemon(True)
     feed_thread1.start()
     print("循環執行...")
-    point_a = [180, -356, 171, -187]
-    point_b = [273, -138, 101, -115]
-    while True:   
+    point_a = [218.95, -210.78, 240, -187]
+    point_b = [266.77,-73.45, 240, -115]
+    for i in range(3):   
         RunPoint(move, point_a)
         WaitArrive(point_a)
+        sleep(1)
         RunPoint(move, point_b)
         WaitArrive(point_b)
