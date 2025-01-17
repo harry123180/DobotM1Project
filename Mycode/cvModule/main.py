@@ -167,7 +167,7 @@ def robot_motion_task(local_cmd):
         WaitArrive([target[0], target[1], 240, -187])
         #time.sleep(1)
         RunPoint(move, [target[0], target[1], 214, -187])
-        WaitArrive([target[0], target[1], 214, -187])
+        WaitArrive([target[0], target[1], 224, -187])
         #time.sleep(1)
         RunPoint(move, [target[0], target[1], 240, -187])
         WaitArrive([target[0], target[1], 240, -187])
