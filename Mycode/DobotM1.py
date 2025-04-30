@@ -122,11 +122,15 @@ if __name__ == '__main__':
     feed_thread1.setDaemon(True)
     feed_thread1.start()
     print("循環執行...")
-    point_a = [218.95, -210.78, 240, -187]
-    point_b = [266.77,-73.45, 240, -115]
+    point_a = [-13.45, -339.78, 151, -143]
+    point_b = [-13.77,-339.45, 141, -143]
+    dashboard.DO(9, 1)
     for i in range(3):   
+        dashboard.DO(9, 0)
         RunPoint(move, point_a)
         WaitArrive(point_a)
-        sleep(1)
+        sleep(3)
         RunPoint(move, point_b)
+        dashboard.DO(9, 1)
         WaitArrive(point_b)
+        sleep(3)

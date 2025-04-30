@@ -12,17 +12,17 @@ objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
 objp = objp * 10  # 單位 10mm
 # 相機內參矩陣
 K = np.array([
-    [5.35533899e+00, 0, 1.24451771e+00],
-    [0.0, 5.35687528e+00, 1.02655760e+00],
+    [5.48972546e+03, 0, 1.28728459e+03],
+    [0.0, 5.48928732e+03, 9.41806709e+02],
     [0.0, 0.0, 1.0]
 ])
 
 # 畸變係數
-D = np.array([[-9.63028822e-02, 2.74658814e-01, 1.36385496e-03, 5.80934112e-04, 2.95541140e+00]])
+D = np.array([[-2.71633064e-02, -3.01872792e-01, 4.02247668e-03, -1.81802326e-05, 2.59132126e+00]])
 
 
 # 單張圖片路徑
-image_path = 'C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\246.jpg'
+image_path = 'C:\\Users\\123\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\290.jpg'
 img = cv2.imread(image_path)
 
 if img is None:
@@ -35,7 +35,9 @@ else:
     
     #undistorted_img = cv2.undistort(img, K, D, None, new_camera_matrix)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cv2.imshow("gray",gray)
+    #cv2.imshow("gray",gray)
+    cv2.namedWindow('MyWindow', cv2.WINDOW_NORMAL)
+    cv2.imshow("MyWindow",gray)
     cv2.waitKey(0)
     
 
@@ -58,6 +60,7 @@ else:
             cv2.putText(img_with_corners, str(idx), corner_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 
         # 顯示結果
+        cv2.namedWindow('Chessboard with Corners', cv2.WINDOW_NORMAL)
         cv2.imshow("Chessboard with Corners", img_with_corners)
         cv2.waitKey(0)
 

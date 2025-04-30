@@ -2,8 +2,8 @@ import cv2
 import os
 
 # 指定 BMP 檔案的目錄路徑
-input_folder = "C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\datafile"  # 替換成你的 BMP 圖片目錄
-output_folder = "C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs"  # 儲存 JPG 圖片的目錄
+input_folder = "C:\\Users\\123\\Documents\\GitHub\\DobotM1Project\\Mycode\\datafile"  # 替換成你的 BMP 圖片目錄
+output_folder = "C:\\Users\\123\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs"  # 儲存 JPG 圖片的目錄
 
 # 確保輸出目錄存在，如果不存在則建立
 if not os.path.exists(output_folder):

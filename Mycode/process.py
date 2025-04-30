@@ -16,7 +16,7 @@ objp[:, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
 objp = objp * 10  # 單位 10 mm
 
 # 讀取所有圖像
-images = glob.glob('C:\\Users\\TSIC\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\*.jpg')
+images = glob.glob('C:\\Users\\123\\Documents\\GitHub\\DobotM1Project\\Mycode\\converted_jpgs\\*.jpg')
 gray = None
 
 for i, fname in enumerate(images):
