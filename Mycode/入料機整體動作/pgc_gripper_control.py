@@ -1,5 +1,6 @@
 from pymodbus.client import ModbusSerialClient
-
+from pymodbus import __version__
+print(__version__)
 class PGC_Gripper:
     def __init__(self, port='COM3', baudrate=115200, parity='N', stopbits=1, unit_id=1):
         self.client = ModbusSerialClient(
@@ -16,11 +17,12 @@ class PGC_Gripper:
             raise ConnectionError("❌ Could not connect to PGC gripper")
 
     def write_register(self, address, value):
-        result = self.client.write_register(address=address, value=value)
+        result = self.client.write_register(address=address, value=value, slave=self.unit_id)
         if result.isError():
-            print(f"⚠️ Failed to write {value} to register {address}")
+            print(f"⚠️ Failed to write {value} to register {address} (unit {self.unit_id})")
         else:
-            print(f"✅ Wrote {value} to register {address}")
+            print(f"✅ Wrote {value} to register {address} (unit {self.unit_id})")
+
 
     def initialize(self, mode=0x01):
         """初始化夹爪，mode=0x01为回零，mode=0xA5为完全初始化"""

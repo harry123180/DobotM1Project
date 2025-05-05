@@ -114,7 +114,7 @@ def ClearRobotError(dashboard: DobotApiDashboard):
       sleep(5)
        
 if __name__ == '__main__':
-    gripper = PGC_Gripper(port='COM3', baudrate=115200, parity='N', stopbits=1, unit_id=1)
+    gripper = PGC_Gripper(port='COM3', baudrate=115200, parity='N', stopbits=1, unit_id=7)
     VP = Vibration_plate("192.188.2.88", 1000, 10)
     initialize_all_cameras()#初始化相機
     sleep(2)
@@ -140,6 +140,7 @@ if __name__ == '__main__':
     WaitArrive(CV_VP_MID)
     sleep(1)
     VP.backlight(1)
+    sleep(5)
     positions = GetObjectPosition()
     print(positions[0][0],positions[0][1])
     point_a = [positions[0][0], positions[0][1], 243, -143]
