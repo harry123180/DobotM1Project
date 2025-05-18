@@ -1,38 +1,39 @@
-# RS485_Demo.py
-from dobot_api import DobotApiDashboard, DobotApi, DobotApiMove
-from time import sleep
+import time
+from dobot_api import DobotApiDashboard
 
 def connect_robot(ip="192.168.1.6"):
     print("🔌 正在連接機械臂...")
     dashboard = DobotApiDashboard(ip, 29999)
-    move = DobotApiMove(ip, 30003)
-    feed = DobotApi(ip, 30004)
     print("✅ 機械臂連線成功！")
-    return dashboard, move, feed
+    return dashboard
 
-def read_gripper_position(dashboard, slave_id=1):
-    # 建立 Modbus RTU 主站（isRTU=1）
-    print("🛠️ 建立 RS485 (Modbus RTU) 主站...")
-    result = dashboard.ModbusCreate("127.0.0.1", 0, slave_id, 1)
-    print("ModbusCreate 回應:", result)
-    sleep(0.2)
-
-    # 讀取寄存器 0x0202（十進位 514）: PGC 夾爪位置，資料格式 U16
-    print("📤 嘗試讀取 PGC 電爪位置 (register 0x0202)...")
-    result = dashboard.GetHoldRegs(slave_id, 514, 1, "U16")
-    print("GetHoldRegs 回應:", result)
-
+def parse_response(response):
+    if not response or response.startswith("-1"):
+        return None, "❌ 無回應或 Modbus 失敗"
     try:
-        # 嘗試解析回傳格式：例如 "value = 680"
-        value_str = result.split("=")[-1].strip()
-        value = int(value_str)
-        print(f"➡️ 夾爪目前位置：{value} ‰（約為 {value / 1000.0 * 100:.1f}% 開口）")
+        data_str = response.split(",")[1].strip("{}")
+        reg_str = data_str.split(":")[1]
+        return int(reg_str), None
     except Exception as e:
-        print("⚠️ 無法解析位置回傳：", e)
-
-    print("🧹 關閉 Modbus 通道")
-    dashboard.ModbusClose(slave_id)
+        return None, f"⚠️ 回應格式解析錯誤: {e}"
 
 if __name__ == '__main__':
-    dashboard, move, feed = connect_robot()
-    read_gripper_position(dashboard)
+    dashboard = connect_robot()
+
+    print("🛠️ 建立 RS485 (Modbus RTU) 主站...")
+    result = dashboard.ModbusCreate("127.0.0.1", 60000, 1, 1)  # ✅ 正確參數
+    print("ModbusCreate 回應:", result)
+
+    print("📤 開始每秒讀取夾爪位置 (暫存器 0x0202)... 按 Ctrl+C 停止")
+    try:
+        while True:
+            resp = dashboard.GetHoldRegs(1, 0x0202, 1, "U16")
+            value, error = parse_response(resp)
+            if error:
+                print(f"⛔ [{time.strftime('%H:%M:%S')}] 無效回應: {error}")
+            else:
+                print(f"🔍 [{time.strftime('%H:%M:%S')}] 夾爪位置（0~100%）: {value}")
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n🧹 停止讀取，關閉 Modbus 通道...")
+        dashboard.ModbusClose(1)
