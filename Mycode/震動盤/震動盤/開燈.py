@@ -1,7 +1,7 @@
 from pymodbus.client import ModbusTcpClient  # 匯入模組
 import time
 # Modbus TCP 伺服器設定
-IP = "192.188.2.88"  # 伺服器 IP
+IP = "192.168.1.7"  # 伺服器 IP
 PORT = 1000  # 伺服器 Port
 UNIT_ID = 10  # Slave ID
 
