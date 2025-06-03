@@ -509,7 +509,38 @@ body {
     animation: fadeIn 0.3s ease;
 }
 
-/* ===== 响应式设计 ===== */
+/* ===== 圖像保存狀態樣式 ===== */
+.save-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.save-status.error {
+    border-left-color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.save-message {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.save-path {
+    font-size: 12px;
+    color: #6c757d;
+    word-break: break-all;
+}
+
+.save-status.error .save-message {
+    color: #721c24;
+}
+
+.save-status.success .save-message {
+    color: #155724;
+}
 @media (max-width: 768px) {
     .container {
         padding: 0 15px;

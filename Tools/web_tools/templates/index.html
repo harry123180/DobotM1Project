@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>相机控制系统 - Camera Control System</title>
+    <title>相機控制系統 - Camera Control System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -11,10 +11,10 @@
     <!-- 顶部导航栏 -->
     <header class="header">
         <div class="container">
-            <h1><i class="fas fa-camera"></i> 相机控制系统</h1>
+            <h1><i class="fas fa-camera"></i> 相機控制系統</h1>
             <div class="connection-status">
-                <span class="status-label">连接状态:</span>
-                <span id="connection-status" class="status-value status-disconnected">未连接</span>
+                <span class="status-label">連接狀態:</span>
+                <span id="connection-status" class="status-value status-disconnected">未連接</span>
             </div>
         </div>
     </header>
@@ -24,58 +24,58 @@
         <div class="main-grid">
             <!-- 左侧控制区域 -->
             <div class="control-panel">
-                <!-- 设备选择区域 -->
+                <!-- 設備選擇區域 -->
                 <div class="section">
                     <div class="section-header">
-                        <h3><i class="fas fa-list"></i> 设备选择</h3>
+                        <h3><i class="fas fa-list"></i> 設備選擇</h3>
                     </div>
                     <div class="section-content">
                         <div class="input-group">
-                            <label>可用设备:</label>
+                            <label>可用設備:</label>
                             <select id="device-select" disabled>
-                                <option value="">请先刷新设备列表</option>
+                                <option value="">請先刷新設備列表</option>
                             </select>
                         </div>
                         <div class="button-group">
                             <button id="refresh-devices-btn" class="btn btn-secondary">
-                                <i class="fas fa-sync-alt"></i> 刷新设备
+                                <i class="fas fa-sync-alt"></i> 刷新設備
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- 连接控制区域 -->
+                <!-- 連接控制區域 -->
                 <div class="section">
                     <div class="section-header">
-                        <h3><i class="fas fa-plug"></i> 连接控制</h3>
+                        <h3><i class="fas fa-plug"></i> 連接控制</h3>
                     </div>
                     <div class="section-content">
                         <div class="button-group">
                             <button id="connect-btn" class="btn btn-primary" disabled>
-                                <i class="fas fa-link"></i> 连接
+                                <i class="fas fa-link"></i> 連接
                             </button>
                             <button id="disconnect-btn" class="btn btn-danger" disabled>
-                                <i class="fas fa-unlink"></i> 断开
+                                <i class="fas fa-unlink"></i> 斷開
                             </button>
                             <button id="reset-connection-btn" class="btn btn-warning">
-                                <i class="fas fa-redo"></i> 重置连接
+                                <i class="fas fa-redo"></i> 重置連接
                             </button>
                             <button id="optimize-packet-btn" class="btn btn-info" disabled>
-                                <i class="fas fa-network-wired"></i> 优化包大小
+                                <i class="fas fa-network-wired"></i> 優化包大小
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- 参数设置区域 -->
+                <!-- 參數設置區域 -->
                 <div class="section">
                     <div class="section-header">
-                        <h3><i class="fas fa-sliders-h"></i> 相机参数</h3>
+                        <h3><i class="fas fa-sliders-h"></i> 相機參數</h3>
                     </div>
                     <div class="section-content">
                         <div class="parameter-grid">
                             <div class="input-group">
-                                <label>曝光时间(μs):</label>
+                                <label>曝光時間(μs):</label>
                                 <input type="number" id="exposure-time" value="10000" disabled>
                             </div>
                             <div class="input-group">
@@ -83,22 +83,22 @@
                                 <input type="number" id="gain" value="0" step="0.1" disabled>
                             </div>
                             <div class="input-group">
-                                <label>帧率(fps):</label>
+                                <label>幀率(fps):</label>
                                 <input type="number" id="frame-rate" value="30" step="0.1" disabled>
                             </div>
                         </div>
                         <div class="button-group">
                             <button id="get-params-btn" class="btn btn-info" disabled>
-                                <i class="fas fa-download"></i> 获取参数
+                                <i class="fas fa-download"></i> 獲取參數
                             </button>
                             <button id="set-params-btn" class="btn btn-success" disabled>
-                                <i class="fas fa-upload"></i> 设置参数
+                                <i class="fas fa-upload"></i> 設置參數
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- 工作模式区域 -->
+                <!-- 工作模式區域 -->
                 <div class="section">
                     <div class="section-header">
                         <h3><i class="fas fa-cog"></i> 工作模式</h3>
@@ -108,22 +108,22 @@
                             <label class="radio-label">
                                 <input type="radio" name="mode" value="continuous" checked disabled>
                                 <span class="radio-custom"></span>
-                                连续模式
+                                連續模式
                             </label>
                             <label class="radio-label">
                                 <input type="radio" name="mode" value="trigger" disabled>
                                 <span class="radio-custom"></span>
-                                触发模式
+                                觸發模式
                             </label>
                         </div>
                         <div class="status-info">
-                            <span class="status-label">当前模式:</span>
-                            <span id="current-mode" class="status-value">连续模式</span>
+                            <span class="status-label">當前模式:</span>
+                            <span id="current-mode" class="status-value">連續模式</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 串流控制区域 -->
+                <!-- 串流控制區域 -->
                 <div class="section">
                     <div class="section-header">
                         <h3><i class="fas fa-video"></i> 串流控制</h3>
@@ -131,44 +131,44 @@
                     <div class="section-content">
                         <div class="button-group">
                             <button id="start-stream-btn" class="btn btn-success" disabled>
-                                <i class="fas fa-play"></i> 开始串流
+                                <i class="fas fa-play"></i> 開始串流
                             </button>
                             <button id="stop-stream-btn" class="btn btn-danger" disabled>
                                 <i class="fas fa-stop"></i> 停止串流
                             </button>
                         </div>
                         <div class="status-info">
-                            <span class="status-label">串流状态:</span>
+                            <span class="status-label">串流狀態:</span>
                             <span id="stream-status" class="status-value status-stopped">已停止</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 触发控制区域 -->
+                <!-- 觸發控制區域 -->
                 <div class="section">
                     <div class="section-header">
-                        <h3><i class="fas fa-crosshairs"></i> 触发控制</h3>
+                        <h3><i class="fas fa-crosshairs"></i> 觸發控制</h3>
                     </div>
                     <div class="section-content">
                         <div class="button-group">
                             <button id="software-trigger-btn" class="btn btn-warning" disabled>
-                                <i class="fas fa-camera-retro"></i> 软触发
+                                <i class="fas fa-camera-retro"></i> 軟觸發
                             </button>
                             <button id="reset-trigger-btn" class="btn btn-secondary">
-                                <i class="fas fa-undo"></i> 重置计数
+                                <i class="fas fa-undo"></i> 重置計數
                             </button>
                         </div>
                         <div class="status-info">
-                            <span class="status-label">触发次数:</span>
+                            <span class="status-label">觸發次數:</span>
                             <span id="trigger-count" class="status-value">0</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 图像保存区域 -->
+                <!-- 圖像保存區域 -->
                 <div class="section">
                     <div class="section-header">
-                        <h3><i class="fas fa-save"></i> 图像保存</h3>
+                        <h3><i class="fas fa-save"></i> 圖像保存</h3>
                     </div>
                     <div class="section-content">
                         <div class="radio-group">
@@ -185,12 +185,16 @@
                         </div>
                         <div class="button-group">
                             <button id="save-image-btn" class="btn btn-primary" disabled>
-                                <i class="fas fa-save"></i> 保存图像
+                                <i class="fas fa-save"></i> 保存圖像
                             </button>
                         </div>
                         <div class="status-info">
                             <span class="status-label">已保存:</span>
                             <span id="save-count" class="status-value">0</span>
+                        </div>
+                        <div id="save-status" class="save-status" style="display: none;">
+                            <div class="save-message"></div>
+                            <div class="save-path"></div>
                         </div>
                     </div>
                 </div>
@@ -198,37 +202,37 @@
 
             <!-- 右侧状态面板 -->
             <div class="status-panel">
-                <!-- 设备信息区域 -->
+                <!-- 設備資訊區域 -->
                 <div class="section">
                     <div class="section-header">
-                        <h3><i class="fas fa-info-circle"></i> 设备信息</h3>
+                        <h3><i class="fas fa-info-circle"></i> 設備資訊</h3>
                     </div>
                     <div class="section-content">
                         <div class="device-info">
                             <div class="info-item">
-                                <span class="info-label">设备名称:</span>
-                                <span id="device-name" class="info-value">无</span>
+                                <span class="info-label">設備名稱:</span>
+                                <span id="device-name" class="info-value">無</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">设备类型:</span>
-                                <span id="device-type" class="info-value">无</span>
+                                <span class="info-label">設備類型:</span>
+                                <span id="device-type" class="info-value">無</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">序列号:</span>
-                                <span id="device-serial" class="info-value">无</span>
+                                <span class="info-label">序列號:</span>
+                                <span id="device-serial" class="info-value">無</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">IP地址:</span>
-                                <span id="device-ip" class="info-value">无</span>
+                                <span id="device-ip" class="info-value">無</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 系统日志区域 -->
+                <!-- 系統日誌區域 -->
                 <div class="section log-section">
                     <div class="section-header">
-                        <h3><i class="fas fa-list-alt"></i> 系统日志</h3>
+                        <h3><i class="fas fa-list-alt"></i> 系統日誌</h3>
                         <button id="clear-log-btn" class="btn btn-sm btn-secondary">
                             <i class="fas fa-trash"></i> 清除
                         </button>
@@ -236,8 +240,8 @@
                     <div class="section-content">
                         <div id="log-container" class="log-container">
                             <div class="log-entry log-info">
-                                <span class="log-time">[启动]</span>
-                                <span class="log-message">系统初始化完成</span>
+                                <span class="log-time">[啟動]</span>
+                                <span class="log-message">系統初始化完成</span>
                             </div>
                         </div>
                     </div>
@@ -250,7 +254,7 @@
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="loading-spinner">
             <i class="fas fa-spinner fa-spin"></i>
-            <p id="loading-text">处理中...</p>
+            <p id="loading-text">處理中...</p>
         </div>
     </div>
 

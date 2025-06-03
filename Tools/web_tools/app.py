@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Camera Web Control - Flask后端服务器
-基于Camera_API.py的Web化相机控制系统
+Camera Web Control - Flask後端伺服器
+基於Camera_API.py的Web化相機控制系統
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 from flask_socketio import SocketIO, emit
 import threading
 import time
 import json
+import os
 from datetime import datetime
 from typing import Dict, Any, List
 
-# 导入自定义API
+# 導入自定義API
 from Camera_API import (
     CameraAPI, CameraInfo, CameraMode, ImageFormat, 
     CameraStatus, CameraParameters, create_camera_api
@@ -23,14 +24,14 @@ app.config['SECRET_KEY'] = 'camera_control_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 class CameraWebController:
-    """相机Web控制器"""
+    """相機Web控制器"""
     
     def __init__(self):
-        # 初始化相机API
+        # 初始化相機API
         self.camera_api = create_camera_api()
         self.camera_api.set_error_callback(self.on_error)
         
-        # 状态变量
+        # 狀態變數
         self.devices: List[CameraInfo] = []
         self.current_params = CameraParameters()
         self.status_update_thread = None
@@ -38,30 +39,35 @@ class CameraWebController:
         self.trigger_count = 0
         self.save_count = 0
         
-        # 启动状态更新线程
+        # 創建圖像保存目錄
+        self.image_save_path = "saved_images"
+        if not os.path.exists(self.image_save_path):
+            os.makedirs(self.image_save_path)
+            
+        # 啟動狀態更新線程
         self.start_status_update()
     
     def start_status_update(self):
-        """启动状态更新线程"""
+        """啟動狀態更新線程"""
         self.status_running = True
         self.status_update_thread = threading.Thread(target=self.status_update_loop, daemon=True)
         self.status_update_thread.start()
     
     def status_update_loop(self):
-        """状态更新循环"""
+        """狀態更新循環"""
         while self.status_running:
             try:
-                # 获取当前状态
+                # 獲取當前狀態
                 status_data = self.get_current_status()
-                # 发送状态更新到前端
+                # 發送狀態更新到前端
                 socketio.emit('status_update', status_data)
                 time.sleep(1.0)  # 每秒更新一次
             except Exception as e:
-                self.log_message(f"状态更新错误: {str(e)}", "error")
+                self.log_message(f"狀態更新錯誤: {str(e)}", "error")
                 time.sleep(2.0)
     
     def get_current_status(self) -> Dict[str, Any]:
-        """获取当前系统状态"""
+        """獲取當前系統狀態"""
         status = self.camera_api.get_status()
         is_connected = self.camera_api.is_connected()
         is_streaming = self.camera_api.is_streaming()
@@ -74,8 +80,8 @@ class CameraWebController:
             'is_streaming': is_streaming,
             'current_mode': current_mode.value,
             'device_info': {
-                'name': device_info.device_name if device_info else "无",
-                'type': device_info.device_type if device_info else "无",
+                'name': device_info.device_name if device_info else "無",
+                'type': device_info.device_type if device_info else "無",
                 'serial': device_info.serial_number if device_info else "",
                 'ip': device_info.ip_address if device_info else ""
             } if device_info else None,
@@ -90,7 +96,7 @@ class CameraWebController:
         }
     
     def log_message(self, message: str, level: str = "info"):
-        """发送日志消息到前端"""
+        """發送日誌訊息到前端"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         log_data = {
             'timestamp': timestamp,
@@ -100,8 +106,56 @@ class CameraWebController:
         socketio.emit('log_message', log_data)
     
     def on_error(self, error_msg: str):
-        """错误回调函数"""
+        """錯誤回調函數"""
         self.log_message(error_msg, "error")
+        
+    def save_image_with_custom_name(self, format_type: ImageFormat) -> tuple:
+        """保存圖像並返回文件路徑和狀態"""
+        try:
+            if not self.camera_api.is_streaming():
+                return False, "請先開始串流"
+            
+            # 生成唯一的文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            extension = "bmp" if format_type == ImageFormat.BMP else "jpg"
+            filename = f"camera_image_{timestamp}_{self.save_count + 1:04d}.{extension}"
+            filepath = os.path.join(self.image_save_path, filename)
+            
+            # 確保目錄存在
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            
+            # 嘗試保存圖像
+            success = self.camera_api.save_image(format_type)
+            
+            if success:
+                # 檢查是否有生成的圖像文件需要重命名
+                try:
+                    # 原始保存的文件名（由Camera_API生成）
+                    original_files = []
+                    for ext in ['bmp', 'jpg']:
+                        for i in range(10):  # 檢查最近的幾個文件
+                            original_file = f"{i}.{ext}"
+                            if os.path.exists(original_file):
+                                original_files.append(original_file)
+                    
+                    # 如果找到原始文件，重命名它
+                    if original_files:
+                        latest_file = max(original_files, key=os.path.getctime)
+                        if os.path.exists(latest_file):
+                            os.rename(latest_file, filepath)
+                            return True, filepath
+                    
+                    # 如果沒有找到原始文件，返回成功但文件路徑可能不正確
+                    return True, f"圖像已保存（系統默認路徑）"
+                    
+                except Exception as rename_error:
+                    self.log_message(f"重命名文件錯誤: {str(rename_error)}", "warning")
+                    return True, f"圖像已保存（重命名失敗）"
+            else:
+                return False, "保存圖像失敗"
+                
+        except Exception as e:
+            return False, f"保存圖像錯誤: {str(e)}"
 
 # 创建全局控制器实例
 camera_controller = CameraWebController()
@@ -113,21 +167,21 @@ def index():
 
 @socketio.on('connect')
 def handle_connect():
-    """客户端连接"""
-    camera_controller.log_message("Web客户端已连接", "info")
-    # 发送当前状态
+    """客戶端連接"""
+    camera_controller.log_message("Web客戶端已連接", "info")
+    # 發送當前狀態
     emit('status_update', camera_controller.get_current_status())
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """客户端断开连接"""
-    camera_controller.log_message("Web客户端已断开", "info")
+    """客戶端斷開連接"""
+    camera_controller.log_message("Web客戶端已斷開", "info")
 
 @socketio.on('refresh_devices')
 def handle_refresh_devices():
-    """刷新设备列表"""
+    """刷新設備列表"""
     try:
-        camera_controller.log_message("正在枚举设备...", "info")
+        camera_controller.log_message("正在枚舉設備...", "info")
         camera_controller.devices = camera_controller.camera_api.enumerate_devices()
         
         devices_data = []
@@ -142,14 +196,14 @@ def handle_refresh_devices():
             })
         
         if devices_data:
-            camera_controller.log_message(f"找到 {len(devices_data)} 个设备", "success")
+            camera_controller.log_message(f"找到 {len(devices_data)} 個設備", "success")
         else:
-            camera_controller.log_message("未找到可用设备", "warning")
+            camera_controller.log_message("未找到可用設備", "warning")
         
         emit('devices_list', {'devices': devices_data})
         
     except Exception as e:
-        camera_controller.log_message(f"枚举设备失败: {str(e)}", "error")
+        camera_controller.log_message(f"枚舉設備失敗: {str(e)}", "error")
 
 @socketio.on('connect_device')
 def handle_connect_device(data):
@@ -310,19 +364,40 @@ def handle_reset_trigger_count():
 
 @socketio.on('save_image')
 def handle_save_image(data):
-    """保存图像"""
+    """保存圖像"""
     try:
         format_str = data.get('format', 'bmp')
         image_format = ImageFormat.BMP if format_str == 'bmp' else ImageFormat.JPEG
         
-        if camera_controller.camera_api.save_image(image_format):
+        # 使用改進的保存方法
+        success, result_info = camera_controller.save_image_with_custom_name(image_format)
+        
+        if success:
             camera_controller.save_count += 1
-            camera_controller.log_message(f"图像保存成功 ({format_str.upper()}) - 第 {camera_controller.save_count} 张", "success")
+            camera_controller.log_message(f"圖像保存成功 ({format_str.upper()}) - 第 {camera_controller.save_count} 張", "success")
+            camera_controller.log_message(f"保存路徑: {result_info}", "info")
+            
+            # 發送保存成功的詳細資訊
+            emit('image_saved', {
+                'success': True,
+                'count': camera_controller.save_count,
+                'format': format_str.upper(),
+                'path': result_info
+            })
         else:
-            camera_controller.log_message("图像保存失败", "error")
+            camera_controller.log_message(f"圖像保存失敗: {result_info}", "error")
+            emit('image_saved', {
+                'success': False,
+                'error': result_info
+            })
             
     except Exception as e:
-        camera_controller.log_message(f"保存图像错误: {str(e)}", "error")
+        error_msg = f"保存圖像錯誤: {str(e)}"
+        camera_controller.log_message(error_msg, "error")
+        emit('image_saved', {
+            'success': False,
+            'error': error_msg
+        })
 
 @socketio.on('reset_connection')
 def handle_reset_connection(data):
@@ -350,15 +425,15 @@ def handle_reset_connection(data):
         camera_controller.log_message(f"重置连接错误: {str(e)}", "error")
 
 if __name__ == '__main__':
-    # 启动Flask应用
-    print("启动相机控制Web服务器...")
-    print("访问地址: http://localhost:5000")
+    # 啟動Flask應用程式
+    print("啟動相機控制Web伺服器...")
+    print("訪問地址: http://localhost:5000")
     
     try:
         socketio.run(app, host='0.0.0.0', port=5000, debug=False)
     except KeyboardInterrupt:
-        print("\n正在关闭服务器...")
+        print("\n正在關閉伺服器...")
         camera_controller.status_running = False
         if camera_controller.camera_api:
             camera_controller.camera_api.disconnect()
-        print("服务器已关闭")
+        print("伺服器已關閉")
