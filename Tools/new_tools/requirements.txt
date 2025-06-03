@@ -1,0 +1,28 @@
+# 整合相機標定工具依賴套件
+# Integrated Camera Calibration Tool Requirements
+
+# GUI 框架
+customtkinter>=5.2.0
+
+# 圖像處理
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# 數值計算
+numpy>=1.24.0
+
+# 數據處理
+pandas>=2.0.0
+
+# 繪圖
+matplotlib>=3.7.0
+
+# 系統相關
+ctypes-windows-sdk>=0.0.1; platform_system=="Windows"
+
+# 可選：如果需要更好的中文字體支援
+# matplotlib-fonttools>=4.0.0
+
+# 開發和測試（可選）
+# pytest>=7.0.0
+# pytest-qt>=4.0.0
