@@ -1,25 +1,47 @@
-# modbus_tcp_server.py
-import asyncio
+# modbus_tcp_server_separated.py
+# 支援分離檔案版本 (templates + static)
+
 import logging
 import threading
 import time
+import json
+import os
 from datetime import datetime
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from pymodbus.server import StartTcpServer
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import ModbusSequentialDataBlock, ModbusSlaveContext, ModbusServerContext
-
-import json
 
 # 設定日誌
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('ModbusServer/logs/modbus_server.log'),
+        logging.FileHandler('modbus_server.log'),
         logging.StreamHandler()
     ]
 )
+
+class SynchronizedDataBlock(ModbusSequentialDataBlock):
+    """同步化的數據塊，當外部修改時會更新主程式的暫存器陣列"""
+    
+    def __init__(self, address, values, server_app):
+        super().__init__(address, values)
+        self.server_app = server_app
+    
+    def setValues(self, address, values):
+        """覆寫setValues方法，同步更新主程式的陣列"""
+        result = super().setValues(address, values)
+        
+        # 同步更新主程式的暫存器陣列
+        if self.server_app:
+            for i, value in enumerate(values):
+                reg_addr = address + i
+                if 0 <= reg_addr < len(self.server_app.registers):
+                    self.server_app.registers[reg_addr] = value
+                    logging.info(f"外部更新暫存器 {reg_addr}: {value}")
+        
+        return result
 
 class ModbusTCPServerApp:
     def __init__(self):
@@ -32,13 +54,22 @@ class ModbusTCPServerApp:
         self.register_count = 1000
         self.registers = [0] * self.register_count
         
+        # 暫存器註解
+        self.register_comments = {}
+        self.load_comments()
+        
+        # 創建templates和static目錄
+        self.create_directories()
+        
         # Modbus相關
         self.server = None
         self.context = None
         self.slave_context = None
         
-        # Web應用
-        self.flask_app = Flask(__name__)
+        # Web應用 - 設定模板和靜態檔案路徑
+        self.flask_app = Flask(__name__, 
+                              template_folder='templates',
+                              static_folder='static')
         self.setup_web_routes()
         
         # 伺服器狀態
@@ -46,20 +77,46 @@ class ModbusTCPServerApp:
         
         logging.info("Modbus TCP Server 應用程式初始化完成")
     
+    def create_directories(self):
+        """創建必要的目錄結構"""
+        directories = [
+            'templates',
+            'static'
+        ]
+        for directory in directories:
+            os.makedirs(directory, exist_ok=True)
+    
+    def load_comments(self):
+        """載入暫存器註解"""
+        try:
+            if os.path.exists('register_comments.json'):
+                with open('register_comments.json', 'r', encoding='utf-8') as f:
+                    self.register_comments = json.load(f)
+                logging.info(f"載入了 {len(self.register_comments)} 個暫存器註解")
+        except Exception as e:
+            logging.error(f"載入註解失敗: {e}")
+            self.register_comments = {}
+    
+    def save_comments(self):
+        """保存暫存器註解"""
+        try:
+            with open('register_comments.json', 'w', encoding='utf-8') as f:
+                json.dump(self.register_comments, f, ensure_ascii=False, indent=2)
+            logging.info("暫存器註解已保存")
+        except Exception as e:
+            logging.error(f"保存註解失敗: {e}")
+    
     def create_modbus_context(self):
         """創建Modbus數據上下文"""
-        # 創建數據塊 (Function Code 0x03, 0x04 - Holding Registers)
-        # address=0 表示從地址0開始，values是初始值列表
-        holding_registers = ModbusSequentialDataBlock(0, self.registers)
+        # 使用同步化的數據塊
+        holding_registers = SynchronizedDataBlock(0, self.registers, self)
         
         # 創建Slave上下文
-        # di = Discrete Inputs, co = Coils, hr = Holding Registers, ir = Input Registers
         self.slave_context = ModbusSlaveContext(
             di=ModbusSequentialDataBlock(0, [0]*100),  # Discrete Inputs
             co=ModbusSequentialDataBlock(0, [0]*100),  # Coils
             hr=holding_registers,                       # Holding Registers (主要使用)
             ir=holding_registers,                       # Input Registers (共用同樣的數據)
-            
         )
         
         # 創建伺服器上下文，包含多個slave
@@ -92,8 +149,19 @@ class ModbusTCPServerApp:
     def read_register(self, address):
         """讀取暫存器值"""
         if 0 <= address < self.register_count:
+            # 從Modbus上下文讀取最新值
+            if self.slave_context:
+                try:
+                    result = self.slave_context.getValues(3, address, 1)
+                    if result:
+                        value = result[0]
+                        self.registers[address] = value  # 同步到內部陣列
+                        return value
+                except:
+                    pass
+            
+            # 如果Modbus上下文不可用，返回內部陣列的值
             value = self.registers[address]
-            logging.info(f"讀取暫存器 {address}: {value}")
             return value
         else:
             logging.error(f"暫存器地址超出範圍: {address}")
@@ -133,6 +201,16 @@ class ModbusTCPServerApp:
     
     def get_register_status(self):
         """獲取暫存器狀態摘要"""
+        # 同步所有暫存器值
+        if self.slave_context:
+            try:
+                for addr in range(min(100, self.register_count)):  # 只同步前100個避免太慢
+                    result = self.slave_context.getValues(3, addr, 1)
+                    if result:
+                        self.registers[addr] = result[0]
+            except:
+                pass
+        
         non_zero_registers = {addr: val for addr, val in enumerate(self.registers) if val != 0}
         return {
             'total_registers': self.register_count,
@@ -142,12 +220,48 @@ class ModbusTCPServerApp:
             'server_running': self.server_running
         }
     
+    def get_register_range(self, start_address, count):
+        """獲取指定範圍的暫存器數據"""
+        if start_address < 0 or start_address >= self.register_count:
+            return None
+        
+        end_address = min(start_address + count, self.register_count)
+        registers_data = []
+        
+        for addr in range(start_address, end_address):
+            value = self.read_register(addr)  # 使用read_register確保數據同步
+            comment = self.register_comments.get(str(addr), '')
+            registers_data.append({
+                'address': addr,
+                'value': value,
+                'comment': comment
+            })
+        
+        return registers_data
+    
+    def update_register_comment(self, address, comment):
+        """更新暫存器註解"""
+        if 0 <= address < self.register_count:
+            if comment.strip():
+                self.register_comments[str(address)] = comment.strip()
+            else:
+                # 如果註解為空，則刪除
+                self.register_comments.pop(str(address), None)
+            
+            self.save_comments()
+            return True
+        return False
+    
     def setup_web_routes(self):
         """設定Web介面路由"""
         
         @self.flask_app.route('/')
         def index():
-            return render_template_string(WEB_INTERFACE_HTML)
+            return render_template('index.html')
+        
+        @self.flask_app.route('/static/<path:filename>')
+        def static_files(filename):
+            return send_from_directory('static', filename)
         
         @self.flask_app.route('/api/status')
         def api_status():
@@ -166,7 +280,8 @@ class ModbusTCPServerApp:
         def api_get_register(address):
             value = self.read_register(address)
             if value is not None:
-                return jsonify({'address': address, 'value': value})
+                comment = self.register_comments.get(str(address), '')
+                return jsonify({'address': address, 'value': value, 'comment': comment})
             else:
                 return jsonify({'error': 'Invalid address'}), 400
         
@@ -188,6 +303,32 @@ class ModbusTCPServerApp:
                 return jsonify({'success': True})
             else:
                 return jsonify({'success': False, 'error': 'Invalid range or values'}), 400
+        
+        @self.flask_app.route('/api/register_range')
+        def api_get_register_range():
+            start_address = int(request.args.get('start', 0))
+            count = int(request.args.get('count', 20))
+            count = min(count, 100)  # 限制最大數量
+            
+            registers_data = self.get_register_range(start_address, count)
+            if registers_data is not None:
+                return jsonify({
+                    'success': True,
+                    'start_address': start_address,
+                    'count': len(registers_data),
+                    'registers': registers_data
+                })
+            else:
+                return jsonify({'success': False, 'error': 'Invalid address range'}), 400
+        
+        @self.flask_app.route('/api/comment/<int:address>', methods=['POST'])
+        def api_update_comment(address):
+            data = request.get_json()
+            comment = data.get('comment', '')
+            if self.update_register_comment(address, comment):
+                return jsonify({'success': True, 'address': address, 'comment': comment})
+            else:
+                return jsonify({'success': False, 'error': 'Invalid address'}), 400
     
     def start_modbus_server(self):
         """啟動Modbus TCP伺服器"""
@@ -212,7 +353,6 @@ class ModbusTCPServerApp:
                 context=context,
                 identity=identity,
                 address=(self.server_host, self.server_port),
-                
             )
             
         except Exception as e:
@@ -246,7 +386,20 @@ class ModbusTCPServerApp:
         for addr, value in test_data.items():
             self.write_register(addr, value)
         
-        logging.info("測試數據初始化完成")
+        # 設定一些測試註解
+        test_comments = {
+            0: "溫度感測器",
+            1: "濕度感測器", 
+            10: "馬達轉速",
+            50: "壓力數值",
+            100: "測試數據"
+        }
+        
+        for addr, comment in test_comments.items():
+            self.register_comments[str(addr)] = comment
+        
+        self.save_comments()
+        logging.info("測試數據和註解初始化完成")
     
     def run(self):
         """主運行方法"""
@@ -264,202 +417,6 @@ class ModbusTCPServerApp:
         
         # 啟動Modbus伺服器 (主線程，會阻塞)
         self.start_modbus_server()
-
-# Web介面HTML模板
-WEB_INTERFACE_HTML = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Modbus TCP Server 管理介面</title>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { text-align: center; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
-        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-        .status { background-color: #e7f3ff; }
-        .controls { background-color: #f0f8e7; }
-        .registers { background-color: #fff7e6; }
-        input, button { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #007bff; color: white; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        .register-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; }
-        .register-item { padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9; }
-        .register-item.non-zero { background-color: #d4edda; border-color: #c3e6cb; }
-        .error { color: #d32f2f; }
-        .success { color: #388e3c; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔧 Modbus TCP Server 管理介面</h1>
-            <p>伺服器地址: 127.0.0.1:502 | Web管理: 127.0.0.1:8000</p>
-        </div>
-        
-        <div class="section status">
-            <h2>📊 伺服器狀態</h2>
-            <div id="status-info">載入中...</div>
-            <button onclick="refreshStatus()">🔄 刷新狀態</button>
-        </div>
-        
-        <div class="section controls">
-            <h2>⚙️ 控制面板</h2>
-            <div>
-                <label>SlaveID (1-247):</label>
-                <input type="number" id="slave-id" min="1" max="247" value="1">
-                <button onclick="updateSlaveId()">更新 SlaveID</button>
-            </div>
-            <div style="margin-top: 10px;">
-                <label>暫存器地址 (0-999):</label>
-                <input type="number" id="reg-address" min="0" max="999" value="0">
-                <label>值 (-32768 ~ 32767):</label>
-                <input type="number" id="reg-value" min="-32768" max="32767" value="0">
-                <button onclick="writeRegister()">寫入暫存器</button>
-                <button onclick="readRegister()">讀取暫存器</button>
-            </div>
-            <div id="result-message"></div>
-        </div>
-        
-        <div class="section registers">
-            <h2>📋 暫存器狀態 (僅顯示非零值)</h2>
-            <div id="registers-grid" class="register-grid">載入中...</div>
-        </div>
-        
-        <div class="section">
-            <h2>📖 使用說明</h2>
-            <ul>
-                <li><strong>Modbus Poll 連接設定:</strong> 連接到 127.0.0.1:502</li>
-                <li><strong>Function Code:</strong> 使用 0x03 (Read Holding Registers) 讀取暫存器</li>
-                <li><strong>SlaveID:</strong> 預設為 1，可透過上面的控制面板修改</li>
-                <li><strong>暫存器範圍:</strong> 0-999 (共1000個暫存器)</li>
-                <li><strong>數據類型:</strong> 16位有符號整數 (-32768 到 32767)</li>
-                <li><strong>測試數據:</strong> 地址 0,1,10,50,100 已預設測試值</li>
-            </ul>
-        </div>
-    </div>
-
-    <script>
-        // 刷新伺服器狀態
-        function refreshStatus() {
-            fetch('/api/status')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('status-info').innerHTML = `
-                        <p><strong>伺服器狀態:</strong> ${data.server_running ? '🟢 運行中' : '🔴 停止'}</p>
-                        <p><strong>當前 SlaveID:</strong> ${data.slave_id}</p>
-                        <p><strong>總暫存器數:</strong> ${data.total_registers}</p>
-                        <p><strong>非零暫存器數:</strong> ${data.non_zero_count}</p>
-                        <p><strong>最後更新:</strong> ${new Date().toLocaleString()}</p>
-                    `;
-                    
-                    // 更新暫存器顯示
-                    updateRegistersDisplay(data.non_zero_registers);
-                    
-                    // 更新SlaveID輸入框
-                    document.getElementById('slave-id').value = data.slave_id;
-                })
-                .catch(error => {
-                    document.getElementById('status-info').innerHTML = `<p class="error">❌ 無法獲取狀態: ${error}</p>`;
-                });
-        }
-        
-        // 更新暫存器顯示
-        function updateRegistersDisplay(registers) {
-            const grid = document.getElementById('registers-grid');
-            if (Object.keys(registers).length === 0) {
-                grid.innerHTML = '<p>所有暫存器都為零</p>';
-                return;
-            }
-            
-            let html = '';
-            for (let [address, value] of Object.entries(registers)) {
-                html += `
-                    <div class="register-item non-zero">
-                        <strong>地址 ${address}</strong><br>
-                        值: ${value}
-                    </div>
-                `;
-            }
-            grid.innerHTML = html;
-        }
-        
-        // 更新SlaveID
-        function updateSlaveId() {
-            const slaveId = parseInt(document.getElementById('slave-id').value);
-            fetch('/api/slave_id', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({slave_id: slaveId})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(`✅ SlaveID 已更新為: ${data.slave_id}`, 'success');
-                    refreshStatus();
-                } else {
-                    showMessage(`❌ 更新失敗: ${data.error}`, 'error');
-                }
-            })
-            .catch(error => showMessage(`❌ 請求失敗: ${error}`, 'error'));
-        }
-        
-        // 寫入暫存器
-        function writeRegister() {
-            const address = parseInt(document.getElementById('reg-address').value);
-            const value = parseInt(document.getElementById('reg-value').value);
-            
-            fetch(`/api/register/${address}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({value: value})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(`✅ 暫存器 ${address} 已設為: ${value}`, 'success');
-                    refreshStatus();
-                } else {
-                    showMessage(`❌ 寫入失敗: ${data.error}`, 'error');
-                }
-            })
-            .catch(error => showMessage(`❌ 請求失敗: ${error}`, 'error'));
-        }
-        
-        // 讀取暫存器
-        function readRegister() {
-            const address = parseInt(document.getElementById('reg-address').value);
-            
-            fetch(`/api/register/${address}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.address !== undefined) {
-                        showMessage(`📖 暫存器 ${data.address} 的值: ${data.value}`, 'success');
-                        document.getElementById('reg-value').value = data.value;
-                    } else {
-                        showMessage(`❌ 讀取失敗: ${data.error}`, 'error');
-                    }
-                })
-                .catch(error => showMessage(`❌ 請求失敗: ${error}`, 'error'));
-        }
-        
-        // 顯示訊息
-        function showMessage(message, type) {
-            const msgDiv = document.getElementById('result-message');
-            msgDiv.innerHTML = `<p class="${type}">${message}</p>`;
-            setTimeout(() => msgDiv.innerHTML = '', 5000);
-        }
-        
-        // 頁面載入時刷新狀態
-        window.onload = function() {
-            refreshStatus();
-            // 每30秒自動刷新一次
-            setInterval(refreshStatus, 30000);
-        };
-    </script>
-</body>
-</html>
-'''
 
 if __name__ == "__main__":
     app = ModbusTCPServerApp()

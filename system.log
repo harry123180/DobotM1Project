@@ -1,0 +1,878 @@
+2025-06-02 23:51:28,934 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.50.32:5000
+2025-06-02 23:51:28,935 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-02 23:51:28,935 - INFO -  * Restarting with stat
+2025-06-02 23:51:29,549 - WARNING -  * Debugger is active!
+2025-06-02 23:51:29,601 - INFO -  * Debugger PIN: 119-427-341
+2025-06-02 23:51:29,962 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:29] "GET /socket.io/?EIO=4&transport=polling&t=PSnLpkX HTTP/1.1" 200 -
+2025-06-02 23:51:29,972 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:29] "POST /socket.io/?EIO=4&transport=polling&t=PSnLpkk&sid=VpuLCtqNJEIHJE3HAAAA HTTP/1.1" 200 -
+2025-06-02 23:51:29,979 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:29] "GET /socket.io/?EIO=4&transport=polling&t=PSnLpko&sid=VpuLCtqNJEIHJE3HAAAA HTTP/1.1" 200 -
+2025-06-02 23:51:34,574 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:34] "GET / HTTP/1.1" 200 -
+2025-06-02 23:51:34,581 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:34] "GET /socket.io/?EIO=4&transport=websocket&sid=VpuLCtqNJEIHJE3HAAAA HTTP/1.1" 200 -
+2025-06-02 23:51:34,640 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:34] "GET /socket.io/?EIO=4&transport=polling&t=PSnLqtj HTTP/1.1" 200 -
+2025-06-02 23:51:34,671 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:34] "POST /socket.io/?EIO=4&transport=polling&t=PSnLqu5&sid=fX3xeztCA2m7kxxWAAAC HTTP/1.1" 200 -
+2025-06-02 23:51:34,672 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:34] "GET /socket.io/?EIO=4&transport=polling&t=PSnLqu5.0&sid=fX3xeztCA2m7kxxWAAAC HTTP/1.1" 200 -
+2025-06-02 23:51:34,734 - INFO - 192.168.50.32 - - [02/Jun/2025 23:51:34] "GET /socket.io/?EIO=4&transport=polling&t=PSnLqvC&sid=fX3xeztCA2m7kxxWAAAC HTTP/1.1" 200 -
+2025-06-02 23:52:42,300 - INFO -  * Detected change in 'd:\\AWORKSPACE\\Github\\DobotM1Project\\DobotTools\\app.py', reloading
+2025-06-02 23:52:42,539 - INFO -  * Restarting with stat
+2025-06-02 23:52:43,071 - WARNING -  * Debugger is active!
+2025-06-02 23:52:43,074 - INFO -  * Debugger PIN: 119-427-341
+2025-06-02 23:52:43,574 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:43] "GET /socket.io/?EIO=4&transport=polling&t=PSnM5il HTTP/1.1" 200 -
+2025-06-02 23:52:50,951 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.50.32:5000
+2025-06-02 23:52:50,951 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-02 23:52:50,951 - INFO -  * Restarting with stat
+2025-06-02 23:52:51,358 - WARNING -  * Debugger is active!
+2025-06-02 23:52:51,364 - INFO -  * Debugger PIN: 119-427-341
+2025-06-02 23:52:51,373 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:51] "GET /socket.io/?EIO=4&transport=polling&t=PSnM7AT HTTP/1.1" 200 -
+2025-06-02 23:52:51,390 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:51] "POST /socket.io/?EIO=4&transport=polling&t=PSnM7cr&sid=l6USlew08S4e7fz9AAAA HTTP/1.1" 200 -
+2025-06-02 23:52:51,396 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:51] "GET /socket.io/?EIO=4&transport=polling&t=PSnM7cv&sid=l6USlew08S4e7fz9AAAA HTTP/1.1" 200 -
+2025-06-02 23:52:57,380 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:57] "GET / HTTP/1.1" 200 -
+2025-06-02 23:52:57,388 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:57] "GET /socket.io/?EIO=4&transport=websocket&sid=l6USlew08S4e7fz9AAAA HTTP/1.1" 200 -
+2025-06-02 23:52:57,420 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:57] "GET /socket.io/?EIO=4&transport=polling&t=PSnM957 HTTP/1.1" 200 -
+2025-06-02 23:52:57,443 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:57] "POST /socket.io/?EIO=4&transport=polling&t=PSnM95M&sid=qg0As3WN7AxjBhwdAAAC HTTP/1.1" 200 -
+2025-06-02 23:52:57,446 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:57] "GET /socket.io/?EIO=4&transport=polling&t=PSnM95O&sid=qg0As3WN7AxjBhwdAAAC HTTP/1.1" 200 -
+2025-06-02 23:52:57,500 - INFO - 192.168.50.32 - - [02/Jun/2025 23:52:57] "GET /socket.io/?EIO=4&transport=polling&t=PSnM96B&sid=qg0As3WN7AxjBhwdAAAC HTTP/1.1" 200 -
+2025-06-02 23:53:52,353 - ERROR - ¾÷¾¹¤H³s±µ¥¢±Ñ: ('Unable to set socket connection use port 29999 !', <class 'OSError'>)
+2025-06-02 23:53:52,357 - INFO - 192.168.50.32 - - [02/Jun/2025 23:53:52] "POST /api/connect HTTP/1.1" 200 -
+2025-06-02 23:53:56,020 - ERROR - ¾÷¾¹¤H³s±µ¥¢±Ñ: ('Unable to set socket connection use port 29999 !', <class 'OSError'>)
+2025-06-02 23:53:56,022 - INFO - 192.168.50.32 - - [02/Jun/2025 23:53:56] "POST /api/connect HTTP/1.1" 200 -
+2025-06-02 23:54:11,664 - INFO - ¾÷¾¹¤H³s±µ¦¨¥\: 192.168.1.6
+2025-06-02 23:54:11,666 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:11] "POST /api/connect HTTP/1.1" 200 -
+2025-06-02 23:54:12,425 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:17,396 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:17] "POST /api/robot/disable HTTP/1.1" 200 -
+2025-06-02 23:54:17,423 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:17,427 - INFO - °õ¦æ«ü¥O: disable
+2025-06-02 23:54:21,976 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:21] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-02 23:54:22,424 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:23,202 - INFO - °õ¦æ«ü¥O: enable
+2025-06-02 23:54:24,742 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:24] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:24,930 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:25,648 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:25] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-02 23:54:25,674 - INFO - °õ¦æ«ü¥O: jog
+2025-06-02 23:54:25,764 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:25] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:25,954 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:26,847 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:26] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:27,034 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:27,197 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:27] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:27,387 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:27,425 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:27,847 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:27] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-02 23:54:27,871 - INFO - °õ¦æ«ü¥O: jog
+2025-06-02 23:54:27,997 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:27] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:28,182 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:28,629 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:28] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:28,808 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:28] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:28,818 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:28,951 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:28] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:29,014 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:29,210 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:29,327 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:29] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:29,514 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:30,091 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:30] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-02 23:54:30,111 - INFO - °õ¦æ«ü¥O: jog
+2025-06-02 23:54:30,257 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:30] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:30,451 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:31,197 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:31] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:31,390 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:31,632 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:31] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:31,820 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:31,931 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:31] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:32,081 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:32] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:32,122 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:32,175 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:32] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:32,319 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:32,425 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:32,520 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:32,560 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:32] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:32,746 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:33,059 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:33] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-02 23:54:33,082 - INFO - °õ¦æ«ü¥O: jog
+2025-06-02 23:54:33,254 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:33] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:33,445 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:33,877 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:33] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:33,925 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:33] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:34,062 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:34,259 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:36,391 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:36] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:36,407 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:36] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:54:36,586 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:36,782 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:54:37,424 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:42,422 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:44,354 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:44] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:44,384 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:47,425 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:48,216 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:48] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:48,226 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:49,717 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:49] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:49,729 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:52,421 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:54:52,567 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:52] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:52,574 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:53,614 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:53] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:53,630 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:54,519 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:54] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:54,525 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:57,185 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:57] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-02 23:54:57,200 - INFO - °õ¦æ«ü¥O: do
+2025-06-02 23:54:57,423 - INFO - 192.168.50.32 - - [02/Jun/2025 23:54:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:02,437 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:07,425 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:12,429 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:14,813 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:14] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:55:14,883 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:14] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:55:14,977 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:14] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:55:15,006 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:55:15,205 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:55:15,399 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:55:15,861 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:15] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-02 23:55:16,048 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-02 23:55:17,426 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:22,568 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:27,574 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:32,586 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:37,570 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:42,574 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:47,567 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:52,569 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:55:57,567 - INFO - 192.168.50.32 - - [02/Jun/2025 23:55:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:02,570 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:07,425 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:12,571 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:17,574 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:22,569 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:27,577 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:32,572 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:37,569 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:42,574 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:47,424 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-02 23:56:48,749 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:48] "POST /api/robot/disable HTTP/1.1" 200 -
+2025-06-02 23:56:49,784 - INFO - °õ¦æ«ü¥O: disable
+2025-06-02 23:56:50,848 - INFO - ¾÷¾¹¤H³s±µ¤wÂ_¶}
+2025-06-02 23:56:50,849 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:50] "POST /api/disconnect HTTP/1.1" 200 -
+2025-06-02 23:56:54,300 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "GET / HTTP/1.1" 200 -
+2025-06-02 23:56:54,315 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "GET /socket.io/?EIO=4&transport=websocket&sid=qg0As3WN7AxjBhwdAAAC HTTP/1.1" 200 -
+2025-06-02 23:56:54,391 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "GET /socket.io/?EIO=4&transport=polling&t=PSnN2xp HTTP/1.1" 200 -
+2025-06-02 23:56:54,413 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "POST /socket.io/?EIO=4&transport=polling&t=PSnN2y5&sid=ne0J00Sx4YC-HZTJAAAE HTTP/1.1" 200 -
+2025-06-02 23:56:54,417 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "GET /socket.io/?EIO=4&transport=polling&t=PSnN2y7&sid=ne0J00Sx4YC-HZTJAAAE HTTP/1.1" 200 -
+2025-06-02 23:56:54,503 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "GET /socket.io/?EIO=4&transport=polling&t=PSnN2za&sid=ne0J00Sx4YC-HZTJAAAE HTTP/1.1" 200 -
+2025-06-02 23:56:54,518 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:54] "GET /socket.io/?EIO=4&transport=polling&t=PSnN2zm&sid=ne0J00Sx4YC-HZTJAAAE HTTP/1.1" 200 -
+2025-06-02 23:56:59,901 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:59] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-02 23:56:59,965 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:59] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-02 23:56:59,967 - INFO - 192.168.50.32 - - [02/Jun/2025 23:56:59] "GET /socket.io/?EIO=4&transport=websocket&sid=ne0J00Sx4YC-HZTJAAAE HTTP/1.1" 200 -
+2025-06-02 23:58:48,292 - INFO - 192.168.50.32 - - [02/Jun/2025 23:58:48] "GET /modbus_rtu HTTP/1.1" 200 -
+2025-06-02 23:58:48,358 - INFO - 192.168.50.32 - - [02/Jun/2025 23:58:48] "GET /api/modbus/rtu/status HTTP/1.1" 200 -
+2025-06-02 23:58:48,361 - INFO - 192.168.50.32 - - [02/Jun/2025 23:58:48] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
+2025-06-02 23:58:49,496 - INFO - 192.168.50.32 - - [02/Jun/2025 23:58:49] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-02 23:58:49,552 - INFO - 192.168.50.32 - - [02/Jun/2025 23:58:49] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 00:17:28,538 - INFO - ModbusTCP³s±µ¦¨¥\: 192.168.50.32:502
+2025-06-03 00:17:28,539 - INFO - 192.168.50.32 - - [03/Jun/2025 00:17:28] "POST /api/modbus/tcp/connect HTTP/1.1" 200 -
+2025-06-03 00:17:28,549 - INFO - 192.168.50.32 - - [03/Jun/2025 00:17:28] "POST /api/modbus/tcp/read HTTP/1.1" 200 -
+2025-06-03 00:17:48,839 - INFO - ¼g¤J¼È¦s¾¹¦¨¥\: ¦a§}0 = 20
+2025-06-03 00:17:48,840 - INFO - 192.168.50.32 - - [03/Jun/2025 00:17:48] "POST /api/modbus/tcp/write HTTP/1.1" 200 -
+2025-06-03 00:17:49,057 - INFO - 192.168.50.32 - - [03/Jun/2025 00:17:49] "POST /api/modbus/tcp/read HTTP/1.1" 200 -
+2025-06-03 00:17:58,546 - INFO - ModbusTCP¤wÂ_¶}
+2025-06-03 00:17:58,547 - INFO - 192.168.50.32 - - [03/Jun/2025 00:17:58] "POST /api/modbus/tcp/disconnect HTTP/1.1" 200 -
+2025-06-03 00:18:00,010 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:00] "GET /modbus_rtu HTTP/1.1" 200 -
+2025-06-03 00:18:00,086 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:00] "GET /api/modbus/rtu/status HTTP/1.1" 200 -
+2025-06-03 00:18:00,088 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:00] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
+2025-06-03 00:18:07,228 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:07] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
+2025-06-03 00:18:21,660 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:21] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-03 00:18:21,726 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:21] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 00:18:22,913 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:22] "GET / HTTP/1.1" 200 -
+2025-06-03 00:18:22,974 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:22] "GET /socket.io/?EIO=4&transport=polling&t=PSnRzXf HTTP/1.1" 200 -
+2025-06-03 00:18:23,005 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:23] "POST /socket.io/?EIO=4&transport=polling&t=PSnRzY8&sid=Rb5a9YUZggjOCLo5AAAG HTTP/1.1" 200 -
+2025-06-03 00:18:23,008 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:23] "GET /socket.io/?EIO=4&transport=polling&t=PSnRzYA&sid=Rb5a9YUZggjOCLo5AAAG HTTP/1.1" 200 -
+2025-06-03 00:18:23,072 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:23] "GET /socket.io/?EIO=4&transport=polling&t=PSnRzZ6&sid=Rb5a9YUZggjOCLo5AAAG HTTP/1.1" 200 -
+2025-06-03 00:18:26,190 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:26] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-03 00:18:26,246 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:26] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 00:18:26,249 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:26] "GET /socket.io/?EIO=4&transport=websocket&sid=Rb5a9YUZggjOCLo5AAAG HTTP/1.1" 200 -
+2025-06-03 00:18:27,604 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:27] "GET / HTTP/1.1" 200 -
+2025-06-03 00:18:27,680 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:27] "GET /socket.io/?EIO=4&transport=polling&t=PSnR-gz HTTP/1.1" 200 -
+2025-06-03 00:18:27,752 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:27] "POST /socket.io/?EIO=4&transport=polling&t=PSnR-iW&sid=i-A7Z_6mrmx1EjrIAAAI HTTP/1.1" 200 -
+2025-06-03 00:18:27,755 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:27] "GET /socket.io/?EIO=4&transport=polling&t=PSnR-iX&sid=i-A7Z_6mrmx1EjrIAAAI HTTP/1.1" 200 -
+2025-06-03 00:18:27,830 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:27] "GET /socket.io/?EIO=4&transport=polling&t=PSnR-jn&sid=i-A7Z_6mrmx1EjrIAAAI HTTP/1.1" 200 -
+2025-06-03 00:18:27,863 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:27] "GET /socket.io/?EIO=4&transport=polling&t=PSnR-kF&sid=i-A7Z_6mrmx1EjrIAAAI HTTP/1.1" 200 -
+2025-06-03 00:18:36,068 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:36] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-03 00:18:36,126 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:36] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 00:18:36,127 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:36] "GET /socket.io/?EIO=4&transport=websocket&sid=i-A7Z_6mrmx1EjrIAAAI HTTP/1.1" 200 -
+2025-06-03 00:18:56,667 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:56] "GET / HTTP/1.1" 200 -
+2025-06-03 00:18:56,727 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:56] "GET /socket.io/?EIO=4&transport=polling&t=PSnS5n5 HTTP/1.1" 200 -
+2025-06-03 00:18:56,803 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:56] "POST /socket.io/?EIO=4&transport=polling&t=PSnS5oM&sid=iHFn9ihfncDgqnEoAAAK HTTP/1.1" 200 -
+2025-06-03 00:18:56,810 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:56] "GET /socket.io/?EIO=4&transport=polling&t=PSnS5oN&sid=iHFn9ihfncDgqnEoAAAK HTTP/1.1" 200 -
+2025-06-03 00:18:56,884 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:56] "GET /socket.io/?EIO=4&transport=polling&t=PSnS5pn&sid=iHFn9ihfncDgqnEoAAAK HTTP/1.1" 200 -
+2025-06-03 00:18:57,710 - INFO - ¾÷¾¹¤H³s±µ¦¨¥\: 192.168.1.6
+2025-06-03 00:18:57,712 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:57] "POST /api/connect HTTP/1.1" 200 -
+2025-06-03 00:18:58,446 - INFO - 192.168.50.32 - - [03/Jun/2025 00:18:58] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-03 00:18:59,695 - INFO - °õ¦æ«ü¥O: enable
+2025-06-03 00:19:00,348 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:00] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:00,543 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:00,996 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:00] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:01,183 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:01,715 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:01] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:04,544 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:04] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:04,736 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:05,279 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:05] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:05,307 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:05,430 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:05] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:05,620 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:05,833 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:05] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:05,860 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:05,988 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:05] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:06,172 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:06,193 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:06,216 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:06,278 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:06,458 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:06,464 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:06,495 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:06,578 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:06,718 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:06,750 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:06,767 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:06,801 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:06,879 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:06] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:07,030 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:07,072 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:07,108 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:07,144 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:07,294 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:07,336 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:07,367 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:07,422 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:07,602 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:07,608 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:07,645 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:07,693 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:07,824 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:07,893 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:07,928 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:07,953 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:07] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:08,116 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:08,143 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:08,176 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:08,252 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:08,376 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:08,442 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:08,480 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:08,506 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:08,645 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:08,696 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:08,727 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:08,764 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:08,911 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:08] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:08,955 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:08,988 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:09,012 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:09,206 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:09,212 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:09,240 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:09,329 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:09,507 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:09,521 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:09,552 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:09,563 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:09,753 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:09,910 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:09,927 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:10,096 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:10,293 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:11,720 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:11] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:16,714 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:16] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:21,721 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:21] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:26,717 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:31,725 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:31] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:36,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:36] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:38,814 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:38] "POST /api/waypoints HTTP/1.1" 200 -
+2025-06-03 00:19:38,820 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:38] "GET /api/waypoints HTTP/1.1" 200 -
+2025-06-03 00:19:41,713 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:41] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:46,230 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:46] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:46,419 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:46,513 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:46] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:46,699 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:46,715 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:46] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:47,402 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:47] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:47,430 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:47,551 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:47] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:47,743 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:47,873 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:47] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:47,903 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:48,049 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:48] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:48,234 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:48,247 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:48] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:48,279 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:48,444 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:48] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:48,630 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:48,656 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:48] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:48,683 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:48,862 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:48] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:49,047 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:49,066 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:49] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:49,091 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:49,246 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:49] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:49,434 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:49,448 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:49] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:19:49,479 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:19:49,609 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:49] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:49,799 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:50,113 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:50] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:50,215 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:50] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:19:50,298 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:50,494 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:19:51,716 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:51] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:53,682 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:53] "POST /api/waypoints HTTP/1.1" 200 -
+2025-06-03 00:19:53,690 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:53] "GET /api/waypoints HTTP/1.1" 200 -
+2025-06-03 00:19:56,717 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:56] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:19:57,277 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:57] "POST /api/waypoints/A/move HTTP/1.1" 200 -
+2025-06-03 00:19:57,410 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:19:59,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:19:59] "POST /api/waypoints/B/move HTTP/1.1" 200 -
+2025-06-03 00:19:59,695 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:20:01,719 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:01] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:01,767 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:01] "POST /api/waypoints/A/move HTTP/1.1" 200 -
+2025-06-03 00:20:01,890 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:20:04,237 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:04] "POST /api/waypoints/B/move HTTP/1.1" 200 -
+2025-06-03 00:20:04,362 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:20:06,073 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:06] "POST /api/waypoints/A/move HTTP/1.1" 200 -
+2025-06-03 00:20:06,202 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:20:06,716 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:06] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:09,204 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:09,305 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:09,392 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:09,588 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:10,194 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:10] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:10,385 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:10,948 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:10] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:20:10,970 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:20:11,270 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:11] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:11,457 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:11,602 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:11] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 00:20:11,626 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 00:20:11,716 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:11] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:12,347 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:12] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:12,537 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:13,021 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:13] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:13,089 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:13] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:20:13,213 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:13,410 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:20:15,492 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:15] "POST /api/waypoints HTTP/1.1" 200 -
+2025-06-03 00:20:15,510 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:15] "GET /api/waypoints HTTP/1.1" 200 -
+2025-06-03 00:20:16,715 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:16] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:19,767 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:19] "POST /api/waypoints/B/move HTTP/1.1" 200 -
+2025-06-03 00:20:19,893 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:20:21,719 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:21] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:22,194 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:22] "POST /api/waypoints/A/move HTTP/1.1" 200 -
+2025-06-03 00:20:22,318 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 00:20:26,716 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:31,718 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:31] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:36,720 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:36] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:42,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:46,716 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:46] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:51,713 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:51] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:20:56,717 - INFO - 192.168.50.32 - - [03/Jun/2025 00:20:56] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:01,721 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:01] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:06,718 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:06] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:11,717 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:11] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:14,424 - INFO - ¾÷¾¹¤H³s±µ¤wÂ_¶}
+2025-06-03 00:21:14,425 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:14] "POST /api/disconnect HTTP/1.1" 200 -
+2025-06-03 00:21:14,425 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:14] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-03 00:21:14,516 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:14] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 00:21:14,535 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:14] "GET /socket.io/?EIO=4&transport=websocket&sid=iHFn9ihfncDgqnEoAAAK HTTP/1.1" 200 -
+2025-06-03 00:21:19,312 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:19] "GET /modbus_rtu HTTP/1.1" 200 -
+2025-06-03 00:21:19,375 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:19] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
+2025-06-03 00:21:19,383 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:19] "GET /api/modbus/rtu/status HTTP/1.1" 200 -
+2025-06-03 00:21:22,689 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:22] "GET / HTTP/1.1" 200 -
+2025-06-03 00:21:22,748 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:22] "GET /socket.io/?EIO=4&transport=polling&t=PSnSfQc HTTP/1.1" 200 -
+2025-06-03 00:21:22,779 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:22] "POST /socket.io/?EIO=4&transport=polling&t=PSnSfR2&sid=JfjcmeVY-NSaKCREAAAM HTTP/1.1" 200 -
+2025-06-03 00:21:22,786 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:22] "GET /socket.io/?EIO=4&transport=polling&t=PSnSfR3&sid=JfjcmeVY-NSaKCREAAAM HTTP/1.1" 200 -
+2025-06-03 00:21:38,125 - INFO - ¾÷¾¹¤H³s±µ¦¨¥\: 192.168.1.6
+2025-06-03 00:21:38,126 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:38] "POST /api/connect HTTP/1.1" 200 -
+2025-06-03 00:21:38,995 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:38] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-03 00:21:39,947 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:39] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:21:39,966 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:39] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:21:40,210 - INFO - °õ¦æ«ü¥O: enable
+2025-06-03 00:21:40,407 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:21:40,602 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:21:41,345 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:41] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-03 00:21:41,350 - INFO - °õ¦æ«ü¥O: do
+2025-06-03 00:21:42,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:47,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:52,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:21:55,611 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:55] "POST /api/robot/do HTTP/1.1" 200 -
+2025-06-03 00:21:55,626 - INFO - °õ¦æ«ü¥O: do
+2025-06-03 00:21:57,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:21:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:02,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:07,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:12,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:17,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:22,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:27,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:32,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:37,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:42,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:47,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:52,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:22:57,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:22:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:02,432 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:02] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:23:02,586 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:02] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:23:02,615 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:23:02,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:02,812 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:23:02,969 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:02] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 00:23:03,160 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 00:23:03,743 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:03] "POST /api/robot/emergency_stop HTTP/1.1" 200 -
+2025-06-03 00:23:03,750 - INFO - °õ¦æ«ü¥O: emergency_stop
+2025-06-03 00:23:05,680 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:05] "POST /api/robot/clear_error HTTP/1.1" 200 -
+2025-06-03 00:23:05,697 - INFO - °õ¦æ«ü¥O: clear_error
+2025-06-03 00:23:07,617 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:07] "POST /api/robot/emergency_stop HTTP/1.1" 200 -
+2025-06-03 00:23:07,619 - INFO - °õ¦æ«ü¥O: emergency_stop
+2025-06-03 00:23:07,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:08,965 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:08] "POST /api/robot/clear_error HTTP/1.1" 200 -
+2025-06-03 00:23:08,977 - INFO - °õ¦æ«ü¥O: clear_error
+2025-06-03 00:23:12,740 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:18,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:18] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:23,576 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:23] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:28,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:28] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:33,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:33] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:38,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:38] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:43,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:43] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:48,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:48] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:53,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:53] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:23:58,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:23:58] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:03,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:03] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:08,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:08] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:13,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:13] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:18,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:18] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:23,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:23] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:28,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:28] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:33,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:33] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:38,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:38] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:43,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:43] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:48,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:48] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:53,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:53] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:24:58,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:24:58] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:22,619 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:28,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:28] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:33,573 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:33] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:38,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:38] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:43,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:43] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:48,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:48] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:53,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:53] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:25:58,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:25:58] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:03,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:03] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:08,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:08] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:13,573 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:13] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:18,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:18] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:23,573 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:23] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:27,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:33,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:33] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:38,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:38] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:43,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:43] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:48,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:48] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:53,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:53] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:26:58,574 - INFO - 192.168.50.32 - - [03/Jun/2025 00:26:58] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:27:03,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:27:03] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:27:08,571 - INFO - 192.168.50.32 - - [03/Jun/2025 00:27:08] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:27:13,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:27:13] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:27:18,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:27:18] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:27:23,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:27:23] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:27:28,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:27:28] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:28:26,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:28:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:29:26,578 - INFO - 192.168.50.32 - - [03/Jun/2025 00:29:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:30:26,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:30:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:31:26,575 - INFO - 192.168.50.32 - - [03/Jun/2025 00:31:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:31:59,942 - INFO - 192.168.50.32 - - [03/Jun/2025 00:31:59] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:02,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:07,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:12,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:17,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:22,729 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:27,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:32,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:37,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:42,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:47,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:52,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:32:57,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:32:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:02,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:07,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:12,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:17,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:22,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:27,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:32,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:37,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:42,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:47,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:52,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:33:57,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:33:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:02,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:12,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:17,729 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:22,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:27,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:32,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:37,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:43,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:43] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:48,577 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:48] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:53,574 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:53] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:34:58,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:34:58] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:03,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:03] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:08,568 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:08] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:13,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:13] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:18,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:18] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:23,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:23] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:28,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:28] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:33,569 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:33] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:35:38,573 - INFO - 192.168.50.32 - - [03/Jun/2025 00:35:38] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:36:26,578 - INFO - 192.168.50.32 - - [03/Jun/2025 00:36:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:37:26,602 - INFO - 192.168.50.32 - - [03/Jun/2025 00:37:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:38:26,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:38:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:39:26,567 - INFO - 192.168.50.32 - - [03/Jun/2025 00:39:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:40:26,575 - INFO - 192.168.50.32 - - [03/Jun/2025 00:40:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:41:26,575 - INFO - 192.168.50.32 - - [03/Jun/2025 00:41:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:42:26,576 - INFO - 192.168.50.32 - - [03/Jun/2025 00:42:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:43:26,570 - INFO - 192.168.50.32 - - [03/Jun/2025 00:43:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:44:26,580 - INFO - 192.168.50.32 - - [03/Jun/2025 00:44:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:45:26,600 - INFO - 192.168.50.32 - - [03/Jun/2025 00:45:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:26,584 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:26] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:28,572 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:28] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:32,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:37,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:42,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:47,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:52,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:46:57,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:46:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:02,746 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:07,738 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:12,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:17,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:22,739 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:27,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:32,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:37,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:42,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:47,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:52,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:47:57,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:47:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:02,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:12,740 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:17,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:22,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:27,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:32,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:37,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:42,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:47,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:52,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:48:57,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:48:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:02,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:07,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:12,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:17,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:22,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:27,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:32,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:37,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:42,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:47,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:52,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:49:57,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:49:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:02,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:07,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:12,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:17,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:22,738 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:27,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:32,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:37,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:42,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:47,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:52,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:50:57,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:50:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:02,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:07,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:12,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:17,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:22,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:27,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:32,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:37,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:42,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:47,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:52,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:51:57,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:51:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:02,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:12,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:17,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:22,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:27,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:32,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:37,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:42,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:47,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:52,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:52:57,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:52:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:02,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:07,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:12,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:17,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:22,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:27,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:32,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:37,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:42,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:47,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:52,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:53:57,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:53:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:02,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:07,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:12,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:17,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:22,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:27,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:32,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:37,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:42,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:47,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:52,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:54:57,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:54:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:02,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:12,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:17,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:22,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:27,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:32,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:37,730 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:42,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:47,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:52,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:55:57,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:55:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:02,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:07,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:12,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:17,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:22,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:27,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:32,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:37,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:42,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:47,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:52,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:56:57,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:56:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:02,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:07,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:12,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:17,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:22,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:27,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:32,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:37,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:42,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:47,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:52,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:57:57,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:57:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:02,738 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:07,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:12,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:17,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:22,739 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:27,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:32,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:37,732 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:42,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:47,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:52,738 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:58:57,731 - INFO - 192.168.50.32 - - [03/Jun/2025 00:58:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:02,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:07,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:12,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:17,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:22,737 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:27,734 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:32,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:37,735 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:42,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:47,733 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:52,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 00:59:57,736 - INFO - 192.168.50.32 - - [03/Jun/2025 00:59:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:02,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:12,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:17,731 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:22,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:27,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:32,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:37,734 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:42,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:47,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:52,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:00:57,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:00:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:02,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:12,731 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:17,734 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:22,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:27,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:32,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:37,738 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:42,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:47,738 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:52,732 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:01:57,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:01:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:02,732 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:07,732 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:12,734 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:17,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:22,738 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:27,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:32,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:37,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:42,738 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:47,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:52,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:02:57,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:02:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:02,734 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:07,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:12,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:17,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:22,740 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:22] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:27,737 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:32,730 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:37,731 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:37] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:42,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:42] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:47,732 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:47] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:52,773 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:52] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:03:57,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:03:57] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:02,745 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:02] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:07,733 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:07] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:08,996 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:08] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:04:09,046 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:09] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:04:09,188 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:04:09,384 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:04:11,351 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:11] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-03 01:04:12,584 - INFO - °õ¦æ«ü¥O: enable
+2025-06-03 01:04:12,742 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:12] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:17,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:17] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:23,178 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:23] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:27,735 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:27] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:32,736 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:32] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:04:36,156 - INFO - ¾÷¾¹¤H³s±µ¤wÂ_¶}
+2025-06-03 01:04:36,156 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:36] "POST /api/disconnect HTTP/1.1" 200 -
+2025-06-03 01:04:36,358 - INFO - 192.168.50.32 - - [03/Jun/2025 01:04:36] "GET /socket.io/?EIO=4&transport=websocket&sid=JfjcmeVY-NSaKCREAAAM HTTP/1.1" 200 -
+2025-06-03 01:06:17,634 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.50.32:5000
+2025-06-03 01:06:17,634 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-03 01:06:17,635 - INFO -  * Restarting with stat
+2025-06-03 01:06:21,819 - WARNING -  * Debugger is active!
+2025-06-03 01:06:21,827 - INFO -  * Debugger PIN: 119-427-341
+2025-06-03 01:06:29,394 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "GET / HTTP/1.1" 200 -
+2025-06-03 01:06:29,556 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "GET /socket.io/?EIO=4&transport=polling&t=PSnc-Gl HTTP/1.1" 200 -
+2025-06-03 01:06:29,764 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "POST /socket.io/?EIO=4&transport=polling&t=PSnc-Jx&sid=a-fiTh3VwpTyEFTtAAAA HTTP/1.1" 200 -
+2025-06-03 01:06:29,769 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "GET /socket.io/?EIO=4&transport=polling&t=PSnc-Jz&sid=a-fiTh3VwpTyEFTtAAAA HTTP/1.1" 200 -
+2025-06-03 01:06:29,865 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "GET /socket.io/?EIO=4&transport=polling&t=PSnc-La&sid=a-fiTh3VwpTyEFTtAAAA HTTP/1.1" 200 -
+2025-06-03 01:06:29,890 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "GET /socket.io/?EIO=4&transport=polling&t=PSnc-Lz&sid=a-fiTh3VwpTyEFTtAAAA HTTP/1.1" 200 -
+2025-06-03 01:06:29,979 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:29] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-03 01:06:35,954 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:35] "GET /socket.io/?EIO=4&transport=polling&t=PSnc_pl HTTP/1.1" 200 -
+2025-06-03 01:06:40,090 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:40] "POST /socket.io/?EIO=4&transport=polling&t=PSnd0rI&sid=gxfYfK274aVoT2vqAAAC HTTP/1.1" 200 -
+2025-06-03 01:06:40,098 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:40] "GET /socket.io/?EIO=4&transport=polling&t=PSnd0rN&sid=gxfYfK274aVoT2vqAAAC HTTP/1.1" 200 -
+2025-06-03 01:06:40,193 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:40] "GET /socket.io/?EIO=4&transport=polling&t=PSnd0sc&sid=gxfYfK274aVoT2vqAAAC HTTP/1.1" 200 -
+2025-06-03 01:06:41,844 - INFO - ¾÷¾¹¤H³s±µ¦¨¥\: 192.168.1.6
+2025-06-03 01:06:41,851 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:41] "POST /api/connect HTTP/1.1" 200 -
+2025-06-03 01:06:43,917 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:43] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-03 01:06:44,875 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:44] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:06:45,530 - INFO - °õ¦æ«ü¥O: enable
+2025-06-03 01:06:46,994 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:46] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 01:06:46,999 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:46] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:47,026 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 01:06:47,317 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:47,657 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:47] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 01:06:47,914 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 01:06:48,399 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:48] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:48,591 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:49,374 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:49] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:49,612 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:49,627 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:49] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:06:50,024 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:50] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 01:06:50,047 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 01:06:50,413 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:50] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:50,614 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:50] "POST /api/jog/start HTTP/1.1" 200 -
+2025-06-03 01:06:50,617 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:50,746 - INFO - °õ¦æ«ü¥O: jog
+2025-06-03 01:06:51,035 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:51] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:51,223 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:52,052 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:52] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:52,267 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:52,391 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:52] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:52,583 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:54,408 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:54] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:54,425 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:54] "POST /api/jog/stop HTTP/1.1" 200 -
+2025-06-03 01:06:54,656 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:54,661 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:54] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:06:54,856 - INFO - °õ¦æ«ü¥O: jog_stop
+2025-06-03 01:06:59,601 - INFO - 192.168.50.32 - - [03/Jun/2025 01:06:59] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:07:03,662 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:03] "POST /api/waypoints HTTP/1.1" 200 -
+2025-06-03 01:07:03,758 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:03] "GET /api/waypoints HTTP/1.1" 200 -
+2025-06-03 01:07:04,631 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:04] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:07:09,382 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:09] "POST /api/waypoints/B/move HTTP/1.1" 200 -
+2025-06-03 01:07:09,517 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 01:07:09,559 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:09] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:07:11,454 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:11] "POST /api/waypoints/C/move HTTP/1.1" 200 -
+2025-06-03 01:07:11,576 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 01:07:13,890 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:13] "POST /api/waypoints/A/move HTTP/1.1" 200 -
+2025-06-03 01:07:14,027 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 01:07:14,559 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:14] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:07:15,122 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:15] "POST /api/waypoints/A/move HTTP/1.1" 200 -
+2025-06-03 01:07:15,259 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 01:07:16,953 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:16] "POST /api/waypoints/B/move HTTP/1.1" 200 -
+2025-06-03 01:07:17,185 - INFO - °õ¦æ«ü¥O: joint_movj
+2025-06-03 01:07:19,607 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:19] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:07:24,634 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:24] "GET /api/robot/state HTTP/1.1" 200 -
+2025-06-03 01:07:27,183 - INFO - ¾÷¾¹¤H³s±µ¤wÂ_¶}
+2025-06-03 01:07:27,186 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:27] "POST /api/disconnect HTTP/1.1" 200 -
+2025-06-03 01:07:27,198 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:27] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-03 01:07:27,321 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:27] "GET /socket.io/?EIO=4&transport=websocket&sid=a-fiTh3VwpTyEFTtAAAA HTTP/1.1" 200 -
+2025-06-03 01:07:27,326 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:27] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 01:07:34,993 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:34] "GET /modbus_rtu HTTP/1.1" 200 -
+2025-06-03 01:07:35,100 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:35] "GET /api/modbus/rtu/status HTTP/1.1" 200 -
+2025-06-03 01:07:35,115 - INFO - 192.168.50.32 - - [03/Jun/2025 01:07:35] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
+2025-06-03 01:08:42,559 - INFO - 192.168.50.32 - - [03/Jun/2025 01:08:42] "GET /socket.io/?EIO=4&transport=websocket&sid=gxfYfK274aVoT2vqAAAC HTTP/1.1" 200 -
+2025-06-03 14:01:18,270 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.16.0.197:5000
+2025-06-03 14:01:18,273 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-03 14:01:18,274 - INFO -  * Restarting with stat
+2025-06-03 14:01:19,257 - WARNING -  * Debugger is active!
+2025-06-03 14:01:19,265 - INFO -  * Debugger PIN: 119-427-341
+2025-06-03 14:03:14,918 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.16.0.197:5000
+2025-06-03 14:03:14,918 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-03 14:03:14,918 - INFO -  * Restarting with stat
+2025-06-03 14:03:15,722 - WARNING -  * Debugger is active!
+2025-06-03 14:03:15,728 - INFO -  * Debugger PIN: 119-427-341
+2025-06-03 14:04:03,426 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "GET / HTTP/1.1" 200 -
+2025-06-03 14:04:03,548 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "GET /socket.io/?EIO=4&transport=polling&t=PSqOyPO HTTP/1.1" 200 -
+2025-06-03 14:04:03,775 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "POST /socket.io/?EIO=4&transport=polling&t=PSqOySx&sid=A7bCux0mWCicmI63AAAA HTTP/1.1" 200 -
+2025-06-03 14:04:03,778 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "GET /socket.io/?EIO=4&transport=polling&t=PSqOySz&sid=A7bCux0mWCicmI63AAAA HTTP/1.1" 200 -
+2025-06-03 14:04:03,824 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "GET /socket.io/?EIO=4&transport=polling&t=PSqOyTj&sid=A7bCux0mWCicmI63AAAA HTTP/1.1" 200 -
+2025-06-03 14:04:03,859 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "GET /socket.io/?EIO=4&transport=polling&t=PSqOyU4&sid=A7bCux0mWCicmI63AAAA HTTP/1.1" 200 -
+2025-06-03 14:04:03,967 - INFO - 172.16.0.197 - - [03/Jun/2025 14:04:03] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-03 14:06:32,190 - INFO - 172.16.0.197 - - [03/Jun/2025 14:06:32] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-03 14:06:32,249 - INFO - 172.16.0.197 - - [03/Jun/2025 14:06:32] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-03 14:06:32,263 - INFO - 172.16.0.197 - - [03/Jun/2025 14:06:32] "GET /socket.io/?EIO=4&transport=websocket&sid=A7bCux0mWCicmI63AAAA HTTP/1.1" 200 -
+2025-06-03 14:06:35,586 - INFO - 172.16.0.197 - - [03/Jun/2025 14:06:35] "GET /modbus_rtu HTTP/1.1" 200 -
+2025-06-03 14:06:35,655 - INFO - 172.16.0.197 - - [03/Jun/2025 14:06:35] "GET /api/modbus/rtu/status HTTP/1.1" 200 -
+2025-06-03 14:06:35,660 - INFO - 172.16.0.197 - - [03/Jun/2025 14:06:35] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
