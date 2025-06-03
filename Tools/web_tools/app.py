@@ -48,12 +48,14 @@ def to_hex_str(num):
     return "0x" + hex_str
 
 def decoding_char(c_ubyte_value):
-    """解碼字符"""
+    """解碼字符 - 參照範例程序修正"""
     c_char_p_value = ctypes.cast(c_ubyte_value, ctypes.c_char_p)
     try:
-        decode_str = c_char_p_value.value.decode('gbk')
+        decode_str = c_char_p_value.value.decode('gbk')  # 使用gbk編碼
     except UnicodeDecodeError:
         decode_str = str(c_char_p_value.value)
+    except:
+        decode_str = ""
     return decode_str
 
 @app.route('/')
@@ -62,7 +64,7 @@ def index():
 
 @app.route('/api/enumerate_devices', methods=['GET'])
 def enumerate_devices():
-    """枚舉相機設備"""
+    """枚舉相機設備 - 參照範例程序修正"""
     global device_list
     
     try:
@@ -84,6 +86,8 @@ def enumerate_devices():
                 'message': '未找到設備'
             })
         
+        print(f"Find {device_list.nDeviceNum} devices!")
+        
         devices = []
         for i in range(device_list.nDeviceNum):
             mvcc_dev_info = cast(device_list.pDeviceInfo[i], POINTER(MV_CC_DEVICE_INFO)).contents
@@ -97,27 +101,106 @@ def enumerate_devices():
                 'ip': ''
             }
             
+            # GigE設備
             if mvcc_dev_info.nTLayerType == MV_GIGE_DEVICE or mvcc_dev_info.nTLayerType == MV_GENTL_GIGE_DEVICE:
+                print(f"\ngige device: [{i}]")
                 device_info['type'] = 'GigE'
-                device_info['name'] = decoding_char(mvcc_dev_info.SpecialInfo.stGigEInfo.chUserDefinedName)
-                device_info['model'] = decoding_char(mvcc_dev_info.SpecialInfo.stGigEInfo.chModelName)
                 
+                user_defined_name = decoding_char(mvcc_dev_info.SpecialInfo.stGigEInfo.chUserDefinedName)
+                model_name = decoding_char(mvcc_dev_info.SpecialInfo.stGigEInfo.chModelName)
+                
+                device_info['name'] = user_defined_name
+                device_info['model'] = model_name
+                
+                print(f"device user define name: {user_defined_name}")
+                print(f"device model name: {model_name}")
+                
+                # IP地址解析
                 nip1 = ((mvcc_dev_info.SpecialInfo.stGigEInfo.nCurrentIp & 0xff000000) >> 24)
                 nip2 = ((mvcc_dev_info.SpecialInfo.stGigEInfo.nCurrentIp & 0x00ff0000) >> 16)
                 nip3 = ((mvcc_dev_info.SpecialInfo.stGigEInfo.nCurrentIp & 0x0000ff00) >> 8)
                 nip4 = (mvcc_dev_info.SpecialInfo.stGigEInfo.nCurrentIp & 0x000000ff)
                 device_info['ip'] = f"{nip1}.{nip2}.{nip3}.{nip4}"
+                print(f"current ip: {device_info['ip']}")
                 
+            # USB設備
             elif mvcc_dev_info.nTLayerType == MV_USB_DEVICE:
+                print(f"\nu3v device: [{i}]")
                 device_info['type'] = 'USB'
-                device_info['name'] = decoding_char(mvcc_dev_info.SpecialInfo.stUsb3VInfo.chUserDefinedName)
-                device_info['model'] = decoding_char(mvcc_dev_info.SpecialInfo.stUsb3VInfo.chModelName)
                 
+                user_defined_name = decoding_char(mvcc_dev_info.SpecialInfo.stUsb3VInfo.chUserDefinedName)
+                model_name = decoding_char(mvcc_dev_info.SpecialInfo.stUsb3VInfo.chModelName)
+                
+                device_info['name'] = user_defined_name
+                device_info['model'] = model_name
+                
+                print(f"device user define name: {user_defined_name}")
+                print(f"device model name: {model_name}")
+                
+                # 序列號解析
                 serial_number = ""
                 for per in mvcc_dev_info.SpecialInfo.stUsb3VInfo.chSerialNumber:
                     if per == 0:
                         break
-                    serial_number += chr(per)
+                    serial_number = serial_number + chr(per)
+                device_info['serial'] = serial_number
+                print(f"user serial number: {serial_number}")
+                
+            # CameraLink設備
+            elif mvcc_dev_info.nTLayerType == MV_GENTL_CAMERALINK_DEVICE:
+                print(f"\nCML device: [{i}]")
+                device_info['type'] = 'CameraLink'
+                
+                user_defined_name = decoding_char(mvcc_dev_info.SpecialInfo.stCMLInfo.chUserDefinedName)
+                model_name = decoding_char(mvcc_dev_info.SpecialInfo.stCMLInfo.chModelName)
+                
+                device_info['name'] = user_defined_name
+                device_info['model'] = model_name
+                
+                # 序列號解析
+                serial_number = ""
+                for per in mvcc_dev_info.SpecialInfo.stCMLInfo.chSerialNumber:
+                    if per == 0:
+                        break
+                    serial_number = serial_number + chr(per)
+                device_info['serial'] = serial_number
+                
+            # CoaXPress設備
+            elif mvcc_dev_info.nTLayerType == MV_GENTL_CXP_DEVICE:
+                print(f"\nCXP device: [{i}]")
+                device_info['type'] = 'CoaXPress'
+                
+                user_defined_name = decoding_char(mvcc_dev_info.SpecialInfo.stCXPInfo.chUserDefinedName)
+                model_name = decoding_char(mvcc_dev_info.SpecialInfo.stCXPInfo.chModelName)
+                
+                device_info['name'] = user_defined_name
+                device_info['model'] = model_name
+                
+                # 序列號解析
+                serial_number = ""
+                for per in mvcc_dev_info.SpecialInfo.stCXPInfo.chSerialNumber:
+                    if per == 0:
+                        break
+                    serial_number = serial_number + chr(per)
+                device_info['serial'] = serial_number
+                
+            # XoF設備
+            elif mvcc_dev_info.nTLayerType == MV_GENTL_XOF_DEVICE:
+                print(f"\nXoF device: [{i}]")
+                device_info['type'] = 'XoF'
+                
+                user_defined_name = decoding_char(mvcc_dev_info.SpecialInfo.stXoFInfo.chUserDefinedName)
+                model_name = decoding_char(mvcc_dev_info.SpecialInfo.stXoFInfo.chModelName)
+                
+                device_info['name'] = user_defined_name
+                device_info['model'] = model_name
+                
+                # 序列號解析
+                serial_number = ""
+                for per in mvcc_dev_info.SpecialInfo.stXoFInfo.chSerialNumber:
+                    if per == 0:
+                        break
+                    serial_number = serial_number + chr(per)
                 device_info['serial'] = serial_number
             
             devices.append(device_info)
@@ -128,6 +211,9 @@ def enumerate_devices():
         })
         
     except Exception as e:
+        print(f"枚舉設備異常: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': f'枚舉設備異常: {str(e)}'
@@ -176,6 +262,9 @@ def open_device():
         })
         
     except Exception as e:
+        print(f"打開設備異常: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': f'打開設備異常: {str(e)}'
@@ -209,6 +298,7 @@ def close_device():
         })
         
     except Exception as e:
+        print(f"關閉設備異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'關閉設備異常: {str(e)}'
@@ -253,6 +343,7 @@ def start_grabbing():
         })
         
     except Exception as e:
+        print(f"開始採集異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'開始採集異常: {str(e)}'
@@ -286,6 +377,7 @@ def stop_grabbing():
         })
         
     except Exception as e:
+        print(f"停止採集異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'停止採集異常: {str(e)}'
@@ -318,6 +410,7 @@ def set_trigger_mode():
         })
         
     except Exception as e:
+        print(f"設置觸發模式異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'設置觸發模式異常: {str(e)}'
@@ -352,6 +445,7 @@ def software_trigger():
         })
         
     except Exception as e:
+        print(f"軟觸發異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'軟觸發異常: {str(e)}'
@@ -380,6 +474,7 @@ def save_image():
         })
         
     except Exception as e:
+        print(f"保存圖像異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'保存圖像異常: {str(e)}'
@@ -412,6 +507,7 @@ def get_parameters():
         })
         
     except Exception as e:
+        print(f"獲取參數異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'獲取參數異常: {str(e)}'
@@ -445,6 +541,7 @@ def set_parameters():
         })
         
     except Exception as e:
+        print(f"設置參數異常: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'設置參數異常: {str(e)}'
