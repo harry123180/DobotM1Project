@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Camera API - 抽象化相機控制API
-基於Hikvision SDK的高級封裝
+Camera API - 抽象化相機控制API（修復版本）
+基於Hikvision SDK的高級封裝，修復線程管理問題
 """
 
 import threading
@@ -17,12 +17,13 @@ try:
     from MvErrorDefine_const import *
     from CameraParams_header import *
     from CamOperation_class import CameraOperation
-    from PixelType_header import *  # 使用現有的像素類型定義
+    from PixelType_header import *
     
     # 嘗試導入改進的相機操作類
     try:
-        from Tools.web_tools.ImprovedCamOperation import ImprovedCameraOperation
+        from ImprovedCamOperation import ImprovedCameraOperation
         USE_IMPROVED_CAMERA = True
+        print("使用改進的ImprovedCameraOperation類")
     except ImportError:
         USE_IMPROVED_CAMERA = False
         print("使用標準CameraOperation類")
@@ -85,7 +86,7 @@ class CameraParameters:
 
 
 class CameraAPI:
-    """相機API主類"""
+    """相機API主類（修復版本）"""
     
     def __init__(self):
         # 初始化SDK
@@ -105,7 +106,10 @@ class CameraAPI:
         self._error_callback: Optional[Callable] = None
         
         # 線程鎖
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # 使用遞歸鎖
+        
+        # 狀態追踪
+        self._last_operation_time = 0
     
     def __del__(self):
         """析構函數"""
@@ -212,8 +216,11 @@ class CameraAPI:
         """
         with self._lock:
             try:
+                # 確保之前的連接完全清理
                 if self._status != CameraStatus.DISCONNECTED:
-                    self.disconnect()
+                    print("清理之前的連接...")
+                    self._force_cleanup()
+                    time.sleep(1.0)  # 等待清理完成
                 
                 if self._device_list is None:
                     raise Exception("請先枚舉設備")
@@ -233,7 +240,7 @@ class CameraAPI:
                     self._camera_operation = CameraOperation(
                         cam, self._device_list, device_index
                     )
-                    # 修復CamOperation_class.py中的一個語法錯誤
+                    # 修復語法錯誤
                     self._camera_operation.b_thread_closed = False
                 
                 # 打開設備
@@ -244,6 +251,7 @@ class CameraAPI:
                 
                 self._current_camera_index = device_index
                 self._status = CameraStatus.CONNECTED
+                self._last_operation_time = time.time()
                 
                 # 設置默認參數
                 self._apply_default_settings()
@@ -262,33 +270,72 @@ class CameraAPI:
             bool: 斷開是否成功
         """
         with self._lock:
-            try:
-                if self._is_streaming:
-                    self.stop_streaming()
-                    # 等待串流完全停止
+            return self._force_cleanup()
+    
+    def _force_cleanup(self) -> bool:
+        """強制清理所有資源"""
+        success = True
+        
+        try:
+            print("開始強制清理資源...")
+            
+            # 1. 停止串流
+            if self._is_streaming:
+                print("停止串流...")
+                try:
+                    self._is_streaming = False
+                    if self._camera_operation:
+                        # 設置退出標誌
+                        self._camera_operation.b_exit = True
+                        
+                        # 等待線程自然結束
+                        if hasattr(self._camera_operation, 'thread_running'):
+                            self._camera_operation.thread_running = False
+                        if hasattr(self._camera_operation, 'thread_stop_event'):
+                            self._camera_operation.thread_stop_event.set()
+                        
+                        # 等待一段時間
+                        time.sleep(0.5)
+                        
+                        # 調用停止方法
+                        ret = self._camera_operation.Stop_grabbing()
+                        if ret != MV_OK and ret is not None:
+                            print(f"停止串流警告: 0x{ret:08x}")
+                except Exception as e:
+                    print(f"停止串流異常: {str(e)}")
+                    success = False
+            
+            # 2. 關閉設備
+            if self._camera_operation:
+                print("關閉設備...")
+                try:
+                    # 等待一下確保串流完全停止
                     time.sleep(0.5)
-                
-                if self._camera_operation:
+                    
                     ret = self._camera_operation.Close_device()
-                    if ret != MV_OK:
-                        error_code = ret if ret is not None else 0xFFFFFFFF
-                        print(f"關閉設備警告: 0x{error_code:08x}")
-                
-                self._camera_operation = None
-                self._current_camera_index = -1
-                self._status = CameraStatus.DISCONNECTED
-                self._is_streaming = False
-                
-                return True
-                
-            except Exception as e:
-                self._call_error_callback(f"斷開設備錯誤: {str(e)}")
-                # 強制清理狀態
-                self._camera_operation = None
-                self._current_camera_index = -1
-                self._status = CameraStatus.DISCONNECTED
-                self._is_streaming = False
-                return False
+                    if ret != MV_OK and ret is not None:
+                        print(f"關閉設備警告: 0x{ret:08x}")
+                except Exception as e:
+                    print(f"關閉設備異常: {str(e)}")
+                    success = False
+            
+            # 3. 清理狀態
+            self._camera_operation = None
+            self._current_camera_index = -1
+            self._status = CameraStatus.DISCONNECTED
+            self._is_streaming = False
+            
+            print("資源清理完成")
+            return success
+            
+        except Exception as e:
+            self._call_error_callback(f"清理資源錯誤: {str(e)}")
+            # 強制重置狀態
+            self._camera_operation = None
+            self._current_camera_index = -1
+            self._status = CameraStatus.DISCONNECTED
+            self._is_streaming = False
+            return False
     
     def _apply_default_settings(self):
         """應用默認設置"""
@@ -302,13 +349,107 @@ class CameraAPI:
         except Exception as e:
             print(f"應用默認設置警告: {str(e)}")
     
+    # ========== 串流控制相關 ==========
+    
+    def start_streaming(self, display_handle=None) -> bool:
+        """
+        開始串流
+        Args:
+            display_handle: 顯示窗口句柄（可選）
+        Returns:
+            bool: 啟動是否成功
+        """
+        with self._lock:
+            if not self._check_connection():
+                return False
+            
+            if self._is_streaming:
+                return True
+            
+            try:
+                # 檢查時間間隔，避免操作過於頻繁
+                current_time = time.time()
+                if current_time - self._last_operation_time < 1.0:
+                    time.sleep(1.0 - (current_time - self._last_operation_time))
+                
+                # 確保設備處於正確狀態
+                if not self._camera_operation.b_open_device:
+                    self._call_error_callback("設備未打開")
+                    return False
+                
+                # 如果檢測到之前的串流狀態，強制清理
+                if (hasattr(self._camera_operation, 'b_start_grabbing') and 
+                    self._camera_operation.b_start_grabbing):
+                    print("檢測到之前的串流狀態，正在清理...")
+                    self._camera_operation.b_start_grabbing = False
+                    self._camera_operation.b_exit = True
+                    time.sleep(1.0)
+                    self._camera_operation.b_exit = False
+                
+                # 如果沒有提供display_handle，使用0作為默認值
+                if display_handle is None:
+                    display_handle = 0
+                    
+                ret = self._camera_operation.Start_grabbing(display_handle)
+                if ret == MV_OK:
+                    self._is_streaming = True
+                    self._status = CameraStatus.STREAMING
+                    self._last_operation_time = time.time()
+                    return True
+                else:
+                    error_code = ret if ret is not None else 0xFFFFFFFF
+                    raise Exception(f"開始串流失敗: 0x{error_code:08x}")
+                    
+            except Exception as e:
+                self._call_error_callback(f"開始串流錯誤: {str(e)}")
+                return False
+    
+    def stop_streaming(self) -> bool:
+        """
+        停止串流
+        Returns:
+            bool: 停止是否成功
+        """
+        with self._lock:
+            if not self._is_streaming:
+                return True
+            
+            try:
+                print("正在停止串流...")
+                
+                # 標記停止狀態
+                self._is_streaming = False
+                self._status = CameraStatus.CONNECTED
+                
+                if self._camera_operation:
+                    # 使用改進的停止方法
+                    ret = self._camera_operation.Stop_grabbing()
+                    if ret != MV_OK and ret is not None:
+                        print(f"停止串流警告: 0x{ret:08x}")
+                
+                self._last_operation_time = time.time()
+                print("串流已停止")
+                return True
+                
+            except Exception as e:
+                # 不要調用error callback，因為這可能導致無限遞歸
+                print(f"停止串流錯誤: {str(e)}")
+                # 即使出錯也要更新狀態
+                self._is_streaming = False
+                self._status = CameraStatus.CONNECTED
+                return False
+    
+    def is_streaming(self) -> bool:
+        """檢查是否正在串流"""
+        return self._is_streaming
+    
     # ========== 參數設置相關 ==========
     
     def set_packet_size(self, packet_size: int) -> bool:
         """
         設置網絡包大小（僅GigE設備有效）
         Args:
-            packet_size: 包大小
+            packet_size: 包大小，0表示自動優化
         Returns:
             bool: 設置是否成功
         """
@@ -332,79 +473,6 @@ class CameraAPI:
             self._call_error_callback(f"設置包大小錯誤: {str(e)}")
             return False
     
-    def set_exposure_time(self, exposure_time: float) -> bool:
-        """
-        設置曝光時間
-        Args:
-            exposure_time: 曝光時間（微秒）
-        Returns:
-            bool: 設置是否成功
-        """
-        if not self._check_connection():
-            return False
-        
-        try:
-            ret = self._camera_operation.obj_cam.MV_CC_SetFloatValue(
-                "ExposureTime", exposure_time
-            )
-            if ret == MV_OK:
-                self._parameters.exposure_time = exposure_time
-                return True
-            else:
-                raise Exception(f"設置曝光時間失敗: 0x{ret:08x}")
-                
-        except Exception as e:
-            self._call_error_callback(f"設置曝光時間錯誤: {str(e)}")
-            return False
-    
-    def set_gain(self, gain: float) -> bool:
-        """
-        設置增益
-        Args:
-            gain: 增益值
-        Returns:
-            bool: 設置是否成功
-        """
-        if not self._check_connection():
-            return False
-        
-        try:
-            ret = self._camera_operation.obj_cam.MV_CC_SetFloatValue("Gain", gain)
-            if ret == MV_OK:
-                self._parameters.gain = gain
-                return True
-            else:
-                raise Exception(f"設置增益失敗: 0x{ret:08x}")
-                
-        except Exception as e:
-            self._call_error_callback(f"設置增益錯誤: {str(e)}")
-            return False
-    
-    def set_frame_rate(self, frame_rate: float) -> bool:
-        """
-        設置幀率
-        Args:
-            frame_rate: 幀率
-        Returns:
-            bool: 設置是否成功
-        """
-        if not self._check_connection():
-            return False
-        
-        try:
-            ret = self._camera_operation.obj_cam.MV_CC_SetFloatValue(
-                "AcquisitionFrameRate", frame_rate
-            )
-            if ret == MV_OK:
-                self._parameters.frame_rate = frame_rate
-                return True
-            else:
-                raise Exception(f"設置幀率失敗: 0x{ret:08x}")
-                
-        except Exception as e:
-            self._call_error_callback(f"設置幀率錯誤: {str(e)}")
-            return False
-    
     def get_parameters(self) -> Optional[CameraParameters]:
         """
         獲取當前參數
@@ -422,7 +490,6 @@ class CameraAPI:
                 self._parameters.gain = self._camera_operation.gain
                 return self._parameters
             else:
-                # 確保ret是數字類型
                 error_code = ret if ret is not None else 0xFFFFFFFF
                 raise Exception(f"獲取參數失敗: 0x{error_code:08x}")
                 
@@ -451,7 +518,6 @@ class CameraAPI:
                 self._parameters = params
                 return True
             else:
-                # 確保ret是數字類型
                 error_code = ret if ret is not None else 0xFFFFFFFF
                 raise Exception(f"設置參數失敗: 0x{error_code:08x}")
                 
@@ -477,7 +543,7 @@ class CameraAPI:
             was_streaming = self._is_streaming
             if was_streaming:
                 self.stop_streaming()
-                time.sleep(0.5)  # 等待停止完成
+                time.sleep(1.0)  # 增加等待時間
             
             is_trigger = (mode == CameraMode.TRIGGER)
             ret = self._camera_operation.Set_trigger_mode(is_trigger)
@@ -487,12 +553,11 @@ class CameraAPI:
                 
                 # 如果之前在串流，重新開始串流
                 if was_streaming:
-                    time.sleep(0.2)  # 短暫等待
+                    time.sleep(0.5)
                     self.start_streaming()
                 
                 return True
             else:
-                # 確保ret是數字類型，如果為None則設為未知錯誤碼
                 error_code = ret if ret is not None else 0xFFFFFFFF
                 raise Exception(f"設置模式失敗: 0x{error_code:08x}")
                 
@@ -503,104 +568,6 @@ class CameraAPI:
     def get_mode(self) -> CameraMode:
         """獲取當前模式"""
         return self._mode
-    
-    # ========== 串流控制相關 ==========
-    
-    def start_streaming(self, display_handle=None) -> bool:
-        """
-        開始串流
-        Args:
-            display_handle: 顯示窗口句柄（可選）
-        Returns:
-            bool: 啟動是否成功
-        """
-        if not self._check_connection():
-            return False
-        
-        if self._is_streaming:
-            return True
-        
-        try:
-            # 確保相機處於正確狀態
-            if not self._camera_operation.b_open_device:
-                self._call_error_callback("設備未打開")
-                return False
-            
-            # 如果之前有串流，確保完全停止
-            if self._camera_operation.b_start_grabbing:
-                self._call_error_callback("檢測到之前的串流未完全停止，正在清理...")
-                self._camera_operation.b_start_grabbing = False
-                time.sleep(0.5)
-            
-            # 如果沒有提供display_handle，使用0作為默認值（不顯示）
-            if display_handle is None:
-                display_handle = 0
-                
-            ret = self._camera_operation.Start_grabbing(display_handle)
-            if ret == MV_OK:
-                self._is_streaming = True
-                self._status = CameraStatus.STREAMING
-                return True
-            else:
-                error_code = ret if ret is not None else 0xFFFFFFFF
-                
-                # 特殊處理調用順序錯誤
-                if error_code == MV_E_CALLORDER:
-                    self._call_error_callback("調用順序錯誤，嘗試重置相機狀態...")
-                    # 嘗試重置狀態
-                    self._camera_operation.b_start_grabbing = False
-                    self._camera_operation.b_exit = False
-                    time.sleep(0.5)
-                    
-                    # 再次嘗試
-                    ret = self._camera_operation.Start_grabbing(display_handle)
-                    if ret == MV_OK:
-                        self._is_streaming = True
-                        self._status = CameraStatus.STREAMING
-                        return True
-                
-                raise Exception(f"開始串流失敗: 0x{error_code:08x}")
-                
-        except Exception as e:
-            self._call_error_callback(f"開始串流錯誤: {str(e)}")
-            return False
-    
-    def stop_streaming(self) -> bool:
-        """
-        停止串流
-        Returns:
-            bool: 停止是否成功
-        """
-        if not self._is_streaming:
-            return True
-        
-        try:
-            # 先設置退出標誌
-            if self._camera_operation:
-                self._camera_operation.b_exit = True
-                
-            # 等待一小段時間讓線程自然退出
-            time.sleep(0.1)
-            
-            ret = self._camera_operation.Stop_grabbing()
-            if ret == MV_OK:
-                self._is_streaming = False
-                self._status = CameraStatus.CONNECTED
-                return True
-            else:
-                error_code = ret if ret is not None else 0xFFFFFFFF
-                raise Exception(f"停止串流失敗: 0x{error_code:08x}")
-                
-        except Exception as e:
-            self._call_error_callback(f"停止串流錯誤: {str(e)}")
-            # 即使出錯也要更新狀態
-            self._is_streaming = False
-            self._status = CameraStatus.CONNECTED
-            return False
-    
-    def is_streaming(self) -> bool:
-        """檢查是否正在串流"""
-        return self._is_streaming
     
     # ========== 觸發控制相關 ==========
     
@@ -619,7 +586,6 @@ class CameraAPI:
         
         try:
             ret = self._camera_operation.Trigger_once()
-            # 處理Trigger_once可能返回None的情況
             if ret is None:
                 ret = MV_OK
             
@@ -654,22 +620,14 @@ class CameraAPI:
             # 檢查是否有圖像數據
             if (not hasattr(self._camera_operation, 'buf_save_image') or 
                 self._camera_operation.buf_save_image is None):
-                self._call_error_callback("圖像緩衝區為空，請先開始串流")
+                self._call_error_callback("圖像緩衝區為空，請稍候再試")
                 return False
             
             if format_type == ImageFormat.BMP:
-                # 修復Save_Bmp中的bug - 它檢查 0 == self.buf_save_image 而不是 None
-                # 我們需要臨時修改檢查條件
-                original_buffer = self._camera_operation.buf_save_image
-                if original_buffer is None:
-                    self._call_error_callback("保存失敗：圖像緩衝區為空")
-                    return False
-                    
                 ret = self._camera_operation.Save_Bmp()
             else:  # JPEG
                 ret = self._camera_operation.Save_jpg()
             
-            # 處理可能返回None的情況（當緩衝區為空時）
             if ret is None:
                 self._call_error_callback("保存失敗：圖像緩衝區為空")
                 return False
@@ -696,6 +654,12 @@ class CameraAPI:
     def get_current_device_index(self) -> int:
         """獲取當前設備索引"""
         return self._current_camera_index
+    
+    def get_device_info(self) -> Optional[CameraInfo]:
+        """獲取當前設備信息"""
+        if self._current_camera_index >= 0 and self._device_list:
+            return self._parse_device_info(self._current_camera_index)
+        return None
     
     # ========== 回調函數相關 ==========
     
@@ -725,12 +689,6 @@ class CameraAPI:
             self._call_error_callback("相機未連接")
             return False
         return True
-    
-    def get_device_info(self) -> Optional[CameraInfo]:
-        """獲取當前設備信息"""
-        if self._current_camera_index >= 0 and self._device_list:
-            return self._parse_device_info(self._current_camera_index)
-        return None
 
 
 # 便利函數

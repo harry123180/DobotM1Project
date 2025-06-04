@@ -1288,4 +1288,4 @@ if __name__ == "__main__":
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     
     # 啟動 Flask
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False, threaded=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
