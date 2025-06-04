@@ -1,658 +1,620 @@
 # -*- coding: utf-8 -*-
 """
-改進的Flask Web相機控制應用程式
-更好地整合camera_manager.py和原始SDK功能
+Flask Web UI 相機控制系統
+基於 Camera_API.py 的 Web 界面實現
 """
 
-import os
-import sys
-import json
-import base64
+from flask import Flask, render_template, Response, request, jsonify
+from Camera_API import create_camera_api, CameraMode, ImageFormat, CameraStatus, CameraParameters
 import threading
 import time
-import numpy as np
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, Response, send_file
-from flask_cors import CORS
 import cv2
+import numpy as np
 from ctypes import *
-
-# 導入相機相關模組
-from camera_manager import CameraManager
-from MvCameraControl_class import *
-from CameraParams_header import *
-from MvErrorDefine_const import *
+import base64
+import io
+from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hikvision-camera-secret'
-CORS(app)
 
 # 全域變數
-camera_manager = None
-streaming_thread = None
-is_streaming = False
-frame_buffer = None
+camera_api = create_camera_api()
+camera_api.set_error_callback(lambda msg: print(f"[Camera Error] {msg}"))
+
+# 串流相關變數
+stream_thread = None
+latest_frame = None
+stream_running = False
 frame_lock = threading.Lock()
-trigger_count = 0
-save_count = 0
-current_mode = "continuous"
-frame_info = None
 
-# 初始化相機管理器
-def init_camera():
-    global camera_manager
-    try:
-        camera_manager = CameraManager()
-        return True
-    except Exception as e:
-        print(f"初始化相機失敗: {str(e)}")
-        return False
+# 設備列表快取
+cached_devices = []
 
-# 影像串流生成器
-def generate_frames():
-    """生成MJPEG串流"""
-    global frame_buffer, frame_info
+# ========== 輔助函數 ==========
+
+def get_raw_frame(timeout=1000):
+    """
+    從相機獲取原始影像
+    Returns:
+        numpy array: BGR 格式的影像，失敗返回 None
+    """
+    if not camera_api.is_connected() or not camera_api.is_streaming():
+        return None
     
-    while is_streaming:
-        try:
-            if camera_manager and camera_manager.connected:
-                # 根據模式獲取影像
-                if current_mode == "continuous":
-                    # 連續模式：使用GetOneFrameTimeout
-                    stFrameInfo = MV_FRAME_OUT_INFO_EX()
-                    memset(byref(stFrameInfo), 0, sizeof(stFrameInfo))
-                    
-                    # 計算緩衝區大小
-                    nPayloadSize = camera_manager.cam.MV_CC_GetIntValue("PayloadSize")
-                    if nPayloadSize is None:
-                        nPayloadSize = 2592 * 1944 * 3  # 預設值
-                    
-                    pData = (c_ubyte * nPayloadSize)()
-                    
-                    ret = camera_manager.cam.MV_CC_GetOneFrameTimeout(
-                        pData, nPayloadSize, byref(stFrameInfo), 1000
-                    )
-                    
-                    if ret == 0:
-                        # 成功獲取影像
-                        image = np.frombuffer(pData, dtype=np.uint8, count=stFrameInfo.nFrameLen)
-                        
-                        # 根據像素格式處理影像
-                        if stFrameInfo.enPixelType == PixelType_Gvsp_Mono8:
-                            image = image.reshape((stFrameInfo.nHeight, stFrameInfo.nWidth))
-                            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-                        elif stFrameInfo.enPixelType == PixelType_Gvsp_RGB8_Packed:
-                            image = image.reshape((stFrameInfo.nHeight, stFrameInfo.nWidth, 3))
-                        else:
-                            # 需要轉換格式
-                            image = convert_pixel_format(pData, stFrameInfo)
-                        
-                        # 更新影像緩衝區
-                        with frame_lock:
-                            frame_buffer = image.copy()
-                            frame_info = {
-                                'width': stFrameInfo.nWidth,
-                                'height': stFrameInfo.nHeight,
-                                'frame_num': stFrameInfo.nFrameNum,
-                                'timestamp': time.time()
-                            }
-                else:
-                    # 觸發模式：等待觸發
-                    time.sleep(0.1)
-                
-                # 生成JPEG串流
-                if frame_buffer is not None:
-                    with frame_lock:
-                        ret, buffer = cv2.imencode('.jpg', frame_buffer, 
-                                                 [cv2.IMWRITE_JPEG_QUALITY, 85])
-                        if ret:
-                            frame = buffer.tobytes()
-                            yield (b'--frame\r\n'
-                                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    # 由於原始 API 沒有提供直接獲取 numpy array 的方法
+    # 我們需要通過 camera_operation 對象來獲取
+    cam_op = camera_api._camera_operation
+    if cam_op is None:
+        return None
+        
+    try:
+        # 等待新的影像
+        max_wait = 10  # 最多等待 10 次
+        wait_count = 0
+        
+        while wait_count < max_wait:
+            if hasattr(cam_op, 'buf_save_image') and cam_op.buf_save_image is not None:
+                if hasattr(cam_op, 'st_frame_info') and cam_op.st_frame_info is not None:
+                    break
+            time.sleep(0.1)
+            wait_count += 1
+        
+        if wait_count >= max_wait:
+            return None
             
-            time.sleep(0.01)  # 控制CPU使用率
+        # 獲取緩衝區鎖
+        cam_op.buf_lock.acquire()
+        
+        try:
+            # 獲取影像資訊
+            if cam_op.st_frame_info is None:
+                return None
+                
+            width = cam_op.st_frame_info.nWidth
+            height = cam_op.st_frame_info.nHeight
+            pixel_type = cam_op.st_frame_info.enPixelType
+            frame_len = cam_op.st_frame_info.nFrameLen
+            
+            # 檢查緩衝區是否有效
+            if cam_op.buf_save_image is None or frame_len == 0:
+                return None
+            
+            # 複製影像數據
+            image_buffer = bytes(cam_op.buf_save_image[:frame_len])
+            
+            # 轉換為 numpy array
+            image = np.frombuffer(image_buffer, dtype=np.uint8)
+            
+            # 根據像素格式進行轉換
+            # 常見的 Hikvision 相機像素格式
+            if pixel_type == 0x01080001:  # Mono8
+                if len(image) >= width * height:
+                    image = image[:width * height].reshape((height, width))
+                    # 轉換為 BGR 格式
+                    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x01100003:  # Mono10
+                # Mono10 需要特殊處理
+                if len(image) >= width * height * 2:
+                    image = image.view(np.uint16)[:width * height].reshape((height, width))
+                    # 轉換為 8 位
+                    image = (image >> 2).astype(np.uint8)
+                    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x01100005:  # Mono12
+                # Mono12 需要特殊處理
+                if len(image) >= width * height * 2:
+                    image = image.view(np.uint16)[:width * height].reshape((height, width))
+                    # 轉換為 8 位
+                    image = (image >> 4).astype(np.uint8)
+                    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x02180014:  # RGB8 Packed
+                if len(image) >= width * height * 3:
+                    image = image[:width * height * 3].reshape((height, width, 3))
+                    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x02180015:  # BGR8 Packed
+                if len(image) >= width * height * 3:
+                    image = image[:width * height * 3].reshape((height, width, 3))
+                else:
+                    return None
+            elif pixel_type == 0x01080008:  # BayerRG8
+                if len(image) >= width * height:
+                    image = image[:width * height].reshape((height, width))
+                    image = cv2.cvtColor(image, cv2.COLOR_BAYER_RG2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x01080009:  # BayerGB8
+                if len(image) >= width * height:
+                    image = image[:width * height].reshape((height, width))
+                    image = cv2.cvtColor(image, cv2.COLOR_BAYER_GB2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x0108000A:  # BayerGR8
+                if len(image) >= width * height:
+                    image = image[:width * height].reshape((height, width))
+                    image = cv2.cvtColor(image, cv2.COLOR_BAYER_GR2BGR)
+                else:
+                    return None
+            elif pixel_type == 0x0108000B:  # BayerBG8
+                if len(image) >= width * height:
+                    image = image[:width * height].reshape((height, width))
+                    image = cv2.cvtColor(image, cv2.COLOR_BAYER_BG2BGR)
+                else:
+                    return None
+            else:
+                # 未知格式，嘗試當作 Mono8 處理
+                print(f"未知的像素格式: 0x{pixel_type:08X}")
+                if len(image) >= width * height:
+                    image = image[:width * height].reshape((height, width))
+                    if len(image.shape) == 2:
+                        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+                else:
+                    return None
+            
+            return image
+            
+        finally:
+            cam_op.buf_lock.release()
+            
+    except Exception as e:
+        if hasattr(cam_op, 'buf_lock') and cam_op.buf_lock.locked():
+            cam_op.buf_lock.release()
+        print(f"獲取影像錯誤: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return None
+
+def grab_frames():
+    """持續擷取影像的線程函數"""
+    global latest_frame, stream_running
+    
+    frame_count = 0
+    error_count = 0
+    
+    # 給相機一些時間來準備
+    time.sleep(1.0)
+    
+    while stream_running:
+        try:
+            # 獲取原始影像
+            raw = get_raw_frame(timeout=100)  # 減少超時時間以提高響應速度
+            
+            if raw is not None:
+                # 重置錯誤計數
+                error_count = 0
+                
+                # 確保影像大小正確
+                if raw.shape[0] > 0 and raw.shape[1] > 0:
+                    # 如果影像太大，縮小以加快處理速度
+                    if raw.shape[1] > 1920:
+                        scale = 1920.0 / raw.shape[1]
+                        new_width = int(raw.shape[1] * scale)
+                        new_height = int(raw.shape[0] * scale)
+                        raw = cv2.resize(raw, (new_width, new_height))
+                    
+                    # 編碼為 JPEG
+                    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
+                    ret, jpeg = cv2.imencode('.jpg', raw, encode_param)
+                    
+                    if ret:
+                        jpeg_bytes = jpeg.tobytes()
+                        
+                        # 存到全域變數
+                        with frame_lock:
+                            latest_frame = jpeg_bytes
+                        
+                        frame_count += 1
+                        if frame_count % 30 == 0:  # 每30幀輸出一次狀態
+                            print(f"已成功處理 {frame_count} 幀")
+                else:
+                    print("影像大小無效")
+            else:
+                error_count += 1
+                if error_count > 50:  # 增加容忍度
+                    print("連續多次無法獲取有效影像")
+                    error_count = 0
+                    time.sleep(0.5)
+            
+            # 控制處理速度
+            time.sleep(0.01)  # 減少延遲
             
         except Exception as e:
-            print(f"串流錯誤: {str(e)}")
+            print(f"擷取影像異常: {str(e)}")
+            import traceback
+            traceback.print_exc()
             time.sleep(0.1)
+    
+    print("影像擷取線程已結束")
 
-def convert_pixel_format(pData, stFrameInfo):
-    """轉換像素格式為RGB"""
-    try:
-        # 創建轉換參數
-        stConvertParam = MV_CC_PIXEL_CONVERT_PARAM()
-        memset(byref(stConvertParam), 0, sizeof(stConvertParam))
+def generate_mjpeg():
+    """生成 MJPEG 串流"""
+    global latest_frame, stream_running
+    
+    no_frame_count = 0
+    
+    while stream_running:
+        with frame_lock:
+            frame = latest_frame
         
-        stConvertParam.nWidth = stFrameInfo.nWidth
-        stConvertParam.nHeight = stFrameInfo.nHeight
-        stConvertParam.enSrcPixelType = stFrameInfo.enPixelType
-        stConvertParam.pSrcData = pData
-        stConvertParam.nSrcDataLen = stFrameInfo.nFrameLen
-        stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed
-        stConvertParam.nDstBufferSize = stFrameInfo.nWidth * stFrameInfo.nHeight * 3
-        stConvertParam.pDstBuffer = (c_ubyte * stConvertParam.nDstBufferSize)()
-        
-        ret = camera_manager.cam.MV_CC_ConvertPixelType(stConvertParam)
-        if ret == 0:
-            image = np.frombuffer(stConvertParam.pDstBuffer, dtype=np.uint8)
-            image = image.reshape((stFrameInfo.nHeight, stFrameInfo.nWidth, 3))
-            return image
+        if frame:
+            no_frame_count = 0
+            # MJPEG 格式
+            yield (b"--frame\r\n"
+                   b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
         else:
-            # 轉換失敗，返回灰度圖
-            image = np.frombuffer(pData, dtype=np.uint8, count=stFrameInfo.nFrameLen)
-            image = image.reshape((stFrameInfo.nHeight, stFrameInfo.nWidth))
-            return cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+            no_frame_count += 1
+            if no_frame_count > 100:  # 超過100次沒有影像
+                # 發送一個黑色影像作為佔位符
+                black_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                ret, jpeg = cv2.imencode('.jpg', black_frame)
+                if ret:
+                    yield (b"--frame\r\n"
+                           b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
             
-    except Exception as e:
-        print(f"像素格式轉換錯誤: {str(e)}")
-        return None
+            time.sleep(0.01)
 
-# 路由定義
-@app.route('/')
+# ========== Flask 路由 ==========
+
+@app.route("/")
 def index():
     """主頁面"""
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/video_feed')
-def video_feed():
-    """影像串流端點"""
-    if is_streaming:
-        return Response(generate_frames(),
-                       mimetype='multipart/x-mixed-replace; boundary=frame')
-    else:
-        return '', 204
-
-# API端點
-@app.route('/api/enumerate_devices', methods=['GET'])
-def enumerate_devices():
-    """枚舉設備"""
+@app.route("/devices", methods=["GET"])
+def list_devices():
+    """列出所有設備"""
+    global cached_devices
+    
     try:
-        devices = camera_manager.enum_devices()
-        device_list = []
+        devices = camera_api.enumerate_devices()
+        cached_devices = devices
         
-        for idx, ip in devices:
-            device_info = {
-                'index': idx,
-                'name': f'相機 {idx}',
-                'ip': ip,
-                'type': 'GigE'
+        dev_list = []
+        for device in devices:
+            dev_info = {
+                "index": device.index,
+                "name": device.device_name,
+                "type": device.device_type,
+                "serial": device.serial_number,
+                "ip": device.ip_address if device.ip_address else "N/A"
             }
-            
-            # 獲取更詳細的設備資訊
-            if idx < camera_manager.device_list.nDeviceNum:
-                pDeviceInfo = cast(camera_manager.device_list.pDeviceInfo[idx], 
-                                 POINTER(MV_CC_DEVICE_INFO))
-                stDeviceInfo = pDeviceInfo.contents
-                
-                if stDeviceInfo.nTLayerType == MV_GIGE_DEVICE:
-                    device_info['model'] = stDeviceInfo.SpecialInfo.stGigEInfo.chModelName.decode('ascii', 'ignore')
-                    device_info['serial'] = stDeviceInfo.SpecialInfo.stGigEInfo.chSerialNumber.decode('ascii', 'ignore')
-            
-            device_list.append(device_info)
-        
-        return jsonify({'success': True, 'devices': device_list})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/connect', methods=['POST'])
-def connect_device():
-    """連接設備"""
-    global current_mode
-    try:
-        data = request.json
-        device_index = data.get('device_index', 0)
-        
-        # 連接設備
-        camera_manager.connect(device_index)
-        
-        # 設置最佳包大小（對GigE相機）
-        optimal_size = camera_manager.cam.MV_CC_GetOptimalPacketSize()
-        if optimal_size > 0:
-            camera_manager.cam.MV_CC_SetIntValue("GevSCPSPacketSize", optimal_size)
-        
-        # 設置觸發模式為關閉（預設連續模式）
-        camera_manager.cam.MV_CC_SetEnumValue("TriggerMode", MV_TRIGGER_MODE_OFF)
-        current_mode = "continuous"
-        
-        # 開始取流
-        ret = camera_manager.cam.MV_CC_StartGrabbing()
-        if ret != 0:
-            raise Exception(f"開始取流失敗: 0x{ret:08x}")
+            dev_list.append(dev_info)
         
         return jsonify({
-            'success': True, 
-            'message': f'成功連接到設備 {device_index}'
+            "success": True,
+            "devices": dev_list,
+            "count": len(dev_list)
         })
+        
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/disconnect', methods=['POST'])
-def disconnect_device():
-    """斷開設備"""
-    global is_streaming
-    try:
-        if is_streaming:
-            stop_streaming_internal()
-        
-        # 停止取流
-        if camera_manager.cam:
-            camera_manager.cam.MV_CC_StopGrabbing()
-        
-        camera_manager.close()
-        return jsonify({'success': True, 'message': '設備已斷開'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get_parameters', methods=['GET'])
-def get_parameters():
-    """獲取參數"""
-    try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
-        
-        # 獲取參數
-        stFloatValue = MVCC_FLOATVALUE()
-        
-        # 曝光時間
-        memset(byref(stFloatValue), 0, sizeof(MVCC_FLOATVALUE))
-        ret = camera_manager.cam.MV_CC_GetFloatValue("ExposureTime", stFloatValue)
-        exposure_time = stFloatValue.fCurValue if ret == 0 else 10000
-        
-        # 增益
-        memset(byref(stFloatValue), 0, sizeof(MVCC_FLOATVALUE))
-        ret = camera_manager.cam.MV_CC_GetFloatValue("Gain", stFloatValue)
-        gain = stFloatValue.fCurValue if ret == 0 else 0
-        
-        # 幀率
-        memset(byref(stFloatValue), 0, sizeof(MVCC_FLOATVALUE))
-        ret = camera_manager.cam.MV_CC_GetFloatValue("AcquisitionFrameRate", stFloatValue)
-        frame_rate = stFloatValue.fCurValue if ret == 0 else 30
-        
         return jsonify({
-            'success': True,
-            'parameters': {
-                'exposure_time': exposure_time,
-                'gain': gain,
-                'frame_rate': frame_rate
-            }
+            "success": False,
+            "error": str(e),
+            "devices": [],
+            "count": 0
         })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/set_parameters', methods=['POST'])
-def set_parameters():
-    """設置參數"""
+@app.route("/connect", methods=["POST"])
+def connect_camera():
+    """連接相機"""
     try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
+        data = request.get_json()
+        idx = int(data.get("index", -1))
         
-        data = request.json
+        if idx < 0:
+            return jsonify({"success": False, "error": "無效的設備索引"})
         
-        # 關閉自動曝光
-        camera_manager.cam.MV_CC_SetEnumValue("ExposureAuto", 0)
+        # 先斷開現有連接
+        if camera_api.is_connected():
+            camera_api.disconnect()
+            time.sleep(0.5)
         
-        # 設置參數
-        if 'exposure_time' in data:
-            ret = camera_manager.cam.MV_CC_SetFloatValue("ExposureTime", float(data['exposure_time']))
-            if ret != 0:
-                print(f"設置曝光時間失敗: 0x{ret:08x}")
+        ok = camera_api.connect(idx)
         
-        if 'gain' in data:
-            ret = camera_manager.cam.MV_CC_SetFloatValue("Gain", float(data['gain']))
-            if ret != 0:
-                print(f"設置增益失敗: 0x{ret:08x}")
-        
-        if 'frame_rate' in data:
-            ret = camera_manager.cam.MV_CC_SetFloatValue("AcquisitionFrameRate", float(data['frame_rate']))
-            if ret != 0:
-                print(f"設置幀率失敗: 0x{ret:08x}")
-        
-        return jsonify({'success': True, 'message': '參數設置成功'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/set_mode', methods=['POST'])
-def set_mode():
-    """設置工作模式"""
-    global current_mode
-    try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
-        
-        data = request.json
-        mode = data.get('mode', 'continuous')
-        
-        if mode == 'trigger':
-            # 設置為觸發模式
-            ret = camera_manager.cam.MV_CC_SetEnumValue("TriggerMode", MV_TRIGGER_MODE_ON)
-            if ret != 0:
-                raise Exception(f"設置觸發模式失敗: 0x{ret:08x}")
-            
-            # 設置軟觸發源
-            ret = camera_manager.cam.MV_CC_SetEnumValue("TriggerSource", MV_TRIGGER_SOURCE_SOFTWARE)
-            if ret != 0:
-                raise Exception(f"設置觸發源失敗: 0x{ret:08x}")
-            
-            current_mode = 'trigger'
-            mode_text = '觸發模式'
-        else:
-            # 設置為連續模式
-            ret = camera_manager.cam.MV_CC_SetEnumValue("TriggerMode", MV_TRIGGER_MODE_OFF)
-            if ret != 0:
-                raise Exception(f"設置連續模式失敗: 0x{ret:08x}")
-            
-            current_mode = 'continuous'
-            mode_text = '連續模式'
-        
-        return jsonify({'success': True, 'message': f'已切換到{mode_text}'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/start_streaming', methods=['POST'])
-def start_streaming():
-    """開始串流"""
-    global is_streaming
-    try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
-        
-        if not is_streaming:
-            is_streaming = True
-        
-        return jsonify({'success': True, 'message': '串流已啟動'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/stop_streaming', methods=['POST'])
-def stop_streaming():
-    """停止串流"""
-    global is_streaming
-    try:
-        is_streaming = False
-        return jsonify({'success': True, 'message': '串流已停止'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-def stop_streaming_internal():
-    """內部停止串流函數"""
-    global is_streaming
-    is_streaming = False
-
-@app.route('/api/software_trigger', methods=['POST'])
-def software_trigger():
-    """軟觸發"""
-    global trigger_count, frame_buffer, frame_info
-    try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
-        
-        if current_mode != 'trigger':
-            return jsonify({'success': False, 'error': '請先切換到觸發模式'})
-        
-        # 執行軟觸發
-        ret = camera_manager.cam.MV_CC_SetCommandValue("TriggerSoftware")
-        if ret != 0:
-            raise Exception(f"軟觸發失敗: 0x{ret:08x}")
-        
-        # 等待並獲取觸發的影像
-        time.sleep(0.1)  # 短暫等待
-        
-        # 獲取觸發後的影像
-        stFrameInfo = MV_FRAME_OUT_INFO_EX()
-        memset(byref(stFrameInfo), 0, sizeof(stFrameInfo))
-        
-        nPayloadSize = camera_manager.cam.MV_CC_GetIntValue("PayloadSize")
-        if nPayloadSize is None:
-            nPayloadSize = 2592 * 1944 * 3
-        
-        pData = (c_ubyte * nPayloadSize)()
-        
-        ret = camera_manager.cam.MV_CC_GetOneFrameTimeout(pData, nPayloadSize, byref(stFrameInfo), 1000)
-        
-        if ret == 0:
-            # 處理影像
-            image = np.frombuffer(pData, dtype=np.uint8, count=stFrameInfo.nFrameLen)
-            
-            if stFrameInfo.enPixelType == PixelType_Gvsp_Mono8:
-                image = image.reshape((stFrameInfo.nHeight, stFrameInfo.nWidth))
-                image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-            else:
-                image = convert_pixel_format(pData, stFrameInfo)
-            
-            # 更新全域影像緩衝區
-            with frame_lock:
-                frame_buffer = image.copy()
-                frame_info = {
-                    'width': stFrameInfo.nWidth,
-                    'height': stFrameInfo.nHeight,
-                    'frame_num': stFrameInfo.nFrameNum,
-                    'timestamp': time.time()
+        if ok:
+            # 獲取設備資訊
+            device_info = camera_api.get_device_info()
+            return jsonify({
+                "success": True,
+                "device_info": {
+                    "name": device_info.device_name if device_info else "Unknown",
+                    "type": device_info.device_type if device_info else "Unknown"
                 }
-        
-        trigger_count += 1
-        
-        return jsonify({
-            'success': True, 
-            'message': '觸發成功',
-            'trigger_count': trigger_count
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/save_image', methods=['POST'])
-def save_image():
-    """保存圖像"""
-    global save_count, frame_buffer
-    try:
-        if frame_buffer is None:
-            return jsonify({'success': False, 'error': '無可用影像'})
-        
-        data = request.json
-        format_type = data.get('format', 'bmp')
-        
-        # 生成檔案名稱
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'capture_{timestamp}_{save_count}.{format_type}'
-        filepath = os.path.join('captures', filename)
-        
-        # 確保目錄存在
-        os.makedirs('captures', exist_ok=True)
-        
-        # 保存影像
-        with frame_lock:
-            if format_type == 'jpeg':
-                cv2.imwrite(filepath, frame_buffer, [cv2.IMWRITE_JPEG_QUALITY, 95])
-            else:  # BMP
-                cv2.imwrite(filepath, frame_buffer)
-        
-        save_count += 1
-        
-        return jsonify({
-            'success': True,
-            'message': f'影像已保存: {filename}',
-            'save_count': save_count,
-            'filepath': filepath
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get_status', methods=['GET'])
-def get_status():
-    """獲取系統狀態"""
-    try:
-        status = {
-            'connected': camera_manager.connected if camera_manager else False,
-            'streaming': is_streaming,
-            'mode': current_mode,
-            'trigger_count': trigger_count,
-            'save_count': save_count
-        }
-        
-        # 如果有影像資訊，加入狀態
-        if frame_info:
-            status['frame_info'] = frame_info
-        
-        return jsonify({'success': True, 'status': status})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get_device_info', methods=['GET'])
-def get_device_info():
-    """獲取設備詳細資訊"""
-    try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
-        
-        # 獲取設備資訊
-        stDeviceInfo = MV_CC_DEVICE_INFO()
-        ret = camera_manager.cam.MV_CC_GetDeviceInfo(stDeviceInfo)
-        
-        info = {
-            'connected': True,
-            'type': 'Unknown'
-        }
-        
-        if ret == 0:
-            if stDeviceInfo.nTLayerType == MV_GIGE_DEVICE:
-                gige_info = stDeviceInfo.SpecialInfo.stGigEInfo
-                info.update({
-                    'type': 'GigE',
-                    'model': gige_info.chModelName.decode('ascii', 'ignore'),
-                    'serial': gige_info.chSerialNumber.decode('ascii', 'ignore'),
-                    'manufacturer': gige_info.chManufacturerName.decode('ascii', 'ignore'),
-                    'version': gige_info.chDeviceVersion.decode('ascii', 'ignore'),
-                    'user_name': gige_info.chUserDefinedName.decode('ascii', 'ignore')
-                })
-            elif stDeviceInfo.nTLayerType == MV_USB_DEVICE:
-                usb_info = stDeviceInfo.SpecialInfo.stUsb3VInfo
-                info.update({
-                    'type': 'USB3',
-                    'model': usb_info.chModelName.decode('ascii', 'ignore'),
-                    'serial': usb_info.chSerialNumber.decode('ascii', 'ignore'),
-                    'manufacturer': usb_info.chManufacturerName.decode('ascii', 'ignore'),
-                    'version': usb_info.chDeviceVersion.decode('ascii', 'ignore'),
-                    'user_name': usb_info.chUserDefinedName.decode('ascii', 'ignore')
-                })
-        
-        return jsonify({'success': True, 'device_info': info})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/optimize_packet_size', methods=['POST'])
-def optimize_packet_size():
-    """優化網路包大小（GigE相機）"""
-    try:
-        if not camera_manager.connected:
-            return jsonify({'success': False, 'error': '設備未連接'})
-        
-        # 獲取最佳包大小
-        optimal_size = camera_manager.cam.MV_CC_GetOptimalPacketSize()
-        if optimal_size > 0:
-            ret = camera_manager.cam.MV_CC_SetIntValue("GevSCPSPacketSize", optimal_size)
-            if ret == 0:
-                return jsonify({
-                    'success': True, 
-                    'message': f'包大小已優化為 {optimal_size} bytes'
-                })
-            else:
-                raise Exception(f"設置包大小失敗: 0x{ret:08x}")
+            })
         else:
-            return jsonify({'success': False, 'error': '無法獲取最佳包大小'})
+            return jsonify({"success": False, "error": "連接失敗"})
+            
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({"success": False, "error": str(e)})
 
-@app.route('/api/reset_connection', methods=['POST'])
-def reset_connection():
-    """重置連接"""
-    global is_streaming, frame_buffer, trigger_count, save_count
+@app.route("/disconnect", methods=["POST"])
+def disconnect_camera():
+    """斷開相機連接"""
+    global stream_running, stream_thread
+    
     try:
-        # 記錄當前設備索引
-        current_device = request.json.get('device_index', 0) if request.json else 0
-        
-        # 停止串流
-        if is_streaming:
-            stop_streaming_internal()
+        # 如果正在串流，先停止串流
+        if stream_running or camera_api.is_streaming():
+            print("正在串流中，先停止串流...")
+            
+            # 停止擷取線程
+            stream_running = False
+            if stream_thread and stream_thread.is_alive():
+                stream_thread.join(timeout=2.0)
+            
+            # 停止相機串流
+            try:
+                camera_api.stop_streaming()
+            except:
+                pass  # 忽略停止串流時的錯誤
+            
+            # 等待一下確保串流完全停止
+            time.sleep(0.5)
         
         # 斷開連接
-        if camera_manager.cam:
-            camera_manager.cam.MV_CC_StopGrabbing()
-        camera_manager.close()
+        ok = camera_api.disconnect()
+        return jsonify({"success": ok})
         
-        # 重置狀態
-        frame_buffer = None
-        trigger_count = 0
-        save_count = 0
-        
-        # 等待一下
-        time.sleep(1)
-        
-        # 重新連接
-        camera_manager.connect(current_device)
-        
-        # 重新設置參數
-        optimal_size = camera_manager.cam.MV_CC_GetOptimalPacketSize()
-        if optimal_size > 0:
-            camera_manager.cam.MV_CC_SetIntValue("GevSCPSPacketSize", optimal_size)
-        
-        # 開始取流
-        ret = camera_manager.cam.MV_CC_StartGrabbing()
-        if ret != 0:
-            raise Exception(f"開始取流失敗: 0x{ret:08x}")
-        
-        return jsonify({'success': True, 'message': '連接已重置'})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({"success": False, "error": str(e)})
 
-@app.route('/api/download_image/<filename>')
-def download_image(filename):
-    """下載保存的影像"""
+@app.route("/status", methods=["GET"])
+def get_status():
+    """獲取相機狀態"""
     try:
-        filepath = os.path.join('captures', filename)
-        if os.path.exists(filepath):
-            return send_file(filepath, as_attachment=True)
-        else:
-            return jsonify({'success': False, 'error': '檔案不存在'}), 404
+        status = camera_api.get_status()
+        is_connected = camera_api.is_connected()
+        is_streaming = camera_api.is_streaming()
+        current_mode = camera_api.get_mode()
+        
+        # 獲取當前參數
+        params = None
+        if is_connected:
+            params = camera_api.get_parameters()
+        
+        return jsonify({
+            "success": True,
+            "status": status.value,
+            "is_connected": is_connected,
+            "is_streaming": is_streaming,
+            "mode": current_mode.value,
+            "parameters": params.to_dict() if params else None
+        })
+        
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({"success": False, "error": str(e)})
 
-# 錯誤處理
+@app.route("/parameters", methods=["GET"])
+def get_parameters():
+    """獲取相機參數"""
+    try:
+        params = camera_api.get_parameters()
+        if params:
+            return jsonify({
+                "success": True,
+                "parameters": params.to_dict()
+            })
+        else:
+            return jsonify({"success": False, "error": "無法獲取參數"})
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/parameters", methods=["POST"])
+def set_parameters():
+    """設置相機參數"""
+    try:
+        data = request.get_json()
+        
+        params = CameraParameters()
+        params.frame_rate = float(data.get("frame_rate", 30.0))
+        params.exposure_time = float(data.get("exposure_time", 10000.0))
+        params.gain = float(data.get("gain", 0.0))
+        
+        ok = camera_api.set_parameters(params)
+        return jsonify({"success": ok})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/mode", methods=["POST"])
+def set_mode():
+    """設置相機模式"""
+    try:
+        data = request.get_json()
+        mode = data.get("mode", "continuous")
+        
+        cam_mode = CameraMode.CONTINUOUS if mode == "continuous" else CameraMode.TRIGGER
+        ok = camera_api.set_mode(cam_mode)
+        
+        return jsonify({"success": ok})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/start_stream", methods=["POST"])
+def start_stream():
+    """開始串流"""
+    global stream_thread, stream_running, latest_frame
+    
+    try:
+        if not camera_api.is_connected():
+            return jsonify({"success": False, "error": "相機未連接"})
+        
+        # 檢查是否已經在串流
+        if camera_api.is_streaming() or stream_running:
+            return jsonify({"success": False, "error": "相機已經在串流中"})
+        
+        # 確保之前的狀態已經清理
+        if hasattr(camera_api, '_camera_operation') and camera_api._camera_operation:
+            cam_op = camera_api._camera_operation
+            # 重置狀態標誌
+            cam_op.b_exit = False
+            if hasattr(cam_op, 'thread_running'):
+                cam_op.thread_running = False
+            
+            # 如果有殘留的線程，等待它結束
+            if hasattr(cam_op, 'work_thread') and cam_op.work_thread and cam_op.work_thread.is_alive():
+                print("等待之前的工作線程結束...")
+                cam_op.work_thread.join(timeout=2.0)
+        
+        # 開始相機串流
+        ok = camera_api.start_streaming()
+        if not ok:
+            return jsonify({"success": False, "error": "啟動串流失敗"})
+        
+        # 等待相機準備就緒
+        time.sleep(0.5)
+        
+        # 嘗試獲取相機操作對象的像素格式資訊
+        cam_op = camera_api._camera_operation
+        if cam_op and hasattr(cam_op, 'st_frame_info') and cam_op.st_frame_info:
+            pixel_type = cam_op.st_frame_info.enPixelType
+            print(f"相機像素格式: 0x{pixel_type:08X}")
+            print(f"影像大小: {cam_op.st_frame_info.nWidth} x {cam_op.st_frame_info.nHeight}")
+        
+        # 清空之前的影像
+        with frame_lock:
+            latest_frame = None
+        
+        # 啟動擷取線程
+        stream_running = True
+        stream_thread = threading.Thread(target=grab_frames, daemon=True)
+        stream_thread.start()
+        
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        print(f"啟動串流錯誤: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/stop_stream", methods=["POST"])
+def stop_stream():
+    """停止串流"""
+    global stream_running, stream_thread
+    
+    try:
+        # 停止擷取線程
+        stream_running = False
+        if stream_thread and stream_thread.is_alive():
+            stream_thread.join(timeout=2.0)
+        
+        # 停止相機串流 - 忽略線程相關錯誤
+        try:
+            camera_api.stop_streaming()
+        except Exception as e:
+            # 如果是線程相關錯誤，忽略它
+            error_msg = str(e).lower()
+            if "thread" in error_msg or "invalid thread id" in error_msg:
+                print("忽略線程錯誤，串流已停止")
+            else:
+                # 其他錯誤還是要報告
+                raise e
+        
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/trigger", methods=["POST"])
+def software_trigger():
+    """軟觸發"""
+    try:
+        ok = camera_api.software_trigger()
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/capture", methods=["POST"])
+def capture_image():
+    """拍照保存"""
+    try:
+        data = request.get_json()
+        format_type = data.get("format", "bmp")
+        
+        image_format = ImageFormat.BMP if format_type == "bmp" else ImageFormat.JPEG
+        ok = camera_api.save_image(image_format)
+        
+        if ok:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"capture_{timestamp}.{format_type}"
+            return jsonify({
+                "success": True,
+                "filename": filename
+            })
+        else:
+            return jsonify({"success": False, "error": "保存圖像失敗"})
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/video_feed")
+def video_feed():
+    """MJPEG 串流端點"""
+    return Response(
+        generate_mjpeg(),
+        mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
+
+@app.route("/snapshot")
+def get_snapshot():
+    """獲取當前影像快照"""
+    global latest_frame
+    
+    try:
+        with frame_lock:
+            frame = latest_frame
+        
+        if frame:
+            # 轉換為 base64
+            base64_image = base64.b64encode(frame).decode('utf-8')
+            return jsonify({
+                "success": True,
+                "image": f"data:image/jpeg;base64,{base64_image}"
+            })
+        else:
+            return jsonify({"success": False, "error": "無可用影像"})
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/packet_size", methods=["POST"])
+def optimize_packet_size():
+    """優化網路包大小"""
+    try:
+        ok = camera_api.set_packet_size(0)  # 0 表示自動優化
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+# ========== 錯誤處理 ==========
+
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({'success': False, 'error': '找不到請求的資源'}), 404
+    return jsonify({"error": "Not found"}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return jsonify({'success': False, 'error': '伺服器內部錯誤'}), 500
+    return jsonify({"error": "Internal server error"}), 500
 
-# 清理函數
-def cleanup():
-    """清理資源"""
-    global is_streaming
-    try:
-        is_streaming = False
-        if camera_manager:
-            if camera_manager.cam:
-                camera_manager.cam.MV_CC_StopGrabbing()
-            camera_manager.close()
-    except:
-        pass
+# ========== 主程式 ==========
 
-# 主程式
-if __name__ == '__main__':
-    # 初始化相機
-    if not init_camera():
-        print("警告: 相機初始化失敗，部分功能可能無法使用")
+if __name__ == "__main__":
+    print("啟動 Flask Web UI 相機控制系統...")
+    print("請訪問 http://localhost:5000")
     
-    # 註冊清理函數
-    import atexit
-    atexit.register(cleanup)
+    # 設置 Flask 配置
+    app.config['JSON_AS_ASCII'] = False  # 支援中文
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     
-    # 創建captures目錄
-    os.makedirs('captures', exist_ok=True)
-    
-    # 啟動Flask應用
-    try:
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
-    except KeyboardInterrupt:
-        cleanup()
-        print("\n應用程式已關閉")
+    # 啟動 Flask
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
