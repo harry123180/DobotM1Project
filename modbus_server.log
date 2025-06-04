@@ -400,3 +400,40 @@
 2025-06-03 16:36:19,841 - INFO - 172.16.0.197 - - [03/Jun/2025 16:36:19] "GET /api/status HTTP/1.1" 200 -
 2025-06-03 16:37:19,841 - INFO - 172.16.0.197 - - [03/Jun/2025 16:37:19] "GET /api/status HTTP/1.1" 200 -
 2025-06-03 16:38:19,839 - INFO - 172.16.0.197 - - [03/Jun/2025 16:38:19] "GET /api/status HTTP/1.1" 200 -
+2025-06-04 16:36:44,335 - INFO - ¸ü¤J¤F 5 ­Ó¼È¦s¾¹µù¸Ñ
+2025-06-04 16:36:44,338 - INFO - Modbus TCP Server À³¥Îµ{¦¡ªì©l¤Æ§¹¦¨
+2025-06-04 16:36:44,339 - INFO - === Modbus TCP Server ±Ò°Ê ===
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 0: 0 -> 100
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 1: 0 -> 200
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 10: 0 -> 1000
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 50: 0 -> 5000
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 100: 0 -> 12345
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 200: 0 -> 32768
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 500: 0 -> 65535
+2025-06-04 16:36:44,339 - INFO - ¼g¤J¼È¦s¾¹ 999: 0 -> 40000
+2025-06-04 16:36:44,340 - INFO - ¼È¦s¾¹µù¸Ñ¤w«O¦s
+2025-06-04 16:36:44,340 - INFO - ´ú¸Õ¼Æ¾Ú©Mµù¸Ñªì©l¤Æ§¹¦¨ (µL²Å¸¹ 0-65535 ½d³ò)
+2025-06-04 16:36:44,340 - INFO - ±Ò°ÊWebºÞ²z¤¶­±©ó http://127.0.0.1:8000
+2025-06-04 16:36:45,341 - INFO - ±Ò°ÊModbus TCP Server©ó 0.0.0.0:502, SlaveID: 1
+2025-06-04 16:36:45,345 - INFO - Server listening.
+2025-06-04 16:36:45,566 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.50.51:8000
+2025-06-04 16:36:45,567 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-04 16:36:48,214 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:48] "GET / HTTP/1.1" 200 -
+2025-06-04 16:36:48,260 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:48] "GET /static/script.js HTTP/1.1" 200 -
+2025-06-04 16:36:48,263 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:48] "GET /static/style.css HTTP/1.1" 200 -
+2025-06-04 16:36:48,333 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:48] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:36:48,334 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:48] "GET /api/status HTTP/1.1" 200 -
+2025-06-04 16:36:48,360 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:48] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-04 16:36:56,618 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:56] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:36:58,269 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:58] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:36:59,405 - INFO - 192.168.50.51 - - [04/Jun/2025 16:36:59] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:37:01,439 - INFO - 192.168.50.51 - - [04/Jun/2025 16:37:01] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:37:02,818 - INFO - 192.168.50.51 - - [04/Jun/2025 16:37:02] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:37:04,809 - INFO - 192.168.50.51 - - [04/Jun/2025 16:37:04] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:37:06,284 - INFO - 192.168.50.51 - - [04/Jun/2025 16:37:06] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:37:09,772 - INFO - 192.168.50.51 - - [04/Jun/2025 16:37:09] "GET /api/register_range?start=0&count=20 HTTP/1.1" 200 -
+2025-06-04 16:37:18,342 - INFO - 192.168.50.51 - - [04/Jun/2025 16:37:18] "GET /api/status HTTP/1.1" 200 -
+2025-06-04 16:37:34,010 - INFO - Server graceful shutdown.

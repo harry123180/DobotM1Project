@@ -339,33 +339,65 @@ class DobotController:
             cmd_type = command['type']
             params = command.get('params', {})
             
-            if cmd_type == 'enable':
-                self.dashboard.EnableRobot()
-            elif cmd_type == 'disable':
-                self.dashboard.DisableRobot()
-            elif cmd_type == 'movj':
-                self.move.MovJ(**params)
-            elif cmd_type == 'movl':
-                self.move.MovL(**params)
-            elif cmd_type == 'joint_movj':
-                self.move.JointMovJ(**params)
-            elif cmd_type == 'jog':
-                self.move.MoveJog(params.get('axis_id'))
-            elif cmd_type == 'jog_stop':
-                self.move.MoveJog()
-            elif cmd_type == 'do':
-                self.dashboard.DOExecute(params['index'], params['status'])
-            elif cmd_type == 'emergency_stop':
-                self.dashboard.EmergencyStop()
-            elif cmd_type == 'clear_error':
-                self.dashboard.ClearError()
-            elif cmd_type == 'reset_robot':
-                self.dashboard.ResetRobot()
+            logging.info(f"正在執行指令: {cmd_type}, 參數: {params}")
             
-            logging.info(f"執行指令: {cmd_type}")
+            if cmd_type == 'enable':
+                result = self.dashboard.EnableRobot()
+                logging.info(f"EnableRobot結果: {result}")
+            elif cmd_type == 'disable':
+                result = self.dashboard.DisableRobot()
+                logging.info(f"DisableRobot結果: {result}")
+            elif cmd_type == 'movj':
+                # 確保所有必要的參數都存在
+                if all(key in params for key in ['x', 'y', 'z', 'r']):
+                    result = self.move.MovJ(params['x'], params['y'], params['z'], params['r'])
+                    logging.info(f"MovJ結果: {result}")
+                else:
+                    logging.error(f"MovJ參數不完整: {params}")
+            elif cmd_type == 'movl':
+                if all(key in params for key in ['x', 'y', 'z', 'r']):
+                    result = self.move.MovL(params['x'], params['y'], params['z'], params['r'])
+                    logging.info(f"MovL結果: {result}")
+                else:
+                    logging.error(f"MovL參數不完整: {params}")
+            elif cmd_type == 'joint_movj':
+                if all(key in params for key in ['j1', 'j2', 'j3', 'j4']):
+                    result = self.move.JointMovJ(params['j1'], params['j2'], params['j3'], params['j4'])
+                    logging.info(f"JointMovJ結果: {result}")
+                else:
+                    logging.error(f"JointMovJ參數不完整: {params}")
+            elif cmd_type == 'jog':
+                axis_id = params.get('axis_id')
+                if axis_id:
+                    result = self.move.MoveJog(axis_id)
+                    logging.info(f"MoveJog {axis_id}結果: {result}")
+                else:
+                    logging.error("JOG指令缺少axis_id參數")
+            elif cmd_type == 'jog_stop':
+                result = self.move.MoveJog()
+                logging.info(f"停止JOG結果: {result}")
+            elif cmd_type == 'do':
+                if 'index' in params and 'status' in params:
+                    result = self.dashboard.DOExecute(params['index'], params['status'])
+                    logging.info(f"DOExecute結果: {result}")
+                else:
+                    logging.error(f"DO指令參數不完整: {params}")
+            elif cmd_type == 'emergency_stop':
+                result = self.dashboard.EmergencyStop()
+                logging.info(f"緊急停止結果: {result}")
+            elif cmd_type == 'clear_error':
+                result = self.dashboard.ClearError()
+                logging.info(f"清除錯誤結果: {result}")
+            elif cmd_type == 'reset_robot':
+                result = self.dashboard.ResetRobot()
+                logging.info(f"重設機器人結果: {result}")
+            else:
+                logging.warning(f"未知的指令類型: {cmd_type}")
             
         except Exception as e:
-            logging.error(f"執行指令失敗: {e}")
+            logging.error(f"執行指令失敗 ({cmd_type}): {e}")
+            # 向前端發送錯誤通知
+            socketio.emit('robot_error', {'error': str(e), 'command': cmd_type})
 
     def start_feedback_thread(self):
         """啟動回饋執行緒"""
@@ -961,6 +993,81 @@ def robot_set_do(index):
         'params': {'index': index, 'status': status}
     })
     return jsonify({'success': True})
+
+# ========== 除錯API ==========
+@app.route('/api/robot/debug/command_queue_size')
+def robot_debug_queue_size():
+    if not ROBOT_AVAILABLE or not dobot_controller:
+        return jsonify({'error': '機器人功能不可用'})
+    
+    return jsonify({
+        'queue_size': dobot_controller.command_queue.qsize(),
+        'connected': dobot_controller.connected,
+        'command_thread_alive': dobot_controller.command_thread.is_alive() if dobot_controller.command_thread else False,
+        'feedback_running': dobot_controller.feedback_running
+    })
+
+@app.route('/api/robot/debug/send_raw_command', methods=['POST'])
+def robot_debug_send_raw():
+    if not ROBOT_AVAILABLE or not dobot_controller or not dobot_controller.connected:
+        return jsonify({'success': False, 'error': '機器人未連接'})
+    
+    data = request.json
+    command_str = data.get('command', '')
+    
+    try:
+        if dobot_controller.dashboard:
+            result = dobot_controller.dashboard.sendRecvMsg(command_str)
+            return jsonify({'success': True, 'result': result})
+        else:
+            return jsonify({'success': False, 'error': 'Dashboard連接不可用'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/robot/test_movement', methods=['POST'])
+def robot_test_movement():
+    if not ROBOT_AVAILABLE or not dobot_controller:
+        return jsonify({'success': False, 'error': '機器人功能不可用'})
+    
+    data = request.json
+    test_type = data.get('type', 'joint')  # 'joint' 或 'cartesian'
+    
+    try:
+        if test_type == 'joint':
+            # 測試關節運動 - 輕微運動
+            current_pos = dobot_controller.robot_state['joint_positions']
+            test_pos = current_pos.copy()
+            test_pos[0] += 1.0  # J1軸移動1度
+            
+            dobot_controller.add_command({
+                'type': 'joint_movj',
+                'params': {
+                    'j1': test_pos[0],
+                    'j2': test_pos[1],
+                    'j3': test_pos[2],
+                    'j4': test_pos[3]
+                }
+            })
+        else:
+            # 測試笛卡爾運動 - 輕微運動
+            current_pos = dobot_controller.robot_state['cartesian_position']
+            test_pos = current_pos.copy()
+            test_pos[0] += 5.0  # X軸移動5mm
+            
+            dobot_controller.add_command({
+                'type': 'movj',
+                'params': {
+                    'x': test_pos[0],
+                    'y': test_pos[1],
+                    'z': test_pos[2],
+                    'r': test_pos[3]
+                }
+            })
+        
+        return jsonify({'success': True, 'message': f'測試{test_type}運動指令已發送'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # ========== 相機API ==========
 @app.route('/api/camera/devices', methods=["GET"])

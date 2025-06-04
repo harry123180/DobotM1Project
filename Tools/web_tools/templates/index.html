@@ -330,6 +330,84 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* 拍照設定區域樣式 */
+        .capture-settings {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .capture-settings h4 {
+            margin-bottom: 10px;
+            color: #2a5298;
+            font-size: 1.1em;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .file-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            margin: 2px 0;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            font-size: 0.85em;
+        }
+
+        .file-item:hover {
+            background: #f0f0f0;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            min-width: auto;
+            margin: 0;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+            transform: none;
+        }
+
+        /* FPS 顯示樣式 */
+        .fps-display {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2);
+        }
+
+        .fps-number {
+            font-size: 1.2em;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
         @media (max-width: 1024px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -364,7 +442,7 @@
     <div class="container">
         <div class="header">
             <h1>Web UI 相機控制系統</h1>
-            <p>基於 Hikvision SDK 的網頁串流界面</p>
+            <p>基於 Hikvision SDK 的網頁串流界面 - 增強版</p>
         </div>
 
         <div class="main-content">
@@ -454,9 +532,15 @@
                     </p>
                 </div>
 
-                <!-- 圖像保存 -->
+                <!-- 圖像保存 - 完善版 -->
                 <div class="control-section">
                     <h3 class="section-title">圖像保存</h3>
+                    
+                    <div class="form-group">
+                        <label for="custom-filename">自定義文件名 (選填)：</label>
+                        <input type="text" id="custom-filename" placeholder="例如：測試圖像_001">
+                    </div>
+                    
                     <div class="radio-group">
                         <label class="radio-label">
                             <input type="radio" name="format" value="bmp" checked>
@@ -466,13 +550,38 @@
                             <input type="radio" name="format" value="jpeg">
                             <span>JPEG</span>
                         </label>
+                        <label class="radio-label">
+                            <input type="radio" name="format" value="png">
+                            <span>PNG</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="format" value="tiff">
+                            <span>TIFF</span>
+                        </label>
                     </div>
+                    
                     <div class="button-group">
                         <button onclick="captureImage()" id="capture-btn" disabled>拍照</button>
+                        <button onclick="testSaveImage()" id="test-save-btn" disabled>測試保存</button>
+                        <button onclick="viewSavedFiles()" id="view-files-btn">查看檔案</button>
                     </div>
-                    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
-                        已保存：<span id="save-count">0</span> 張
-                    </p>
+                    
+                    <div class="file-info">
+                        <p style="margin: 5px 0; color: #666; font-size: 0.9em;">
+                            已保存：<span id="save-count">0</span> 張
+                        </p>
+                        <p style="margin: 5px 0; color: #666; font-size: 0.9em;">
+                            保存路徑：<span id="save-path">captured_images</span>
+                        </p>
+                    </div>
+
+                    <!-- 檔案列表 -->
+                    <div class="capture-settings" id="file-list-container" style="display: none;">
+                        <h4>最近保存的檔案</h4>
+                        <div class="file-list" id="file-list">
+                            <!-- 檔案列表將動態填充 -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -489,6 +598,11 @@
                     </div>
                     <div class="status-item">
                         <span>模式：<strong id="mode-text">連續模式</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <div class="fps-display">
+                            FPS: <span class="fps-number" id="fps-display">0.0</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -508,6 +622,8 @@
         let triggerCount = 0;
         let saveCount = 0;
         let statusInterval = null;
+        let fpsInterval = null;
+        let fileListVisible = false;
 
         // 顯示 Toast 通知
         function showToast(message, type = 'info') {
@@ -546,6 +662,7 @@
             
             // 拍照按鈕
             document.getElementById('capture-btn').disabled = !isStreaming;
+            document.getElementById('test-save-btn').disabled = !isConnected;
             
             // 更新狀態指示器
             const connectionIndicator = document.getElementById('connection-status');
@@ -562,13 +679,44 @@
             if (isStreaming) {
                 streamIndicator.className = 'status-indicator streaming';
                 document.getElementById('stream-text').textContent = '運行中';
+                // 開始 FPS 更新
+                startFpsUpdate();
             } else {
                 streamIndicator.className = 'status-indicator';
                 document.getElementById('stream-text').textContent = '已停止';
+                // 停止 FPS 更新
+                stopFpsUpdate();
+                document.getElementById('fps-display').textContent = '0.0';
             }
             
             // 更新模式文字
             document.getElementById('mode-text').textContent = currentMode === 'continuous' ? '連續模式' : '觸發模式';
+        }
+
+        // 開始 FPS 更新
+        function startFpsUpdate() {
+            if (fpsInterval) return;
+            
+            fpsInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/fps');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        document.getElementById('fps-display').textContent = data.fps.toFixed(1);
+                    }
+                } catch (error) {
+                    // 靜默處理 FPS 更新錯誤
+                }
+            }, 1000);
+        }
+
+        // 停止 FPS 更新
+        function stopFpsUpdate() {
+            if (fpsInterval) {
+                clearInterval(fpsInterval);
+                fpsInterval = null;
+            }
         }
 
         // 重新整理設備列表
@@ -637,8 +785,9 @@
                     showToast('設備連接成功', 'success');
                     updateUIState();
                     
-                    // 自動獲取參數
+                    // 自動獲取參數和檔案資訊
                     setTimeout(getParameters, 500);
+                    setTimeout(getCaptureSettings, 1000);
                 } else {
                     showToast('連接失敗：' + (data.error || ''), 'error');
                 }
@@ -808,28 +957,157 @@
             }
         }
 
-        // 拍照
+        // 拍照 - 完善版
         async function captureImage() {
             const format = document.querySelector('input[name="format"]:checked').value;
+            const customFilename = document.getElementById('custom-filename').value.trim();
+            
+            const captureBtn = document.getElementById('capture-btn');
+            const originalText = captureBtn.textContent;
+            
+            captureBtn.disabled = true;
+            captureBtn.innerHTML = '<span class="loading"></span> 拍照中...';
             
             try {
                 const response = await fetch('/capture', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ format: format })
+                    body: JSON.stringify({ 
+                        format: format,
+                        filename: customFilename
+                    })
                 });
                 
                 const data = await response.json();
                 if (data.success) {
-                    saveCount++;
+                    saveCount = data.save_count || (saveCount + 1);
                     document.getElementById('save-count').textContent = saveCount;
-                    showToast(`圖像保存成功：${data.filename}`, 'success');
+                    
+                    // 顯示詳細資訊
+                    const fileSizeKB = (data.file_size / 1024).toFixed(2);
+                    showToast(`圖像保存成功：${data.filename} (${fileSizeKB} KB)`, 'success');
+                    
+                    // 清空自定義文件名
+                    document.getElementById('custom-filename').value = '';
+                    
+                    // 如果檔案列表可見，更新它
+                    if (fileListVisible) {
+                        setTimeout(getCaptureSettings, 500);
+                    }
                 } else {
                     showToast('圖像保存失敗：' + (data.error || ''), 'error');
                 }
             } catch (error) {
                 showToast('網路錯誤：' + error.message, 'error');
+            } finally {
+                captureBtn.disabled = !isStreaming;
+                captureBtn.textContent = originalText;
             }
+        }
+
+        // 測試保存功能
+        async function testSaveImage() {
+            const testBtn = document.getElementById('test-save-btn');
+            const originalText = testBtn.textContent;
+            
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<span class="loading"></span> 測試中...';
+            
+            try {
+                const response = await fetch('/test_save', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const fileSizeKB = (data.file_size / 1024).toFixed(2);
+                    showToast(`測試保存成功：${data.filename} (${fileSizeKB} KB)`, 'success');
+                    
+                    // 如果檔案列表可見，更新它
+                    if (fileListVisible) {
+                        setTimeout(getCaptureSettings, 500);
+                    }
+                } else {
+                    showToast('測試保存失敗：' + (data.error || ''), 'error');
+                }
+            } catch (error) {
+                showToast('網路錯誤：' + error.message, 'error');
+            } finally {
+                testBtn.disabled = !isConnected;
+                testBtn.textContent = originalText;
+            }
+        }
+        async function getCaptureSettings() {
+            try {
+                const response = await fetch('/capture_settings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('save-count').textContent = data.save_count;
+                    document.getElementById('save-path').textContent = data.save_directory;
+                    saveCount = data.save_count;
+                    
+                    // 更新檔案列表
+                    if (fileListVisible) {
+                        updateFileList(data.files);
+                    }
+                }
+            } catch (error) {
+                console.log('獲取拍照設置失敗：' + error.message);
+            }
+        }
+
+        // 切換檔案列表顯示
+        function viewSavedFiles() {
+            const container = document.getElementById('file-list-container');
+            const btn = document.getElementById('view-files-btn');
+            
+            fileListVisible = !fileListVisible;
+            
+            if (fileListVisible) {
+                container.style.display = 'block';
+                btn.textContent = '隱藏檔案';
+                getCaptureSettings();
+            } else {
+                container.style.display = 'none';
+                btn.textContent = '查看檔案';
+            }
+        }
+
+        // 更新檔案列表
+        function updateFileList(files) {
+            const fileListElement = document.getElementById('file-list');
+            fileListElement.innerHTML = '';
+            
+            if (files && files.length > 0) {
+                files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileSizeKB = (file.size / 1024).toFixed(2);
+                    
+                    fileItem.innerHTML = `
+                        <div>
+                            <div style="font-weight: 500;">${file.filename}</div>
+                            <div style="color: #666; font-size: 0.8em;">${fileSizeKB} KB - ${file.modified}</div>
+                        </div>
+                        <button class="download-btn" onclick="downloadFile('${file.filename}')">下載</button>
+                    `;
+                    
+                    fileListElement.appendChild(fileItem);
+                });
+            } else {
+                fileListElement.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">尚無保存的檔案</div>';
+            }
+        }
+
+        // 下載檔案
+        function downloadFile(filename) {
+            const link = document.createElement('a');
+            link.href = `/download/${encodeURIComponent(filename)}`;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`開始下載：${filename}`, 'info');
         }
 
         // 定期更新狀態
@@ -845,6 +1123,13 @@
                         isConnected = data.is_connected;
                         isStreaming = data.is_streaming;
                         currentMode = data.mode;
+                        
+                        // 更新保存計數
+                        if (data.save_count !== undefined) {
+                            saveCount = data.save_count;
+                            document.getElementById('save-count').textContent = saveCount;
+                        }
+                        
                         updateUIState();
                     }
                 } catch (error) {
@@ -857,6 +1142,7 @@
         window.onload = () => {
             refreshDevices();
             startStatusUpdate();
+            getCaptureSettings();
         };
 
         // 頁面卸載時清理
@@ -864,6 +1150,7 @@
             if (statusInterval) {
                 clearInterval(statusInterval);
             }
+            stopFpsUpdate();
         };
     </script>
 </body>
