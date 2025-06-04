@@ -10,7 +10,7 @@
     <div class="container">
         <div class="header">
             <h1>🔧 Modbus TCP Server 管理介面</h1>
-            <p>伺服器地址: 0.0.0.0:502 | Web管理: 0.0.0.0:8000</p>
+            <p>伺服器地址: 0.0.0.0:502 | Web管理: 0.0.0.0:8000 | 數值範圍: 0-65535 (無符號)</p>
         </div>
         
         <!-- 伺服器狀態區塊 -->
@@ -32,8 +32,8 @@
             <div class="control-row">
                 <label>暫存器地址 (0-999):</label>
                 <input type="number" id="reg-address" min="0" max="999" value="0">
-                <label>值 (-32768 ~ 32767):</label>
-                <input type="number" id="reg-value" min="-32768" max="32767" value="0">
+                <label>值 (0 ~ 65535):</label>
+                <input type="number" id="reg-value" min="0" max="65535" value="0">
                 <button onclick="writeRegister()">寫入暫存器</button>
                 <button onclick="readRegister()">讀取暫存器</button>
             </div>
@@ -50,7 +50,7 @@
                 <input type="number" id="display-count" min="1" max="100" value="20">
                 <label>顯示格式:</label>
                 <select id="display-format">
-                    <option value="decimal">十進制</option>
+                    <option value="decimal">無符號十進制</option>
                     <option value="hex">十六進制</option>
                     <option value="binary">二進制</option>
                     <option value="signed">有符號十進制</option>
@@ -64,7 +64,7 @@
             <h2>📋 暫存器狀態</h2>
             <div class="registers-header">
                 <span>地址範圍: <span id="address-range">0-19</span></span>
-                <span>格式: <span id="current-format">十進制</span></span>
+                <span>格式: <span id="current-format">無符號十進制</span></span>
             </div>
             <div id="registers-grid" class="register-grid">載入中...</div>
         </div>
@@ -89,9 +89,11 @@
                 <li><strong>Function Code:</strong> 使用 0x03 (Read Holding Registers) 讀取暫存器</li>
                 <li><strong>SlaveID:</strong> 預設為 1，可透過控制面板修改</li>
                 <li><strong>暫存器範圍:</strong> 0-999 (共1000個暫存器)</li>
-                <li><strong>數據類型:</strong> 16位有符號整數 (-32768 到 32767)</li>
+                <li><strong>數據類型:</strong> 16位無符號整數 (0 到 65535)</li>
+                <li><strong>有符號顯示:</strong> 選擇「有符號十進制」格式時，大於32767的值會顯示為負數</li>
                 <li><strong>即時同步:</strong> 支援外部Modbus設備讀寫時的即時更新</li>
                 <li><strong>註解功能:</strong> 點擊暫存器格子可添加用途註解</li>
+                <li><strong>格式轉換:</strong> 支援十進制、十六進制、二進制和有符號十進制顯示</li>
             </ul>
         </div>
     </div>

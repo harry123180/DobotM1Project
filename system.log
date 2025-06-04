@@ -1444,3 +1444,117 @@
 2025-06-04 13:47:41,617 - INFO - �����H�s���w�_�}
 2025-06-04 13:47:41,618 - INFO - 192.168.50.51 - - [04/Jun/2025 13:47:41] "POST /api/disconnect HTTP/1.1" 200 -
 2025-06-04 14:49:59,935 - INFO - 192.168.50.51 - - [04/Jun/2025 14:49:59] "GET /socket.io/?EIO=4&transport=websocket&sid=u3jW16Ycu2ZwnLeMAAAA HTTP/1.1" 200 -
+2025-06-04 15:46:09,086 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.50.51:5000
+2025-06-04 15:46:09,087 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-04 15:46:11,694 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:11] "GET / HTTP/1.1" 200 -
+2025-06-04 15:46:28,955 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:28] "GET /robot HTTP/1.1" 200 -
+2025-06-04 15:46:28,977 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:28] "GET /socket.io/?EIO=4&transport=polling&t=PSvv-Vl HTTP/1.1" 200 -
+2025-06-04 15:46:29,013 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:29] "POST /socket.io/?EIO=4&transport=polling&t=PSvv-WJ&sid=KRC08A8gbZobLtCnAAAA HTTP/1.1" 200 -
+2025-06-04 15:46:29,014 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:29] "GET /socket.io/?EIO=4&transport=polling&t=PSvv-WK&sid=KRC08A8gbZobLtCnAAAA HTTP/1.1" 200 -
+2025-06-04 15:46:29,020 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:29] "GET /socket.io/?EIO=4&transport=polling&t=PSvv-WQ&sid=KRC08A8gbZobLtCnAAAA HTTP/1.1" 200 -
+2025-06-04 15:46:31,990 - INFO - 機器人連接成功: 192.168.1.6
+2025-06-04 15:46:31,992 - INFO - 192.168.50.51 - - [04/Jun/2025 15:46:31] "POST /api/robot/connect HTTP/1.1" 200 -
+2025-06-04 15:47:01,416 - INFO - 機器人連接已中斷
+2025-06-04 15:47:01,416 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:01] "POST /api/robot/disconnect HTTP/1.1" 200 -
+2025-06-04 15:47:02,428 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:02] "GET /camera HTTP/1.1" 200 -
+2025-06-04 15:47:02,459 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:02] "GET /socket.io/?EIO=4&transport=websocket&sid=KRC08A8gbZobLtCnAAAA HTTP/1.1" 200 -
+2025-06-04 15:47:02,676 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:02] "GET /api/camera/devices HTTP/1.1" 200 -
+2025-06-04 15:47:04,595 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:04] "GET /api/camera/devices HTTP/1.1" 200 -
+2025-06-04 15:47:07,299 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:07] "POST /api/camera/connect HTTP/1.1" 200 -
+2025-06-04 15:47:10,335 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:10] "POST /api/camera/start_stream HTTP/1.1" 200 -
+2025-06-04 15:47:11,405 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:11] "GET /api/camera/video_feed HTTP/1.1" 200 -
+2025-06-04 15:47:35,747 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:35] "GET /robot HTTP/1.1" 200 -
+2025-06-04 15:47:35,759 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:35] "GET /socket.io/?EIO=4&transport=polling&t=PSvwEpD HTTP/1.1" 200 -
+2025-06-04 15:47:35,764 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:35] "POST /socket.io/?EIO=4&transport=polling&t=PSvwEpI&sid=YiKD_KEqDmgg887iAAAC HTTP/1.1" 200 -
+2025-06-04 15:47:35,765 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:35] "GET /socket.io/?EIO=4&transport=polling&t=PSvwEpJ&sid=YiKD_KEqDmgg887iAAAC HTTP/1.1" 200 -
+2025-06-04 15:47:35,773 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:35] "GET /socket.io/?EIO=4&transport=polling&t=PSvwEpN&sid=YiKD_KEqDmgg887iAAAC HTTP/1.1" 200 -
+2025-06-04 15:47:37,753 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:37] "GET /modbus_rtu HTTP/1.1" 200 -
+2025-06-04 15:47:37,792 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:37] "GET /api/modbus/rtu/status HTTP/1.1" 200 -
+2025-06-04 15:47:37,793 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:37] "GET /socket.io/?EIO=4&transport=websocket&sid=YiKD_KEqDmgg887iAAAC HTTP/1.1" 200 -
+2025-06-04 15:47:37,797 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:37] "GET /api/modbus/rtu/ports HTTP/1.1" 200 -
+2025-06-04 15:47:49,706 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:49] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-04 15:47:49,721 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:49] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-04 15:47:50,484 - INFO - 192.168.50.51 - - [04/Jun/2025 15:47:50] "GET / HTTP/1.1" 200 -
+2025-06-04 15:48:17,097 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:17] "GET /robot HTTP/1.1" 200 -
+2025-06-04 15:48:17,111 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:17] "GET /socket.io/?EIO=4&transport=polling&t=PSvwOvM HTTP/1.1" 200 -
+2025-06-04 15:48:17,117 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:17] "POST /socket.io/?EIO=4&transport=polling&t=PSvwOvR&sid=Fu7HxBg3On8sLTsiAAAE HTTP/1.1" 200 -
+2025-06-04 15:48:17,118 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:17] "GET /socket.io/?EIO=4&transport=polling&t=PSvwOvS&sid=Fu7HxBg3On8sLTsiAAAE HTTP/1.1" 200 -
+2025-06-04 15:48:17,128 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:17] "GET /socket.io/?EIO=4&transport=polling&t=PSvwOvW&sid=Fu7HxBg3On8sLTsiAAAE HTTP/1.1" 200 -
+2025-06-04 15:48:22,871 - INFO - 機器人連接成功: 192.168.1.6
+2025-06-04 15:48:22,872 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:22] "POST /api/robot/connect HTTP/1.1" 200 -
+2025-06-04 15:48:31,249 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:31] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-04 15:48:32,479 - INFO - 執行指令: enable
+2025-06-04 15:48:35,271 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:35] "POST /api/robot/disable HTTP/1.1" 200 -
+2025-06-04 15:48:36,322 - INFO - 執行指令: disable
+2025-06-04 15:48:38,396 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:38] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-04 15:48:39,610 - INFO - 執行指令: enable
+2025-06-04 15:48:43,275 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:43] "POST /api/robot/disable HTTP/1.1" 200 -
+2025-06-04 15:48:44,306 - INFO - 執行指令: disable
+2025-06-04 15:48:44,478 - INFO - 192.168.50.51 - - [04/Jun/2025 15:48:44] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-04 15:48:45,694 - INFO - 執行指令: enable
+2025-06-04 15:49:00,332 - INFO - 機器人連接已中斷
+2025-06-04 15:49:00,333 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:00] "POST /api/robot/disconnect HTTP/1.1" 200 -
+2025-06-04 15:49:07,893 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:07] "GET / HTTP/1.1" 200 -
+2025-06-04 15:49:07,912 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:07] "GET /socket.io/?EIO=4&transport=websocket&sid=Fu7HxBg3On8sLTsiAAAE HTTP/1.1" 200 -
+2025-06-04 15:49:12,664 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:12] "GET /modbus_tcp HTTP/1.1" 200 -
+2025-06-04 15:49:12,678 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:12] "GET /api/modbus/tcp/status HTTP/1.1" 200 -
+2025-06-04 15:49:14,532 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:14] "GET / HTTP/1.1" 200 -
+2025-06-04 15:49:16,382 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:16] "GET /camera HTTP/1.1" 200 -
+2025-06-04 15:49:16,606 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:16] "GET /api/camera/devices HTTP/1.1" 200 -
+2025-06-04 15:49:19,308 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:19] "GET /api/camera/devices HTTP/1.1" 200 -
+2025-06-04 15:49:43,978 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:43] "GET /api/camera/devices HTTP/1.1" 200 -
+2025-06-04 15:49:56,386 - INFO - 192.168.50.51 - - [04/Jun/2025 15:49:56] "[33mPOST /connect HTTP/1.1[0m" 404 -
+2025-06-04 15:50:04,014 - INFO - 192.168.50.51 - - [04/Jun/2025 15:50:04] "GET /robot HTTP/1.1" 200 -
+2025-06-04 15:50:04,029 - INFO - 192.168.50.51 - - [04/Jun/2025 15:50:04] "GET /socket.io/?EIO=4&transport=polling&t=PSvwo_x HTTP/1.1" 200 -
+2025-06-04 15:50:04,036 - INFO - 192.168.50.51 - - [04/Jun/2025 15:50:04] "POST /socket.io/?EIO=4&transport=polling&t=PSvwp02&sid=hq0aKyXuV21U6JF8AAAG HTTP/1.1" 200 -
+2025-06-04 15:50:04,036 - INFO - 192.168.50.51 - - [04/Jun/2025 15:50:04] "GET /socket.io/?EIO=4&transport=polling&t=PSvwp03&sid=hq0aKyXuV21U6JF8AAAG HTTP/1.1" 200 -
+2025-06-04 15:50:04,059 - INFO - 192.168.50.51 - - [04/Jun/2025 15:50:04] "GET /socket.io/?EIO=4&transport=polling&t=PSvwp08&sid=hq0aKyXuV21U6JF8AAAG HTTP/1.1" 200 -
+2025-06-04 15:53:32,839 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.50.51:5000
+2025-06-04 15:53:32,840 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-04 15:53:35,261 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:35] "GET / HTTP/1.1" 200 -
+2025-06-04 15:53:35,273 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:35] "GET /socket.io/?EIO=4&transport=polling&t=PSvxcad HTTP/1.1" 200 -
+2025-06-04 15:53:35,278 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:35] "POST /socket.io/?EIO=4&transport=polling&t=PSvxcai&sid=Mm_s4LWwmva3Yd5nAAAA HTTP/1.1" 200 -
+2025-06-04 15:53:35,280 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:35] "GET /socket.io/?EIO=4&transport=polling&t=PSvxcaj&sid=Mm_s4LWwmva3Yd5nAAAA HTTP/1.1" 200 -
+2025-06-04 15:53:35,290 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:35] "GET /socket.io/?EIO=4&transport=polling&t=PSvxcan&sid=Mm_s4LWwmva3Yd5nAAAA HTTP/1.1" 200 -
+2025-06-04 15:53:38,006 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:38] "GET /robot HTTP/1.1" 200 -
+2025-06-04 15:53:38,016 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:38] "GET /socket.io/?EIO=4&transport=polling&t=PSvxdFV HTTP/1.1" 200 -
+2025-06-04 15:53:38,051 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:38] "POST /socket.io/?EIO=4&transport=polling&t=PSvxdG1&sid=7yZP-SwF3cGgAclqAAAC HTTP/1.1" 200 -
+2025-06-04 15:53:38,052 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:38] "GET /socket.io/?EIO=4&transport=polling&t=PSvxdG2&sid=7yZP-SwF3cGgAclqAAAC HTTP/1.1" 200 -
+2025-06-04 15:53:38,059 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:38] "GET /socket.io/?EIO=4&transport=polling&t=PSvxdG8&sid=7yZP-SwF3cGgAclqAAAC HTTP/1.1" 200 -
+2025-06-04 15:53:39,692 - INFO - 機器人連接成功: 192.168.1.6
+2025-06-04 15:53:39,692 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:39] "POST /api/robot/connect HTTP/1.1" 200 -
+2025-06-04 15:53:42,220 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:42] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-04 15:53:42,223 - INFO - 正在執行指令: enable, 參數: {}
+2025-06-04 15:53:43,426 - INFO - EnableRobot結果: 0,{},EnableRobot();
+2025-06-04 15:53:45,077 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:45] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-04 15:53:45,083 - INFO - 正在執行指令: enable, 參數: {}
+2025-06-04 15:53:46,285 - INFO - EnableRobot結果: 0,{},EnableRobot();
+2025-06-04 15:53:46,531 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:46] "POST /api/robot/disable HTTP/1.1" 200 -
+2025-06-04 15:53:46,534 - INFO - 正在執行指令: disable, 參數: {}
+2025-06-04 15:53:47,293 - INFO - 192.168.50.51 - - [04/Jun/2025 15:53:47] "POST /api/robot/enable HTTP/1.1" 200 -
+2025-06-04 15:53:47,566 - INFO - DisableRobot結果: 0,{},DisableRobot();
+2025-06-04 15:53:47,576 - INFO - 正在執行指令: enable, 參數: {}
+2025-06-04 15:53:48,790 - INFO - EnableRobot結果: 0,{},EnableRobot();
+2025-06-04 15:54:54,131 - INFO - 機器人連接已中斷
+2025-06-04 15:54:54,131 - INFO - 192.168.50.51 - - [04/Jun/2025 15:54:54] "POST /api/robot/disconnect HTTP/1.1" 200 -
+2025-06-04 15:54:57,539 - INFO - 機器人連接成功: 192.168.1.6
+2025-06-04 15:54:57,540 - INFO - 192.168.50.51 - - [04/Jun/2025 15:54:57] "POST /api/robot/connect HTTP/1.1" 200 -
+2025-06-04 15:54:59,340 - INFO - 192.168.50.51 - - [04/Jun/2025 15:54:59] "POST /api/robot/disable HTTP/1.1" 200 -
+2025-06-04 15:54:59,343 - INFO - 正在執行指令: disable, 參數: {}
+2025-06-04 15:55:00,373 - INFO - DisableRobot結果: 0,{},DisableRobot();
+2025-06-04 15:55:00,730 - INFO - 機器人連接已中斷
+2025-06-04 15:55:00,731 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:00] "POST /api/robot/disconnect HTTP/1.1" 200 -
+2025-06-04 15:55:03,477 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:03] "GET /socket.io/?EIO=4&transport=websocket&sid=Mm_s4LWwmva3Yd5nAAAA HTTP/1.1" 200 -
+2025-06-04 15:55:05,281 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:05] "GET / HTTP/1.1" 200 -
+2025-06-04 15:55:05,301 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:05] "GET /socket.io/?EIO=4&transport=websocket&sid=7yZP-SwF3cGgAclqAAAC HTTP/1.1" 200 -
+2025-06-04 15:55:08,724 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:08] "GET /camera HTTP/1.1" 200 -
+2025-06-04 15:55:08,966 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:08] "GET /api/camera/devices HTTP/1.1" 200 -
+2025-06-04 15:55:11,857 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:11] "POST /api/camera/connect HTTP/1.1" 200 -
+2025-06-04 15:55:14,828 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:14] "POST /api/camera/start_stream HTTP/1.1" 200 -
+2025-06-04 15:55:15,926 - INFO - 192.168.50.51 - - [04/Jun/2025 15:55:15] "GET /api/camera/video_feed HTTP/1.1" 200 -

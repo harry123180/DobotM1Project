@@ -1,4 +1,5 @@
 // script.js
+// 更新：支援無符號 0-65535 範圍
 
 // 全域變數
 let autoRefreshInterval = null;
@@ -15,7 +16,7 @@ function formatValue(value, format) {
         case 'binary':
             return '0b' + num.toString(2).padStart(16, '0');
         case 'signed':
-            // 將無符號16位數轉換為有符號
+            // 將無符號16位數轉換為有符號 (-32768 to 32767)
             return num > 32767 ? num - 65536 : num;
         case 'decimal':
         default:
@@ -26,12 +27,12 @@ function formatValue(value, format) {
 // 格式名稱對應
 function getFormatName(format) {
     const formatNames = {
-        'decimal': '十進制',
+        'decimal': '無符號十進制',
         'hex': '十六進制',
         'binary': '二進制',
         'signed': '有符號十進制'
     };
-    return formatNames[format] || '十進制';
+    return formatNames[format] || '無符號十進制';
 }
 
 // 刷新伺服器狀態
@@ -51,6 +52,7 @@ function refreshStatus() {
                 <p><strong>當前 SlaveID:</strong> ${data.slave_id}</p>
                 <p><strong>總暫存器數:</strong> ${data.total_registers}</p>
                 <p><strong>非零暫存器數:</strong> ${data.non_zero_count}</p>
+                <p><strong>數值範圍:</strong> 0 ~ 65535 (無符號16位)</p>
                 <p><strong>最後更新:</strong> ${new Date().toLocaleString()}</p>
             `;
             
@@ -146,12 +148,12 @@ function editRegisterValue(address) {
     const valueElement = document.getElementById(`value-${address}`);
     const registerItem = valueElement.closest('.register-item');
     
-    // 創建輸入框
+    // 創建輸入框 - 更新為無符號範圍
     const input = document.createElement('input');
     input.type = 'number';
     input.className = 'quick-edit-input';
-    input.min = '-32768';
-    input.max = '32767';
+    input.min = '0';
+    input.max = '65535';
     input.value = getCurrentRegisterValue(address);
     
     // 添加輸入框
@@ -195,16 +197,20 @@ function getCurrentRegisterValue(address) {
         return parseInt(displayValue.replace('0x', ''), 16);
     } else if (currentDisplayFormat === 'binary') {
         return parseInt(displayValue.replace('0b', ''), 2);
+    } else if (currentDisplayFormat === 'signed') {
+        // 從有符號轉回無符號
+        const signedValue = parseInt(displayValue);
+        return signedValue < 0 ? signedValue + 65536 : signedValue;
     } else {
         return parseInt(displayValue);
     }
 }
 
-// 保存暫存器值
+// 保存暫存器值 - 更新為無符號範圍
 function saveRegisterValue(address, value) {
     const numValue = parseInt(value);
-    if (isNaN(numValue) || numValue < -32768 || numValue > 32767) {
-        showMessage('❌ 無效的數值範圍 (-32768 ~ 32767)', 'error');
+    if (isNaN(numValue) || numValue < 0 || numValue > 65535) {
+        showMessage('❌ 無效的數值範圍 (0 ~ 65535)', 'error');
         return;
     }
     
@@ -292,10 +298,16 @@ function updateSlaveId() {
     .catch(error => showMessage(`❌ 請求失敗: ${error}`, 'error'));
 }
 
-// 寫入暫存器 (控制面板)
+// 寫入暫存器 (控制面板) - 更新為無符號範圍
 function writeRegister() {
     const address = parseInt(document.getElementById('reg-address').value);
     const value = parseInt(document.getElementById('reg-value').value);
+    
+    // 檢查無符號範圍
+    if (isNaN(value) || value < 0 || value > 65535) {
+        showMessage('❌ 數值必須在 0-65535 範圍內', 'error');
+        return;
+    }
     
     fetch(`/api/register/${address}`, {
         method: 'POST',
@@ -381,7 +393,7 @@ function clearAllRegisters() {
     .catch(error => showMessage(`❌ 請求失敗: ${error}`, 'error'));
 }
 
-// 設定測試數據
+// 設定測試數據 - 更新為無符號範圍
 function setTestData() {
     const testData = [
         {address: 0, value: 100},
@@ -389,9 +401,9 @@ function setTestData() {
         {address: 10, value: 1000},
         {address: 50, value: 5000},
         {address: 100, value: 12345},
-        {address: 200, value: -1000},
-        {address: 500, value: 32767},
-        {address: 999, value: -32768}
+        {address: 200, value: 32768},   // 超過有符號範圍但在無符號範圍內
+        {address: 500, value: 65535},   // 最大無符號值
+        {address: 999, value: 40000}    // 無符號範圍內的高值
     ];
     
     Promise.all(testData.map(item => 
@@ -402,7 +414,7 @@ function setTestData() {
         })
     ))
     .then(() => {
-        showMessage('✅ 測試數據已設定', 'success');
+        showMessage('✅ 測試數據已設定 (無符號 0-65535)', 'success');
         loadRegistersRange();
     })
     .catch(error => {
@@ -418,6 +430,7 @@ function exportRegisters() {
             const exportData = {
                 timestamp: new Date().toISOString(),
                 slave_id: data.slave_id,
+                value_range: "0-65535 (unsigned 16-bit)",
                 registers: data.non_zero_registers,
                 comments: {} // 需要從當前頁面收集註解
             };
@@ -435,13 +448,13 @@ function exportRegisters() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `modbus_registers_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            a.download = `modbus_registers_unsigned_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            showMessage('✅ 暫存器數據已匯出', 'success');
+            showMessage('✅ 暫存器數據已匯出 (無符號格式)', 'success');
         })
         .catch(error => {
             showMessage(`❌ 匯出失敗: ${error}`, 'error');
@@ -465,16 +478,21 @@ function importRegisters() {
                 return;
             }
             
-            // 匯入暫存器值
+            // 匯入暫存器值 - 檢查無符號範圍
             const promises = [];
             for (const [address, value] of Object.entries(data.registers)) {
-                promises.push(
-                    fetch(`/api/register/${address}`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({value: parseInt(value)})
-                    })
-                );
+                const numValue = parseInt(value);
+                if (numValue >= 0 && numValue <= 65535) {
+                    promises.push(
+                        fetch(`/api/register/${address}`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({value: numValue})
+                        })
+                    );
+                } else {
+                    showMessage(`⚠️ 跳過超出範圍的值: 地址${address} = ${value}`, 'warning');
+                }
             }
             
             // 匯入註解
@@ -492,7 +510,7 @@ function importRegisters() {
             
             Promise.all(promises)
                 .then(() => {
-                    showMessage('✅ 暫存器數據已匯入', 'success');
+                    showMessage('✅ 暫存器數據已匯入 (無符號格式)', 'success');
                     loadRegistersRange();
                 })
                 .catch(error => {
