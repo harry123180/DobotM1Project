@@ -21,7 +21,7 @@ try:
     
     # 嘗試導入改進的相機操作類
     try:
-        from ImprovedCamOperation import ImprovedCameraOperation
+        from Tools.web_tools.ImprovedCamOperation import ImprovedCameraOperation
         USE_IMPROVED_CAMERA = True
     except ImportError:
         USE_IMPROVED_CAMERA = False
