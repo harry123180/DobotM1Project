@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModbusTCP 控制系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #667eea;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .connection-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .input-group input, .input-group select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .status-connected {
+            background: #4caf50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        .status-disconnected {
+            background: #f44336;
+        }
+
+        .registers-panel {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        .register-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .register-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .register-item.updated {
+            animation: flash 0.5s ease-in-out;
+        }
+
+        @keyframes flash {
+            0%, 100% { background: #f8f9fa; }
+            50% { background: #e3f2fd; }
+        }
+
+        .register-address {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .register-value {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .register-comment {
+            font-size: 0.9em;
+            color: #666;
+            background: white;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .register-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .register-actions input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .register-actions button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+
+        .auto-refresh-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .log-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 200px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8em;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .registers-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .connection-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 標題與導航 -->
+        <div class="header">
+            <h1>ModbusTCP 控制系統</h1>
+            <div class="nav-links">
+                <a href="/">機器人控制</a>
+                <a href="/modbus_tcp" class="active">ModbusTCP</a>
+                <a href="/modbus_rtu">ModbusRTU</a>
+            </div>
+        </div>
+
+        <!-- 連接設定面板 -->
+        <div class="panel">
+            <div class="panel-title">
+                連接設定
+                <span class="status-indicator status-disconnected" id="connection-status"></span>
+            </div>
+            <div class="connection-panel">
+                <div class="input-group">
+                    <label>伺服器IP</label>
+                    <input type="text" id="host-input" value="192.168.1.100" placeholder="192.168.1.100">
+                </div>
+                <div class="input-group">
+                    <label>端口</label>
+                    <input type="number" id="port-input" value="502" placeholder="502">
+                </div>
+                <div class="input-group">
+                    <label>Slave ID</label>
+                    <input type="number" id="slave-input" value="1" min="1" max="247">
+                </div>
+                <div class="input-group">
+                    <button class="btn btn-primary" id="connect-btn">連接</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 暫存器操作面板 -->
+        <div class="panel">
+            <div class="panel-title">暫存器操作</div>
+            <div class="registers-panel">
+                <!-- 控制區域 -->
+                <div class="register-controls">
+                    <div class="auto-refresh-controls">
+                        <label for="auto-refresh">自動刷新:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="auto-refresh">
+                            <span class="slider"></span>
+                        </label>
+                        <select id="refresh-interval">
+                            <option value="1000">1秒</option>
+                            <option value="2000" selected>2秒</option>
+                            <option value="5000">5秒</option>
+                            <option value="10000">10秒</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>起始地址</label>
+                        <input type="number" id="start-address" value="0" min="0">
+                    </div>
+
+                    <div class="input-group">
+                        <label>讀取數量</label>
+                        <input type="number" id="read-count" value="10" min="1" max="50">
+                    </div>
+
+                    <button class="btn btn-primary" id="read-btn" disabled>讀取暫存器</button>
+
+                    <div style="border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px;">
+                        <div class="input-group">
+                            <label>寫入地址</label>
+                            <input type="number" id="write-address" value="0" min="0">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>寫入數值</label>
+                            <input type="number" id="write-value" value="0">
+                        </div>
+                        
+                        <button class="btn btn-success" id="write-btn" disabled>寫入單個暫存器</button>
+                    </div>
+
+                    <div style="border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px;">
+                        <div class="input-group">
+                            <label>批量寫入地址</label>
+                            <input type="number" id="multi-write-address" value="0" min="0">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>批量寫入數值 (逗號分隔)</label>
+                            <input type="text" id="multi-write-values" placeholder="100,200,300">
+                        </div>
+                        
+                        <button class="btn btn-success" id="multi-write-btn" disabled>批量寫入</button>
+                    </div>
+                </div>
+
+                <!-- 暫存器顯示區域 -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>暫存器數據</h3>
+                        <button class="btn btn-primary" id="manual-refresh-btn" disabled>手動刷新</button>
+                    </div>
+                    <div class="register-grid" id="register-grid">
+                        <!-- 暫存器項目將由JavaScript生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日誌面板 -->
+    <div class="log-panel" id="log-panel">
+        <div style="font-weight: bold; margin-bottom: 5px;">ModbusTCP 日誌</div>
+        <div id="log-content"></div>
+    </div>
+
+    <script>
+        // 全局變量
+        let connected = false;
+        let autoRefreshEnabled = false;
+        let refreshInterval = null;
+        let currentRegisters = [];
+
+        // DOM元素
+        const connectBtn = document.getElementById('connect-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        const readBtn = document.getElementById('read-btn');
+        const writeBtn = document.getElementById('write-btn');
+        const multiWriteBtn = document.getElementById('multi-write-btn');
+        const manualRefreshBtn = document.getElementById('manual-refresh-btn');
+        const autoRefreshCheckbox = document.getElementById('auto-refresh');
+        const refreshIntervalSelect = document.getElementById('refresh-interval');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('ModbusTCP控制系統啟動');
+            
+            // 事件監聽器
+            connectBtn.addEventListener('click', toggleConnection);
+            readBtn.addEventListener('click', readRegisters);
+            writeBtn.addEventListener('click', writeSingleRegister);
+            multiWriteBtn.addEventListener('click', writeMultipleRegisters);
+            manualRefreshBtn.addEventListener('click', readRegisters);
+            autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
+            
+            // 載入連接狀態
+            checkConnectionStatus();
+        });
+
+        // 連接控制
+        async function toggleConnection() {
+            if (connected) {
+                await disconnect();
+            } else {
+                await connect();
+            }
+        }
+
+        async function connect() {
+            const host = document.getElementById('host-input').value;
+            const port = parseInt(document.getElementById('port-input').value);
+            const slaveId = parseInt(document.getElementById('slave-input').value);
+
+            try {
+                const response = await fetch('/api/modbus/tcp/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host, port, slave_id: slaveId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    connected = true;
+                    updateConnectionStatus();
+                    addLog(`ModbusTCP連接成功: ${host}:${port}`);
+                    readRegisters(); // 自動讀取一次
+                } else {
+                    addLog('ModbusTCP連接失敗', 'error');
+                }
+            } catch (error) {
+                addLog(`連接錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function disconnect() {
+            try {
+                await fetch('/api/modbus/tcp/disconnect', { method: 'POST' });
+                connected = false;
+                autoRefreshEnabled = false;
+                updateConnectionStatus();
+                clearRefreshInterval();
+                addLog('ModbusTCP連接已斷開');
+            } catch (error) {
+                addLog(`斷開連接錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch('/api/modbus/tcp/status');
+                const result = await response.json();
+                connected = result.connected;
+                updateConnectionStatus();
+                
+                if (connected) {
+                    const config = result.config;
+                    document.getElementById('host-input').value = config.host || '';
+                    document.getElementById('port-input').value = config.port || 502;
+                    document.getElementById('slave-input').value = config.slave_id || 1;
+                    readRegisters();
+                }
+            } catch (error) {
+                console.error('檢查連接狀態失敗:', error);
+            }
+        }
+
+        function updateConnectionStatus() {
+            connectBtn.textContent = connected ? '斷開' : '連接';
+            connectBtn.className = connected ? 'btn btn-danger' : 'btn btn-primary';
+            
+            connectionStatus.className = connected ? 'status-indicator status-connected' : 'status-indicator status-disconnected';
+            
+            // 更新按鈕狀態
+            const buttons = [readBtn, writeBtn, multiWriteBtn, manualRefreshBtn];
+            buttons.forEach(btn => btn.disabled = !connected);
+        }
+
+        // 暫存器操作
+        async function readRegisters() {
+            if (!connected) return;
+
+            const startAddress = parseInt(document.getElementById('start-address').value);
+            const count = parseInt(document.getElementById('read-count').value);
+
+            try {
+                const response = await fetch('/api/modbus/tcp/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: startAddress, count: count })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    updateRegisterGrid(result.registers);
+                    addLog(`讀取暫存器成功: ${startAddress}-${startAddress + count - 1}`);
+                } else {
+                    addLog(`讀取暫存器失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`讀取暫存器錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function writeSingleRegister() {
+            if (!connected) return;
+
+            const address = parseInt(document.getElementById('write-address').value);
+            const value = parseInt(document.getElementById('write-value').value);
+
+            try {
+                const response = await fetch('/api/modbus/tcp/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address, value })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLog(`寫入暫存器成功: 地址${address} = ${value}`);
+                    // 自動刷新顯示
+                    setTimeout(readRegisters, 200);
+                } else {
+                    addLog(`寫入暫存器失敗`, 'error');
+                }
+            } catch (error) {
+                addLog(`寫入暫存器錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function writeMultipleRegisters() {
+            if (!connected) return;
+
+            const address = parseInt(document.getElementById('multi-write-address').value);
+            const valuesStr = document.getElementById('multi-write-values').value;
+            
+            try {
+                const values = valuesStr.split(',').map(v => parseInt(v.trim()));
+                
+                const response = await fetch('/api/modbus/tcp/write_multiple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address, values })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLog(`批量寫入暫存器成功: 地址${address}, 數量${values.length}`);
+                    // 自動刷新顯示
+                    setTimeout(readRegisters, 200);
+                } else {
+                    addLog(`批量寫入暫存器失敗`, 'error');
+                }
+            } catch (error) {
+                addLog(`批量寫入暫存器錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        // 自動刷新控制
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = autoRefreshCheckbox.checked;
+            
+            if (autoRefreshEnabled && connected) {
+                startAutoRefresh();
+                addLog('啟用自動刷新');
+            } else {
+                clearRefreshInterval();
+                addLog('停用自動刷新');
+            }
+        }
+
+        function startAutoRefresh() {
+            clearRefreshInterval();
+            const interval = parseInt(refreshIntervalSelect.value);
+            refreshInterval = setInterval(readRegisters, interval);
+        }
+
+        function clearRefreshInterval() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+
+        // 暫存器顯示
+        function updateRegisterGrid(registers) {
+            const grid = document.getElementById('register-grid');
+            
+            registers.forEach(register => {
+                const existingItem = document.getElementById(`reg-${register.address}`);
+                
+                if (existingItem) {
+                    // 更新現有項目
+                    const valueElement = existingItem.querySelector('.register-value');
+                    const oldValue = parseInt(valueElement.textContent);
+                    
+                    if (oldValue !== register.value) {
+                        valueElement.textContent = register.value;
+                        existingItem.classList.add('updated');
+                        setTimeout(() => existingItem.classList.remove('updated'), 500);
+                    }
+                } else {
+                    // 創建新項目
+                    const item = createRegisterItem(register);
+                    grid.appendChild(item);
+                }
+            });
+            
+            currentRegisters = registers;
+        }
+
+        function createRegisterItem(register) {
+            const item = document.createElement('div');
+            item.className = 'register-item';
+            item.id = `reg-${register.address}`;
+            
+            item.innerHTML = `
+                <div class="register-address">地址 ${register.address}</div>
+                <div class="register-value">${register.value}</div>
+                <input type="text" class="register-comment" placeholder="添加註解..." value="${register.comment}">
+                <div class="register-actions">
+                    <input type="number" placeholder="新數值" id="new-value-${register.address}">
+                    <button class="btn btn-success" onclick="writeRegisterValue(${register.address})">寫入</button>
+                    <button class="btn btn-primary" onclick="updateComment(${register.address})">更新註解</button>
+                </div>
+            `;
+            
+            return item;
+        }
+
+        async function writeRegisterValue(address) {
+            const newValue = parseInt(document.getElementById(`new-value-${address}`).value);
+            if (isNaN(newValue)) {
+                addLog('請輸入有效數值', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/modbus/tcp/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address, value: newValue })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLog(`更新暫存器 ${address} = ${newValue}`);
+                    document.getElementById(`new-value-${address}`).value = '';
+                    setTimeout(readRegisters, 200);
+                } else {
+                    addLog(`寫入失敗`, 'error');
+                }
+            } catch (error) {
+                addLog(`寫入錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function updateComment(address) {
+            const commentInput = document.querySelector(`#reg-${address} .register-comment`);
+            const comment = commentInput.value;
+
+            try {
+                const response = await fetch('/api/modbus/comment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'tcp', address, comment })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLog(`更新註解: 地址${address}`);
+                } else {
+                    addLog(`更新註解失敗`, 'error');
+                }
+            } catch (error) {
+                addLog(`更新註解錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        // 日誌系統
+        function addLog(message, type = 'info') {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? '#ff6b6b' : type === 'warning' ? '#ffa726' : '#4caf50';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
+            
+            // 限制日誌條數
+            if (logContent.children.length > 50) {
+                logContent.removeChild(logContent.firstChild);
+            }
+        }
+
+        // 頁面卸載時斷開連接
+        window.addEventListener('beforeunload', function() {
+            if (connected) {
+                fetch('/api/modbus/tcp/disconnect', { method: 'POST' });
+            }
+        });
+
+        // 刷新間隔變更時重新啟動自動刷新
+        refreshIntervalSelect.addEventListener('change', function() {
+            if (autoRefreshEnabled && connected) {
+                startAutoRefresh();
+            }
+        });
+    </script>
+</body>
+</html>
