@@ -1,557 +1,372 @@
-# 自動化生產線系統架構
+# 修正後的自動化生產線系統架構
 
-## 🎯 專案概述
-
-這是一個基於 Python + MQTT + Flask 的分散式自動化生產線系統，包含視覺檢測、機械臂控制、輸送帶管理等多個協同工作的節點。系統採用事件驅動 + 優先級調度架構，確保高效穩定的生產流程。
-
-## 🏗️ 系統架構
+## 🏗️ 實際硬體架構整合
 
 ### 整體架構圖
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   震動入料盤     │    │   柔性震動盤      │    │   機械臂控制     │
-│  feeder_bowl    │    │ vibration_bowl   │    │  robot_arm      │
-│    :5001        │    │    :5002         │    │    :5003        │
-└─────────┬───────┘    └─────────┬────────┘    └─────────┬───────┘
-          │                      │                      │
-          │              ┌───────▼────────┐             │
-          │              │  MQTT Broker   │             │
-          │              │   (Eclipse     │             │
-          │              │   Mosquitto)   │             │
-          │              └───────┬────────┘             │
-          │                      │                      │
-┌─────────▼───────┐    ┌─────────▼────────┐    ┌─────────▼───────┐
-│    輸送帶        │    │   任務調度器      │    │   移載機構       │
-│   conveyor      │    │task_scheduler    │    │  transfer       │
-│    :5004        │    │    :5000         │    │    :5005        │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│    旋轉台        │    │    出料口        │    │   監控儀表板     │
-│rotation_table   │    │  output_port     │    │   dashboard     │
-│    :5006        │    │    :5007         │    │    :8080        │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                CASE 入料機 PC (192.168.1.5)                │
+│                    任務調度器 + 監控                         │
+│                                                             │
+│  ├── USB Port 1 (RS485總線)                                │
+│  │   ├── 升降缸 (Slave 2)                                  │
+│  │   ├── 旋轉缸 (Slave 3)                                  │
+│  │   ├── 翻轉夾爪 (Slave 4)                                │
+│  │   ├── 輸送帶限位電缸 (Slave 5)                          │
+│  │   └── 機械臂夾爪 (Slave 6)                              │
+│  │                                                         │
+│  ├── USB Port 2 (RS232)                                    │
+│  │   └── 新亞洲光源控制器                                   │
+│  │       ├── Light 1 (輸送帶相機)                          │
+│  │       ├── Light 2 (旋轉正上方相機)                      │
+│  │       └── Light 3 (旋轉側邊相機)                        │
+│  │                                                         │
+│  └── EtherCAT軸卡                                          │
+│      ├── 輸入模組 (X00~X06)                                │
+│      └── TOYO滑台驅動器                                     │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ POE 8 Port Switch
+                      │
+    ┌─────────────────┼─────────────────┐
+    │                 │                 │
+    ▼                 ▼                 ▼
+┌─────────┐    ┌─────────────┐    ┌─────────────┐
+│M1 Pro   │    │柔性振動盤    │    │相機群組      │
+│機械臂    │    │192.168.1.7  │    │CCD1~CCD4    │
+│192.168.1.6│  │            │    │.8/.9/.10/.11│
+│         │    │            │    │             │
+│IO控制:   │    │            │    │             │
+│DI 9~15  │    │            │    │             │
+│DO 1~5   │    │            │    │             │
+└─────────┘    └─────────────┘    └─────────────┘
 ```
 
-### 核心組件
+## 🔄 修正後的節點架構
 
-- **MQTT Broker**: 系統通訊中樞 (Eclipse Mosquitto)
-- **任務調度器**: 智慧任務分配和優先級管理
-- **視覺節點**: CCD 相機控制和影像處理
-- **控制節點**: 各種機械設備控制
-- **Web 介面**: 每個節點的可視化監控和參數調整
-
-## 🛠️ 技術堆疊
-
-### 核心技術
-- **Python 3.8+**: 主要開發語言
-- **MQTT**: 節點間通訊協議
-- **Flask**: Web 介面框架
-- **OpenCV**: 視覺處理
-- **NumPy**: 數值計算
-
-### 主要函式庫
-
-#### 通訊相關
-```bash
-paho-mqtt==1.6.1          # MQTT 客戶端
+### 1. 主控制節點 (CASE入料機PC)
+```python
+# scheduler/master_controller.py
+class MasterController:
+    """主控制器：統一任務調度和設備協調"""
+    
+    def __init__(self):
+        # 網路設備客戶端
+        self.robot_arm_client = RobotArmClient("192.168.1.6")
+        self.vibration_bowl_client = VibrationBowlClient("192.168.1.7")
+        self.vision_clients = {
+            'ccd1': VisionClient("192.168.1.8"),   # 柔振相機
+            'ccd2': VisionClient("192.168.1.9"),   # 輸送帶相機
+            'ccd3': VisionClient("192.168.1.10"),  # 旋轉正上方
+            'ccd4': VisionClient("192.168.1.11")   # 旋轉側邊
+        }
+        
+        # 本地USB設備控制器
+        self.rs485_controller = RS485Controller("/dev/ttyUSB0")  # USB Port 1
+        self.rs232_light_controller = RS232Controller("/dev/ttyUSB1")  # USB Port 2
+        self.ethercat_controller = EtherCATController("eth0")
+        
+        self.mqtt_client = MQTTClient()
+        
+    async def coordinate_production_cycle(self):
+        """協調完整生產週期"""
+        # 1. 柔性振動盤送料
+        await self.vibration_bowl_client.start_feeding()
+        
+        # 2. 開啟光源並進行CCD1 視覺檢測
+        await self.rs232_light_controller.turn_on_light(1)  # 本地控制光源
+        parts_info = await self.vision_clients['ccd1'].detect_parts()
+        
+        # 3. 機械臂取料 (透過網路控制機械臂本體)
+        await self.robot_arm_client.move_to_pick(parts_info.position)
+        
+        # 4. 控制夾爪夾取 (透過本地RS485)
+        await self.rs485_controller.control_gripper(6, "close")  # Slave 6
+        
+        # 5. 後續流程...
 ```
 
-#### Web 介面
-```bash
-Flask==2.3.3              # Web 框架
-Flask-CORS==4.0.0         # 跨域支援
-Jinja2==3.1.2             # 模板引擎
+### 2. 機械臂節點 (M1 Pro機械臂PC)
+```python
+# nodes/robot_arm_node.py
+class RobotArmNode(BaseNode):
+    """機械臂節點：只控制機械臂本體運動和IO讀寫"""
+    
+    def __init__(self):
+        super().__init__()
+        self.robot_arm = M1ProController()  # 機械臂本體控制
+        self.io_controller = IOController()  # 本地IO控制 (DI/DO)
+        
+    def setup_hardware(self):
+        """初始化機械臂硬體"""
+        # 機械臂初始化
+        self.robot_arm.initialize()
+        
+        # IO配置
+        self.digital_inputs = {
+            9: "搖搖桶左上感測器",
+            10: "搖搖桶左下感測器", 
+            11: "搖搖桶右上感測器",
+            12: "搖搖桶右下感測器",
+            13: "到位感測器",
+            14: "翻轉0度感測器",
+            15: "翻轉180度感測器"
+        }
+        
+        self.digital_outputs = {
+            1: "搖搖桶5/2電磁閥",
+            2: "輸送帶驅動IO",
+            3: "NG氣槍5/2電磁閥", 
+            4: "直振開關",
+            5: "翻轉氣缸5/2電磁閥"
+        }
+        
+    async def process_task(self, task):
+        """處理任務請求"""
+        if task.type == "MOVE_TO_POSITION":
+            await self._move_to_position(task.position)
+        elif task.type == "READ_SENSORS":
+            return await self._read_all_sensors()
+        elif task.type == "CONTROL_OUTPUT":
+            await self._control_output(task.output_id, task.state)
+            
+    async def _move_to_position(self, position):
+        """移動到指定位置"""
+        await self.robot_arm.move_to_position(position)
+        await self.publish_status("POSITION_REACHED", position)
+        
+    async def _read_all_sensors(self):
+        """讀取所有感測器狀態"""
+        sensor_status = {}
+        for pin, description in self.digital_inputs.items():
+            sensor_status[pin] = self.io_controller.read_digital_input(pin)
+        return sensor_status
+        
+    async def _control_output(self, output_id, state):
+        """控制數位輸出"""
+        self.io_controller.write_digital_output(output_id, state)
+        await self.publish_status("OUTPUT_CONTROLLED", {
+            "output_id": output_id, 
+            "state": state
+        })
 ```
 
-#### 視覺處理
-```bash
-opencv-python==4.8.1.78   # 影像處理
-numpy==1.24.3             # 數值計算
-Pillow==10.0.1            # 影像格式支援
+### 3. CASE入料機PC的設備控制模組
+```python
+# hardware/local_device_controller.py
+class LocalDeviceController:
+    """CASE入料機PC本地設備控制器"""
+    
+    def __init__(self):
+        # USB設備控制器
+        self.rs485_controller = RS485Controller("/dev/ttyUSB0")
+        self.rs232_light_controller = RS232LightController("/dev/ttyUSB1") 
+        self.ethercat_controller = EtherCATController("eth0")
+        
+        # 設備映射
+        self.rs485_devices = {
+            'lift_cylinder': 2,      # 升降缸 Slave 2
+            'rotation_cylinder': 3,  # 旋轉缸 Slave 3
+            'flip_gripper': 4,      # 翻轉夾爪 Slave 4
+            'conveyor_limit': 5,    # 輸送帶限位電缸 Slave 5
+            'robot_gripper': 6      # 機械臂夾爪 Slave 6
+        }
+        
+        self.light_channels = {
+            'conveyor_camera': 1,    # Light 1 輸送帶相機
+            'rotation_top': 2,       # Light 2 旋轉正上方相機
+            'rotation_side': 3       # Light 3 旋轉側邊相機
+        }
+        
+    async def control_rs485_device(self, device_name: str, command: dict):
+        """控制RS485設備"""
+        if device_name not in self.rs485_devices:
+            raise ValueError(f"Unknown RS485 device: {device_name}")
+            
+        slave_id = self.rs485_devices[device_name]
+        return await self.rs485_controller.send_command(slave_id, command)
+        
+    async def control_light(self, light_name: str, action: str, brightness: int = 100):
+        """控制光源"""
+        if light_name not in self.light_channels:
+            raise ValueError(f"Unknown light: {light_name}")
+            
+        channel = self.light_channels[light_name]
+        
+        if action == "on":
+            await self.rs232_light_controller.turn_on(channel, brightness)
+        elif action == "off":
+            await self.rs232_light_controller.turn_off(channel)
+        else:
+            raise ValueError(f"Invalid light action: {action}")
+            
+    async def read_ethercat_inputs(self):
+        """讀取EtherCAT輸入"""
+        inputs = {}
+        input_map = {
+            'X00': 'Door1',
+            'X01': 'Door2', 
+            'X03': 'Door3',
+            'X04': 'TOYO左',
+            'X05': 'TOYODog',
+            'X06': 'TOYO右'
+        }
+        
+        for address, description in input_map.items():
+            inputs[description] = await self.ethercat_controller.read_input(address)
+            
+        return inputs
+        
+    async def control_toyo_slider(self, position: float, speed: float = 100):
+        """控制TOYO滑台"""
+        await self.ethercat_controller.move_axis(
+            axis_id=1, 
+            position=position, 
+            speed=speed
+        )
 ```
 
-#### 並行處理
-```bash
-asyncio                   # 異步處理 (內建)
-threading                 # 多執行緒 (內建)
-concurrent.futures        # 並行執行 (內建)
-queue                     # 執行緒安全佇列 (內建)
+## 🔧 MQTT 主題重新設計
+
+```python
+# communication/topics.py
+MQTT_TOPICS = {
+    # 主控制相關
+    "master_control": {
+        "task_assignment": "automation/master/tasks/assign",
+        "coordination": "automation/master/coordinate",
+        "system_status": "automation/master/status"
+    },
+    
+    # 機械臂整合節點
+    "robot_integrated": {
+        "status": "automation/robot/status",
+        "control": "automation/robot/control",
+        "io_status": "automation/robot/io/status",
+        "rs485_control": "automation/robot/rs485/control",
+        "lighting_control": "automation/robot/lighting/control"
+    },
+    
+    # 視覺節點群組
+    "vision": {
+        "ccd1_results": "automation/vision/ccd1/results",
+        "ccd2_results": "automation/vision/ccd2/results", 
+        "ccd3_results": "automation/vision/ccd3/results",
+        "ccd4_results": "automation/vision/ccd4/results",
+        "lighting_request": "automation/lighting/request"
+    },
+    
+    # 柔性振動盤
+    "vibration_bowl": {
+        "control": "automation/vibration_bowl/control",
+        "status": "automation/vibration_bowl/status"
+    }
+}
 ```
 
-#### 工具函式庫
-```bash
-psutil==5.9.5             # 系統監控
-dataclasses               # 資料結構 (內建)
-json                      # JSON 處理 (內建)
-time                      # 時間處理 (內建)
-logging                   # 日誌記錄 (內建)
-```
-
-## 📁 專案結構
+## 📁 調整後的專案結構
 
 ```
 automation_system/
-├── README.md
-├── requirements.txt
-├── config/
-│   ├── mqtt_config.json
-│   ├── system_config.json
-│   └── node_configs/
-│       ├── vibration_bowl_config.json
-│       ├── robot_arm_config.json
-│       └── ...
+├── master_controller/           # 主控制器 (CASE入料機PC)
+│   ├── task_scheduler.py       # 任務調度器
+│   ├── production_coordinator.py # 生產協調器
+│   └── system_monitor.py       # 系統監控
 ├── nodes/
-│   ├── __init__.py
-│   ├── base_node.py              # 基礎節點類別
-│   ├── feeder_bowl_node.py       # 震動入料盤節點
-│   ├── vibration_bowl_node.py    # 柔性震動盤節點 (含CCD1)
-│   ├── robot_arm_node.py         # 機械臂節點
-│   ├── conveyor_node.py          # 輸送帶節點 (含CCD2)
-│   ├── transfer_node.py          # 移載機構節點
-│   ├── rotation_table_node.py    # 旋轉台節點 (含CCD4)
-│   └── output_port_node.py       # 出料口節點
-├── scheduler/
-│   ├── __init__.py
-│   ├── task_scheduler.py         # 主要調度器
-│   ├── priority_queue.py         # 優先級佇列
-│   └── coordination_logic.py     # 協調邏輯
-├── vision/
-│   ├── __init__.py
-│   ├── camera_controller.py      # 相機控制
-│   ├── image_processor.py        # 影像處理
-│   ├── vision_pipeline.py        # 處理管線
-│   └── detection_algorithms.py   # 檢測演算法
-├── communication/
-│   ├── __init__.py
-│   ├── mqtt_client.py           # MQTT 客戶端封裝
-│   ├── message_types.py         # 訊息類型定義
-│   └── protocol_handler.py      # 協議處理器
-├── web/
-│   ├── __init__.py
-│   ├── flask_factory.py         # Flask 應用工廠
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── node_dashboard.html
-│   │   └── system_overview.html
-│   ├── static/
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   └── api/
-│       ├── __init__.py
-│       ├── config_api.py        # 配置 API
-│       ├── status_api.py        # 狀態 API
-│       └── control_api.py       # 控制 API
-├── utils/
-│   ├── __init__.py
-│   ├── config_manager.py        # 配置管理
-│   ├── logger.py               # 日誌工具
-│   ├── thread_utils.py         # 執行緒工具
-│   └── data_structures.py      # 資料結構
-├── dashboard/
-│   ├── __init__.py
-│   ├── dashboard_server.py     # 統一監控儀表板
-│   └── aggregator.py          # 資料聚合器
-├── tests/
-│   ├── __init__.py
-│   ├── test_nodes.py
-│   ├── test_scheduler.py
-│   ├── test_vision.py
-│   └── test_communication.py
-├── scripts/
-│   ├── start_system.py         # 系統啟動腳本
-│   ├── stop_system.py          # 系統停止腳本
-│   ├── deploy_nodes.py         # 節點部署腳本
-│   └── system_monitor.py       # 系統監控腳本
-└── docs/
-    ├── API.md
-    ├── deployment.md
-    ├── troubleshooting.md
-    └── development_guide.md
+│   ├── integrated_robot_node.py # 整合式機械臂節點
+│   ├── vision_node.py          # 視覺節點模板
+│   ├── vibration_bowl_node.py  # 柔性振動盤節點
+│   └── camera_nodes/           # 各相機節點
+│       ├── ccd1_node.py        # 柔振相機
+│       ├── ccd2_node.py        # 輸送帶相機  
+│       ├── ccd3_node.py        # 旋轉正上方相機
+│       └── ccd4_node.py        # 旋轉側邊相機
+├── hardware/                   # 硬體控制層
+│   ├── robot_controller.py     # M1 Pro機械臂控制
+│   ├── io_controller.py        # IO控制
+│   ├── rs485_controller.py     # RS485總線控制
+│   ├── rs232_controller.py     # RS232設備控制
+│   └── ethercat_controller.py  # EtherCAT軸卡控制
+└── protocols/                  # 通訊協議
+    ├── modbus_protocol.py      # Modbus協議
+    ├── ethercat_protocol.py    # EtherCAT協議
+    └── camera_protocol.py     # 相機通訊協議
 ```
 
-## 🚀 快速開始
+## 🚀 部署配置
 
-### 1. 環境準備
-
-#### 安裝 Python 依賴
-```bash
-# 建立虛擬環境
-python -m venv automation_env
-source automation_env/bin/activate  # Linux/Mac
-# automation_env\Scripts\activate   # Windows
-
-# 安裝依賴
-pip install -r requirements.txt
-```
-
-#### 安裝 MQTT Broker
-```bash
-# Ubuntu/Debian
-sudo apt-get install mosquitto mosquitto-clients
-
-# CentOS/RHEL
-sudo yum install mosquitto mosquitto-clients
-
-# macOS
-brew install mosquitto
-
-# 或使用 Docker
-docker run -it -p 1883:1883 -p 9001:9001 eclipse-mosquitto
-```
-
-### 2. 配置系統
-
-#### MQTT 配置 (config/mqtt_config.json)
+### 主控制器配置 (CASE入料機PC - 192.168.1.5)
 ```json
 {
-  "broker_host": "localhost",
-  "broker_port": 1883,
-  "keepalive": 60,
-  "qos": 1,
-  "retain": false,
-  "topics": {
-    "task_requests": "automation/tasks/requests",
-    "task_assignments": "automation/tasks/assignments",
-    "status_updates": "automation/status/+",
-    "system_broadcast": "automation/system/broadcast"
-  }
-}
-```
-
-#### 系統配置 (config/system_config.json)
-```json
-{
-  "system_name": "Automation Production Line",
-  "task_scheduler": {
-    "priority_levels": 6,
-    "max_queue_size": 100,
-    "processing_interval": 0.1
-  },
-  "nodes": {
-    "vibration_bowl": {
-      "enabled": true,
-      "host": "192.168.1.10",
-      "web_port": 5002
+    "master_controller": {
+        "ip": "192.168.1.5",
+        "mqtt_broker_port": 1883,
+        "web_dashboard_port": 8080,
+        "coordination_interval": 0.1
     },
-    "robot_arm": {
-      "enabled": true,
-      "host": "192.168.1.11",
-      "web_port": 5003
-    }
-  }
-}
-```
-
-### 3. 啟動系統
-
-#### 方法一：使用啟動腳本
-```bash
-# 啟動完整系統
-python scripts/start_system.py
-
-# 啟動特定節點
-python scripts/start_system.py --nodes vibration_bowl,robot_arm
-```
-
-#### 方法二：手動啟動
-```bash
-# 1. 啟動 MQTT Broker
-mosquitto -p 1883
-
-# 2. 啟動任務調度器
-python scheduler/task_scheduler.py
-
-# 3. 啟動各節點
-python nodes/vibration_bowl_node.py
-python nodes/robot_arm_node.py
-python nodes/conveyor_node.py
-# ... 其他節點
-
-# 4. 啟動監控儀表板
-python dashboard/dashboard_server.py
-```
-
-### 4. 存取介面
-
-- **系統監控儀表板**: http://localhost:8080
-- **任務調度器**: http://localhost:5000
-- **柔性震動盤節點**: http://localhost:5002
-- **機械臂節點**: http://localhost:5003
-- **輸送帶節點**: http://localhost:5004
-- **其他節點**: 依序遞增 port
-
-## 🔧 核心功能
-
-### 任務調度系統
-
-#### 優先級定義
-```python
-class TaskPriority(Enum):
-    EMERGENCY = 0      # 緊急停止、安全相關
-    CRITICAL = 1       # 出料口清理、防阻塞
-    HIGH = 2          # 旋轉台完成、視覺辨識完成
-    NORMAL = 3        # 一般搬運、移載操作
-    LOW = 4           # 維護、清理、補料
-```
-
-#### 調度演算法
-- **加權優先級調度**: 綜合考慮優先級、等待時間、移動成本
-- **防阻塞機制**: 出料口優先、管線暢通檢查
-- **路徑最佳化**: 最短移動時間、批次處理
-- **預測性調度**: 基於歷史數據和狀態預測
-
-### 視覺處理系統
-
-#### 處理管線
-1. **影像擷取**: 網路軟觸發 → np.array 轉換
-2. **預處理**: ROI 提取、降噪、增強
-3. **特徵檢測**: 物件識別、位置計算、方向判斷
-4. **結果處理**: 座標轉換、信心度評估、結果快取
-
-#### 最佳化策略
-- **並行處理**: 擷取、處理、結果發布三執行緒並行
-- **預先準備**: 相機預熱、模板預載、記憶體預配置
-- **智慧觸發**: 基於系統狀態的條件觸發
-- **早期終止**: 快速預檢查避免無效處理
-
-### 通訊架構
-
-#### MQTT 主題結構
-```
-automation/
-├── tasks/
-│   ├── requests          # 任務請求
-│   ├── assignments       # 任務分配
-│   └── completed         # 任務完成
-├── nodes/
-│   ├── {node_id}/
-│   │   ├── status        # 節點狀態
-│   │   ├── config        # 配置更新
-│   │   └── control       # 控制指令
-├── vision/
-│   ├── ccd1/parts_detected
-│   ├── ccd2/orientation_classified
-│   └── ccd4/rotation_complete
-├── system/
-│   ├── broadcast         # 系統廣播
-│   ├── emergency         # 緊急停止
-│   └── coordination      # 協調訊息
-```
-
-## 📊 監控與運維
-
-### Web 介面功能
-
-#### 節點儀表板
-- **即時狀態**: 運行狀態、任務進度、效能指標
-- **參數調整**: 即時修改處理參數、閾值設定
-- **手動控制**: 測試觸發、手動操作、調試功能
-- **歷史數據**: 處理時間、成功率、錯誤日誌
-
-#### 系統總覽
-- **拓撲監控**: 節點連接狀態、通訊延遲
-- **任務佇列**: 當前任務、等待佇列、處理統計
-- **效能分析**: 產能統計、瓶頸分析、最佳化建議
-- **警報管理**: 異常檢測、故障預警、恢復建議
-
-### 日誌系統
-```python
-# 日誌配置
-LOGGING_CONFIG = {
-    'version': 1,
-    'formatters': {
-        'default': {
-            'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-        }
-    },
-    'handlers': {
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/automation.log',
-            'maxBytes': 10485760,  # 10MB
-            'backupCount': 5,
+    "local_hardware": {
+        "rs485_port": "/dev/ttyUSB0",
+        "rs232_port": "/dev/ttyUSB1", 
+        "ethercat_interface": "eth0",
+        "rs485_devices": {
+            "lift_cylinder": 2,
+            "rotation_cylinder": 3,
+            "flip_gripper": 4,
+            "conveyor_limit": 5,
+            "robot_gripper": 6
         },
-        'console': {
-            'class': 'logging.StreamHandler',
+        "light_channels": {
+            "conveyor_camera": 1,
+            "rotation_top": 2,
+            "rotation_side": 3
         }
     },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['file', 'console']
+    "network_nodes": {
+        "robot_arm": "192.168.1.6",
+        "vibration_bowl": "192.168.1.7",
+        "cameras": {
+            "ccd1": "192.168.1.8",
+            "ccd2": "192.168.1.9", 
+            "ccd3": "192.168.1.10",
+            "ccd4": "192.168.1.11"
+        }
     }
 }
 ```
 
-## 🔄 部署策略
-
-### 開發環境
-```bash
-# 單機部署
-python scripts/start_system.py --mode development
+### 機械臂節點配置 (M1 Pro - 192.168.1.6)
+```json
+{
+    "robot_arm": {
+        "ip": "192.168.1.6",
+        "web_port": 5003,
+        "hardware": {
+            "robot_type": "M1_Pro",
+            "io_configuration": {
+                "digital_inputs": {
+                    "9": "搖搖桶左上感測器",
+                    "10": "搖搖桶左下感測器",
+                    "11": "搖搖桶右上感測器", 
+                    "12": "搖搖桶右下感測器",
+                    "13": "到位感測器",
+                    "14": "翻轉0度感測器",
+                    "15": "翻轉180度感測器"
+                },
+                "digital_outputs": {
+                    "1": "搖搖桶5/2電磁閥",
+                    "2": "輸送帶驅動IO",
+                    "3": "NG氣槍5/2電磁閥",
+                    "4": "直振開關", 
+                    "5": "翻轉氣缸5/2電磁閥"
+                }
+            }
+        },
+        "capabilities": [
+            "robot_movement",
+            "io_control",
+            "sensor_reading"
+        ]
+    }
+}
 ```
 
-### 生產環境
-
-#### 分散式部署
-```bash
-# 節點1: 任務調度器 + 監控
-python scheduler/task_scheduler.py --production
-python dashboard/dashboard_server.py --production
-
-# 節點2: 視覺處理節點
-python nodes/vibration_bowl_node.py --production
-python nodes/conveyor_node.py --production
-
-# 節點3: 控制節點
-python nodes/robot_arm_node.py --production
-python nodes/transfer_node.py --production
-```
-
-#### Docker 部署
-```dockerfile
-# Dockerfile
-FROM python:3.8-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-
-CMD ["python", "scripts/start_system.py", "--production"]
-```
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  mqtt-broker:
-    image: eclipse-mosquitto:latest
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-  
-  task-scheduler:
-    build: .
-    command: python scheduler/task_scheduler.py
-    depends_on:
-      - mqtt-broker
-  
-  vibration-bowl:
-    build: .
-    command: python nodes/vibration_bowl_node.py
-    depends_on:
-      - mqtt-broker
-    ports:
-      - "5002:5002"
-```
-
-## 🧪 測試
-
-### 單元測試
-```bash
-# 執行所有測試
-python -m pytest tests/
-
-# 執行特定測試
-python -m pytest tests/test_nodes.py -v
-
-# 測試覆蓋率
-python -m pytest --cov=nodes tests/
-```
-
-### 整合測試
-```bash
-# 啟動測試環境
-python scripts/start_test_environment.py
-
-# 執行整合測試
-python tests/integration_tests.py
-```
-
-## 📈 效能調校
-
-### 系統最佳化
-- **執行緒優先級**: 核心業務 > Web 介面
-- **CPU 親和性**: 綁定關鍵執行緒到特定核心
-- **記憶體管理**: 預分配緩衝區、避免動態分配
-- **網路最佳化**: 專用網路介面、QoS 設定
-
-### 視覺處理最佳化
-- **ROI 限制**: 只處理感興趣區域
-- **多解析度**: 先低解析度定位，再高解析度精確檢測
-- **演算法選擇**: 針對特定物件選擇最快演算法
-- **並行處理**: 多執行緒管線化處理
-
-## 🚨 故障排除
-
-### 常見問題
-
-#### MQTT 連接問題
-```bash
-# 檢查 MQTT 服務
-mosquitto_sub -h localhost -t automation/+/status
-
-# 測試發布
-mosquitto_pub -h localhost -t automation/test -m "hello"
-```
-
-#### 節點無響應
-```bash
-# 檢查節點狀態
-curl http://localhost:5002/api/status
-
-# 檢查系統日誌
-tail -f logs/automation.log
-```
-
-#### 效能問題
-```bash
-# 監控系統資源
-python scripts/system_monitor.py
-
-# 分析處理瓶頸
-python utils/performance_analyzer.py
-```
-
-## 🤝 開發指南
-
-### 新增節點
-1. 繼承 `BaseNode` 類別
-2. 實現 `setup_hardware()`, `process_task()` 方法
-3. 設定 MQTT 主題和 Flask 路由
-4. 更新系統配置
-
-### 自定義視覺演算法
-1. 在 `vision/detection_algorithms.py` 新增演算法
-2. 更新 `VisionProcessor` 選擇邏輯
-3. 調整參數配置介面
-
-### API 擴展
-1. 在對應的 `web/api/` 模組新增 API
-2. 更新 Flask 路由註冊
-3. 更新前端介面
-
-## 📄 授權
-
-MIT License
-
-## 👥 貢獻者
-
-- 專案負責人: [Your Name]
-- 視覺演算法: [Vision Team]
-- 控制系統: [Control Team]
-- Web 開發: [Frontend Team]
-
-## 📞 聯絡資訊
-
-- 專案文檔: [Project Wiki]
-- 問題回報: [Issue Tracker]
-- 技術支援: [Support Email]
-
----
-
-**最後更新**: 2025年6月
-**版本**: v1.0.0
+這樣的架構調整更符合您的實際硬體配置，避免了控制權衝突，同時保持了系統的模組化和擴展性。
