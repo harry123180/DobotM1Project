@@ -711,7 +711,7 @@ def create_gripper_controller(port: str = 'COM3',
 def main():
     """使用範例"""
     # 建立夾爪控制器
-    with create_gripper_controller(port='COM3', unit_id=6) as gripper:
+    with create_gripper_controller(port='COM4', unit_id=6) as gripper:
         
         # 初始化夾爪
         gripper.initialize()
