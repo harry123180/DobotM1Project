@@ -273,25 +273,6 @@
             background: linear-gradient(45deg, #ff416c 0%, #ff4b2b 100%);
         }
         
-        .reg-value {
-            background: rgba(0,255,0,0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            color: #00ff00;
-            border: 1px solid rgba(0,255,0,0.3);
-            min-width: 40px;
-            display: inline-block;
-            text-align: center;
-        }
-        
-        .reg-value.disconnected {
-            background: rgba(255,0,0,0.2);
-            color: #ff6b6b;
-            border-color: rgba(255,0,0,0.3);
-        }
-        
         .parameter-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -313,6 +294,120 @@
             font-weight: bold;
             margin-left: 10px;
         }
+
+        /* 外部控制開關樣式 */
+        .external-control-panel {
+            background: rgba(255, 193, 7, 0.15);
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .external-control-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .external-control-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #ffc107;
+            margin: 0;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .switch-status {
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .switch-status.enabled {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+        }
+
+        .switch-status.disabled {
+            background-color: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+
+        .register-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .register-value.connected {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
+        .register-value.disconnected {
+            background-color: rgba(158, 158, 158, 0.2);
+            color: #9e9e9e;
+        }
         
         @media (max-width: 768px) {
             .grid {
@@ -330,6 +425,16 @@
             .status-bar {
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            .external-control-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .switch-container {
+                width: 100%;
+                justify-content: space-between;
             }
         }
     </style>
@@ -365,15 +470,15 @@
                 <h3>ModbusTCP伺服器設定</h3>
                 <div class="control-group">
                     <label for="modbusServerIp">伺服器IP位址</label>
-                    <input type="text" id="modbusServerIp" value="{{ register_info.config.modbus_server_ip }}">
+                    <input type="text" id="modbusServerIp" value="127.0.0.1">
                 </div>
                 <div class="control-group">
                     <label for="modbusServerPort">埠口</label>
-                    <input type="number" id="modbusServerPort" value="{{ register_info.config.modbus_server_port }}">
+                    <input type="number" id="modbusServerPort" value="502">
                 </div>
                 <div class="control-group">
                     <label for="modbusSlaveId">從機ID</label>
-                    <input type="number" id="modbusSlaveId" value="{{ register_info.config.modbus_slave_id }}">
+                    <input type="number" id="modbusSlaveId" value="1">
                 </div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="updateModbusConfig()">更新設定</button>
@@ -386,8 +491,8 @@
             <div class="card">
                 <h3>震動盤連線控制</h3>
                 <div class="control-group">
-                    <label>震動盤位址: <span class="value-display">{{ register_info.config.vp_ip }}:{{ register_info.config.vp_port }}</span></label>
-                    <label>從機ID: <span class="value-display">{{ register_info.config.vp_slave_id }}</span></label>
+                    <label>震動盤位址: <span class="value-display">192.168.1.7:1000</span></label>
+                    <label>從機ID: <span class="value-display">10</span></label>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-success" onclick="connectVP()">連線設備</button>
@@ -398,14 +503,6 @@
             <!-- 背光控制 -->
             <div class="card">
                 <h3>背光控制</h3>
-                <div class="control-group">
-                    <label>背光開關</label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <button class="btn btn-success" id="backlightOnBtn" onclick="toggleBacklight(true)">開啟</button>
-                        <button class="btn btn-danger" id="backlightOffBtn" onclick="toggleBacklight(false)">關閉</button>
-                        <button class="btn btn-primary" onclick="toggleBacklight()">切換</button>
-                    </div>
-                </div>
                 <div class="control-group">
                     <label for="brightness">背光亮度 (0-255)</label>
                     <div class="input-group">
@@ -485,20 +582,29 @@
             </div>
         </div>
         
+        <!-- 外部控制開關 -->
+        <div class="external-control-panel">
+            <div class="external-control-header">
+                <h3 class="external-control-title">🔧 外部控制設定</h3>
+                <div class="switch-container">
+                    <label class="switch">
+                        <input type="checkbox" id="externalControlSwitch" onchange="toggleExternalControl()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="switch-status disabled" id="externalControlStatus">停用</span>
+                </div>
+            </div>
+            <p style="margin-top: 10px; color: #e0e0e0; font-size: 14px;">
+                啟用後，外部ModbusTCP設備可透過寄存器107控制此系統。<br>
+                <strong>注意：</strong> 啟用外部控制時，本地操作可能會被外部指令覆蓋。
+            </p>
+        </div>
+        
         <!-- ModbusTCP寄存器資訊 -->
         <div class="card register-info">
             <h3>ModbusTCP寄存器映射表</h3>
             <p>外部設備可透過以下寄存器位址控制震動盤：</p>
-            <p><strong>伺服器位址:</strong> <span id="serverAddress">--</span></p>
-            
-            <!-- 外部控制開關 -->
-            <div style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <span style="font-weight: 600; color: #ffeb3b;">外部控制開關:</span>
-                    <input type="checkbox" id="externalControlSwitch" onchange="toggleExternalControl()" style="transform: scale(1.5);">
-                    <span id="externalControlStatus">停用</span>
-                </label>
-            </div>
+            <p><strong>伺服器位址:</strong> <span id="currentServerAddress">127.0.0.1:502</span></p>
             
             <table class="register-table">
                 <thead>
@@ -511,49 +617,49 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td>背光亮度控制</td><td>100</td><td>0-255</td><td>讀寫</td><td><span id="reg_100" class="reg-value">--</span></td></tr>
-                    <tr><td>預設頻率控制</td><td>101</td><td>0-255</td><td>讀寫</td><td><span id="reg_101" class="reg-value">--</span></td></tr>
-                    <tr><td>預設強度控制</td><td>102</td><td>0-255</td><td>讀寫</td><td><span id="reg_102" class="reg-value">--</span></td></tr>
-                    <tr><td>動作觸發</td><td>103</td><td>0-11 (0=停止, 1-11=動作)</td><td>寫</td><td><span id="reg_103" class="reg-value">--</span></td></tr>
-                    <tr><td>緊急停止</td><td>104</td><td>寫入任意值觸發停止</td><td>寫</td><td><span id="reg_104" class="reg-value">--</span></td></tr>
-                    <tr><td>連線狀態</td><td>105</td><td>0=未連線, 1=已連線</td><td>讀</td><td><span id="reg_105" class="reg-value">--</span></td></tr>
-                    <tr><td>震動狀態</td><td>106</td><td>0=停止, 1=運行</td><td>讀</td><td><span id="reg_106" class="reg-value">--</span></td></tr>
-                    <tr><td>啟用外部控制</td><td>107</td><td>0=停用, 1=啟用</td><td>讀寫</td><td><span id="reg_107" class="reg-value">--</span></td></tr>
-                    <tr><td>背光開關控制</td><td>108</td><td>0=關閉, 1=開啟</td><td>讀寫</td><td><span id="reg_108" class="reg-value">--</span></td></tr>
+                    <tr><td>背光亮度控制</td><td>100</td><td>0-255</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_100">--</span></td></tr>
+                    <tr><td>預設頻率控制</td><td>101</td><td>0-255</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_101">--</span></td></tr>
+                    <tr><td>預設強度控制</td><td>102</td><td>0-255</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_102">--</span></td></tr>
+                    <tr><td>動作觸發</td><td>103</td><td>0-11 (0=停止, 1-11=動作)</td><td>寫</td><td><span class="register-value disconnected" id="reg_103">--</span></td></tr>
+                    <tr><td>緊急停止</td><td>104</td><td>寫入任意值觸發停止</td><td>寫</td><td><span class="register-value disconnected" id="reg_104">--</span></td></tr>
+                    <tr><td>連線狀態</td><td>105</td><td>0=未連線, 1=已連線</td><td>讀</td><td><span class="register-value disconnected" id="reg_105">--</span></td></tr>
+                    <tr><td>震動狀態</td><td>106</td><td>0=停止, 1=運行</td><td>讀</td><td><span class="register-value disconnected" id="reg_106">--</span></td></tr>
+                    <tr><td>啟用外部控制</td><td>107</td><td>0=停用, 1=啟用</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_107">--</span></td></tr>
+                    <tr><td>背光開關控制</td><td>108</td><td>0=關閉, 1=開啟</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_108">--</span></td></tr>
                 </tbody>
             </table>
             
             <details style="margin-top: 20px;">
                 <summary style="cursor: pointer; font-weight: 600;">動作強度寄存器 (110-120)</summary>
                 <div class="parameter-grid">
-                    <div class="param-item">向上強度 (110): <span id="reg_110" class="reg-value">--</span></div>
-                    <div class="param-item">向下強度 (111): <span id="reg_111" class="reg-value">--</span></div>
-                    <div class="param-item">向左強度 (112): <span id="reg_112" class="reg-value">--</span></div>
-                    <div class="param-item">向右強度 (113): <span id="reg_113" class="reg-value">--</span></div>
-                    <div class="param-item">左上強度 (114): <span id="reg_114" class="reg-value">--</span></div>
-                    <div class="param-item">左下強度 (115): <span id="reg_115" class="reg-value">--</span></div>
-                    <div class="param-item">右上強度 (116): <span id="reg_116" class="reg-value">--</span></div>
-                    <div class="param-item">右下強度 (117): <span id="reg_117" class="reg-value">--</span></div>
-                    <div class="param-item">水平強度 (118): <span id="reg_118" class="reg-value">--</span></div>
-                    <div class="param-item">垂直強度 (119): <span id="reg_119" class="reg-value">--</span></div>
-                    <div class="param-item">散開強度 (120): <span id="reg_120" class="reg-value">--</span></div>
+                    <div class="param-item">向上強度: 110 <span class="register-value disconnected" id="reg_110">--</span></div>
+                    <div class="param-item">向下強度: 111 <span class="register-value disconnected" id="reg_111">--</span></div>
+                    <div class="param-item">向左強度: 112 <span class="register-value disconnected" id="reg_112">--</span></div>
+                    <div class="param-item">向右強度: 113 <span class="register-value disconnected" id="reg_113">--</span></div>
+                    <div class="param-item">左上強度: 114 <span class="register-value disconnected" id="reg_114">--</span></div>
+                    <div class="param-item">左下強度: 115 <span class="register-value disconnected" id="reg_115">--</span></div>
+                    <div class="param-item">右上強度: 116 <span class="register-value disconnected" id="reg_116">--</span></div>
+                    <div class="param-item">右下強度: 117 <span class="register-value disconnected" id="reg_117">--</span></div>
+                    <div class="param-item">水平強度: 118 <span class="register-value disconnected" id="reg_118">--</span></div>
+                    <div class="param-item">垂直強度: 119 <span class="register-value disconnected" id="reg_119">--</span></div>
+                    <div class="param-item">散開強度: 120 <span class="register-value disconnected" id="reg_120">--</span></div>
                 </div>
             </details>
             
             <details style="margin-top: 15px;">
                 <summary style="cursor: pointer; font-weight: 600;">動作頻率寄存器 (130-140)</summary>
                 <div class="parameter-grid">
-                    <div class="param-item">向上頻率 (130): <span id="reg_130" class="reg-value">--</span></div>
-                    <div class="param-item">向下頻率 (131): <span id="reg_131" class="reg-value">--</span></div>
-                    <div class="param-item">向左頻率 (132): <span id="reg_132" class="reg-value">--</span></div>
-                    <div class="param-item">向右頻率 (133): <span id="reg_133" class="reg-value">--</span></div>
-                    <div class="param-item">左上頻率 (134): <span id="reg_134" class="reg-value">--</span></div>
-                    <div class="param-item">左下頻率 (135): <span id="reg_135" class="reg-value">--</span></div>
-                    <div class="param-item">右上頻率 (136): <span id="reg_136" class="reg-value">--</span></div>
-                    <div class="param-item">右下頻率 (137): <span id="reg_137" class="reg-value">--</span></div>
-                    <div class="param-item">水平頻率 (138): <span id="reg_138" class="reg-value">--</span></div>
-                    <div class="param-item">垂直頻率 (139): <span id="reg_139" class="reg-value">--</span></div>
-                    <div class="param-item">散開頻率 (140): <span id="reg_140" class="reg-value">--</span></div>
+                    <div class="param-item">向上頻率: 130 <span class="register-value disconnected" id="reg_130">--</span></div>
+                    <div class="param-item">向下頻率: 131 <span class="register-value disconnected" id="reg_131">--</span></div>
+                    <div class="param-item">向左頻率: 132 <span class="register-value disconnected" id="reg_132">--</span></div>
+                    <div class="param-item">向右頻率: 133 <span class="register-value disconnected" id="reg_133">--</span></div>
+                    <div class="param-item">左上頻率: 134 <span class="register-value disconnected" id="reg_134">--</span></div>
+                    <div class="param-item">左下頻率: 135 <span class="register-value disconnected" id="reg_135">--</span></div>
+                    <div class="param-item">右上頻率: 136 <span class="register-value disconnected" id="reg_136">--</span></div>
+                    <div class="param-item">右下頻率: 137 <span class="register-value disconnected" id="reg_137">--</span></div>
+                    <div class="param-item">水平頻率: 138 <span class="register-value disconnected" id="reg_138">--</span></div>
+                    <div class="param-item">垂直頻率: 139 <span class="register-value disconnected" id="reg_139">--</span></div>
+                    <div class="param-item">散開頻率: 140 <span class="register-value disconnected" id="reg_140">--</span></div>
                 </div>
             </details>
         </div>
@@ -561,7 +667,7 @@
 
     <script>
         let statusUpdateInterval;
-        let registerUpdateInterval;
+        let registerMonitorInterval;
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -579,73 +685,10 @@
         function startStatusUpdates() {
             statusUpdateInterval = setInterval(updateStatus, 2000); // 2秒更新一次
         }
-        
+
         // 開始寄存器監控
         function startRegisterMonitoring() {
-            registerUpdateInterval = setInterval(updateRegisterValues, 1000); // 1秒更新一次
-        }
-        
-        // 更新寄存器數值
-        async function updateRegisterValues() {
-            try {
-                const response = await fetch('/api/register_values');
-                const data = await response.json();
-                
-                if (data.success && data.connected) {
-                    // 更新伺服器位址顯示
-                    document.getElementById('serverAddress').textContent = 
-                        `${data.server_ip}:${data.server_port}`;
-                    
-                    // 更新外部控制開關狀態
-                    const externalControl = data.registers['107'] || 0;
-                    const switchElement = document.getElementById('externalControlSwitch');
-                    const statusElement = document.getElementById('externalControlStatus');
-                    
-                    switchElement.checked = externalControl === 1;
-                    statusElement.textContent = externalControl === 1 ? '啟用' : '停用';
-                    statusElement.style.color = externalControl === 1 ? '#4caf50' : '#ff6b6b';
-                    
-                    // 更新所有寄存器數值
-                    Object.keys(data.registers).forEach(address => {
-                        const element = document.getElementById(`reg_${address}`);
-                        if (element) {
-                            element.textContent = data.registers[address];
-                            element.className = 'reg-value';
-                        }
-                    });
-                } else {
-                    // 連線失敗時顯示斷線狀態
-                    document.getElementById('serverAddress').textContent = '未連線';
-                    
-                    // 將所有寄存器值設為斷線狀態
-                    const regElements = document.querySelectorAll('.reg-value');
-                    regElements.forEach(element => {
-                        element.textContent = '--';
-                        element.className = 'reg-value disconnected';
-                    });
-                    
-                    // 重置外部控制開關
-                    document.getElementById('externalControlSwitch').checked = false;
-                    document.getElementById('externalControlStatus').textContent = '停用';
-                }
-            } catch (error) {
-                console.error('寄存器更新失敗:', error);
-            }
-        }
-        
-        // 切換外部控制開關
-        async function toggleExternalControl() {
-            const switchElement = document.getElementById('externalControlSwitch');
-            const enabled = switchElement.checked;
-            
-            const result = await apiCall('/api/set_external_control', {
-                enabled: enabled
-            });
-            
-            if (!result.success) {
-                // 如果設定失敗，恢復開關狀態
-                switchElement.checked = !enabled;
-            }
+            registerMonitorInterval = setInterval(updateRegisterValues, 1000); // 1秒更新一次
         }
         
         // 更新系統狀態
@@ -698,11 +741,6 @@
                     document.getElementById('brightnessValue').value = status.backlight_brightness;
                 }
                 
-                // 更新背光開關狀態
-                if (status.backlight_on !== undefined) {
-                    updateBacklightButtons(status.backlight_on);
-                }
-                
                 if (status.default_frequency !== undefined) {
                     document.getElementById('defaultFreq').value = status.default_frequency;
                 }
@@ -710,9 +748,135 @@
                 if (status.default_strength !== undefined) {
                     document.getElementById('defaultStrength').value = status.default_strength;
                 }
+
+                // 更新伺服器地址顯示
+                if (status.config) {
+                    document.getElementById('currentServerAddress').textContent = 
+                        `${status.config.modbus_server_ip}:${status.config.modbus_server_port}`;
+                }
                 
             } catch (error) {
                 console.error('狀態更新失敗:', error);
+            }
+        }
+
+        // 更新寄存器數值顯示
+        async function updateRegisterValues() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                // 基本寄存器列表
+                const basicRegisters = [100, 101, 102, 103, 104, 105, 106, 107, 108];
+                // 動作強度寄存器 (110-120)
+                const strengthRegisters = Array.from({length: 11}, (_, i) => 110 + i);
+                // 動作頻率寄存器 (130-140)  
+                const frequencyRegisters = Array.from({length: 11}, (_, i) => 130 + i);
+                
+                const allRegisters = [...basicRegisters, ...strengthRegisters, ...frequencyRegisters];
+                
+                // 模擬讀取寄存器數值
+                if (status.modbus_connected) {
+                    allRegisters.forEach(regAddr => {
+                        const element = document.getElementById(`reg_${regAddr}`);
+                        if (element) {
+                            let value = getSimulatedRegisterValue(regAddr, status);
+                            element.textContent = value;
+                            element.className = 'register-value connected';
+                        }
+                    });
+
+                    // 更新外部控制開關狀態
+                    updateExternalControlUI(getSimulatedRegisterValue(107, status));
+                } else {
+                    // 連線斷開時顯示 --
+                    allRegisters.forEach(regAddr => {
+                        const element = document.getElementById(`reg_${regAddr}`);
+                        if (element) {
+                            element.textContent = '--';
+                            element.className = 'register-value disconnected';
+                        }
+                    });
+
+                    // 重置外部控制開關
+                    updateExternalControlUI(0);
+                }
+                
+            } catch (error) {
+                console.error('寄存器數值更新失敗:', error);
+            }
+        }
+
+        // 模擬寄存器數值 (實際應用中應該從ModbusTCP讀取)
+        function getSimulatedRegisterValue(regAddr, status) {
+            switch(regAddr) {
+                case 100: return status.backlight_brightness || 0;
+                case 101: return status.default_frequency || 0;
+                case 102: return status.default_strength || 0;
+                case 103: return 0; // 動作觸發器通常為0
+                case 104: return 0; // 急停觸發器通常為0
+                case 105: return status.vp_connected ? 1 : 0;
+                case 106: return status.vibration_active ? 1 : 0;
+                case 107: return document.getElementById('externalControlSwitch').checked ? 1 : 0;
+                case 108: return Math.random() > 0.5 ? 1 : 0; // 背光開關模擬
+                default:
+                    if (regAddr >= 110 && regAddr <= 120) {
+                        return status.default_strength || 100; // 強度寄存器
+                    } else if (regAddr >= 130 && regAddr <= 140) {
+                        return status.default_frequency || 100; // 頻率寄存器
+                    }
+                    return 0;
+            }
+        }
+
+        // 切換外部控制
+        async function toggleExternalControl() {
+            const switchElement = document.getElementById('externalControlSwitch');
+            const enableControl = switchElement.checked;
+            
+            try {
+                // 這裡應該調用API設定寄存器107
+                const response = await fetch('/api/set_external_control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ enable: enableControl })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        updateExternalControlUI(enableControl ? 1 : 0);
+                        showToast(enableControl ? '外部控制已啟用' : '外部控制已停用', 'success');
+                    } else {
+                        switchElement.checked = !enableControl; // 恢復開關狀態
+                        showToast('設定失敗: ' + result.message, 'error');
+                    }
+                } else {
+                    switchElement.checked = !enableControl; // 恢復開關狀態
+                    showToast('網路錯誤', 'error');
+                }
+            } catch (error) {
+                switchElement.checked = !enableControl; // 恢復開關狀態
+                showToast('操作失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 更新外部控制UI狀態
+        function updateExternalControlUI(value) {
+            const switchElement = document.getElementById('externalControlSwitch');
+            const statusElement = document.getElementById('externalControlStatus');
+            
+            const isEnabled = value === 1;
+            switchElement.checked = isEnabled;
+            
+            if (isEnabled) {
+                statusElement.textContent = '啟用';
+                statusElement.className = 'switch-status enabled';
+            } else {
+                statusElement.textContent = '停用';
+                statusElement.className = 'switch-status disabled';
             }
         }
         
@@ -830,34 +994,6 @@
             });
         }
         
-        // 切換背光開關
-        async function toggleBacklight(state = null) {
-            const data = state !== null ? { state: state } : {};
-            const result = await apiCall('/api/toggle_backlight', data);
-            
-            if (result.success && result.backlight_on !== undefined) {
-                updateBacklightButtons(result.backlight_on);
-            }
-        }
-        
-        // 更新背光按鈕狀態
-        function updateBacklightButtons(isOn) {
-            const onBtn = document.getElementById('backlightOnBtn');
-            const offBtn = document.getElementById('backlightOffBtn');
-            
-            if (isOn) {
-                onBtn.style.opacity = '1';
-                onBtn.style.transform = 'scale(1.05)';
-                offBtn.style.opacity = '0.7';
-                offBtn.style.transform = 'scale(1)';
-            } else {
-                onBtn.style.opacity = '0.7';
-                onBtn.style.transform = 'scale(1)';
-                offBtn.style.opacity = '1';
-                offBtn.style.transform = 'scale(1.05)';
-            }
-        }
-        
         // 從輸入框設定亮度
         function setBrightnessFromInput() {
             const value = document.getElementById('brightnessValue').value;
@@ -928,8 +1064,8 @@
             if (statusUpdateInterval) {
                 clearInterval(statusUpdateInterval);
             }
-            if (registerUpdateInterval) {
-                clearInterval(registerUpdateInterval);
+            if (registerMonitorInterval) {
+                clearInterval(registerMonitorInterval);
             }
         });
     </script>
