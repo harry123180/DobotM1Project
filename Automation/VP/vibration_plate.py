@@ -5,11 +5,11 @@ import logging
 
 class VibrationPlate:
     """
-    震动盘控制API类
-    支持ModbusTCP通信协议
+    震動盤控制API類別
+    支援ModbusTCP通訊協定
     """
     
-    # 动作编码映射
+    # 動作編碼映射
     ACTION_MAP = {
         'stop': 0,
         'up': 1,
@@ -25,21 +25,21 @@ class VibrationPlate:
         'spread': 11
     }
     
-    # 寄存器地址定义
+    # 寄存器位址定義
     REGISTERS = {
-        'single_action_trigger': 4,      # 单一动作触发
-        'vibration_status': 6,           # 震动盘状态
-        'backlight_test': 58,            # 背光测试开关
+        'single_action_trigger': 4,      # 單一動作觸發
+        'vibration_status': 6,           # 震動盤狀態
+        'backlight_test': 58,            # 背光測試開關
         'backlight_brightness': 46,      # 背光亮度
         
-        # 强度寄存器 (20-30)
+        # 強度寄存器 (20-30)
         'strength': {
             'up': 20, 'down': 21, 'left': 22, 'right': 23,
             'upleft': 24, 'downleft': 25, 'upright': 26, 'downright': 27,
             'horizontal': 28, 'vertical': 29, 'spread': 30
         },
         
-        # 频率寄存器 (60-70)
+        # 頻率寄存器 (60-70)
         'frequency': {
             'up': 60, 'down': 61, 'left': 62, 'right': 63,
             'upleft': 64, 'downleft': 65, 'upright': 66, 'downright': 67,
@@ -49,13 +49,13 @@ class VibrationPlate:
 
     def __init__(self, ip, port, slave_id, auto_connect=True):
         """
-        初始化震动盘控制器
+        初始化震動盤控制器
         
         Args:
-            ip: ModbusTCP服务器IP地址
-            port: ModbusTCP服务器端口
-            slave_id: 从机ID
-            auto_connect: 是否自动连接
+            ip: ModbusTCP伺服器IP位址
+            port: ModbusTCP伺服器埠口
+            slave_id: 從機ID
+            auto_connect: 是否自動連線
         """
         self.ip = ip
         self.port = port
@@ -64,14 +64,14 @@ class VibrationPlate:
         self.connected = False
         self.lock = threading.Lock()
         
-        # 设置日志
+        # 設定日誌
         self.logger = logging.getLogger(f"VibrationPlate_{ip}")
         
         if auto_connect:
             self.connect()
 
     def connect(self):
-        """连接到ModbusTCP服务器"""
+        """連線到ModbusTCP伺服器"""
         try:
             if self.client:
                 self.client.close()
@@ -80,45 +80,45 @@ class VibrationPlate:
             
             if self.client.connect():
                 self.connected = True
-                self.logger.info(f"✅ 成功连接到震动盘 {self.ip}:{self.port} (Slave ID: {self.slave_id})")
+                self.logger.info(f"成功連線到震動盤 {self.ip}:{self.port} (從機ID: {self.slave_id})")
                 return True
             else:
                 self.connected = False
-                self.logger.error(f"❌ 无法连接到震动盘 {self.ip}:{self.port}")
+                self.logger.error(f"無法連線到震動盤 {self.ip}:{self.port}")
                 return False
                 
         except Exception as e:
             self.connected = False
-            self.logger.error(f"❌ 连接异常: {e}")
+            self.logger.error(f"連線異常: {e}")
             return False
 
     def disconnect(self):
-        """断开连接"""
+        """中斷連線"""
         try:
             if self.client:
                 self.client.close()
                 self.connected = False
-                self.logger.info("🔌 震动盘连接已断开")
+                self.logger.info("震動盤連線已中斷")
         except Exception as e:
-            self.logger.error(f"断开连接时发生错误: {e}")
+            self.logger.error(f"中斷連線時發生錯誤: {e}")
 
     def is_connected(self):
-        """检查连接状态"""
+        """檢查連線狀態"""
         return self.connected and self.client and self.client.is_socket_open()
 
     def write_register(self, address, value):
         """
-        写入单个寄存器
+        寫入單個寄存器
         
         Args:
-            address: 寄存器地址
-            value: 写入值
+            address: 寄存器位址
+            value: 寫入值
             
         Returns:
             bool: 操作是否成功
         """
         if not self.is_connected():
-            self.logger.warning("设备未连接，尝试重新连接...")
+            self.logger.warning("設備未連線，嘗試重新連線...")
             if not self.connect():
                 return False
 
@@ -131,29 +131,29 @@ class VibrationPlate:
                 )
                 
                 if response.isError():
-                    self.logger.error(f"⚠️ 写入寄存器 {address} 失败: {response}")
+                    self.logger.error(f"寫入寄存器 {address} 失敗: {response}")
                     return False
                 else:
-                    self.logger.debug(f"✅ 寄存器 {address} 设置为 {value}")
+                    self.logger.debug(f"寄存器 {address} 設定為 {value}")
                     return True
                     
         except Exception as e:
-            self.logger.error(f"❌ 写入寄存器异常: {e}")
+            self.logger.error(f"寫入寄存器異常: {e}")
             self.connected = False
             return False
 
     def read_register(self, address):
         """
-        读取单个寄存器
+        讀取單個寄存器
         
         Args:
-            address: 寄存器地址
+            address: 寄存器位址
             
         Returns:
-            int or None: 寄存器值，失败返回None
+            int or None: 寄存器值，失敗返回None
         """
         if not self.is_connected():
-            self.logger.warning("设备未连接，尝试重新连接...")
+            self.logger.warning("設備未連線，嘗試重新連線...")
             if not self.connect():
                 return None
 
@@ -166,26 +166,26 @@ class VibrationPlate:
                 )
                 
                 if response.isError():
-                    self.logger.error(f"⚠️ 读取寄存器 {address} 失败: {response}")
+                    self.logger.error(f"讀取寄存器 {address} 失敗: {response}")
                     return None
                 else:
                     return response.registers[0]
                     
         except Exception as e:
-            self.logger.error(f"❌ 读取寄存器异常: {e}")
+            self.logger.error(f"讀取寄存器異常: {e}")
             self.connected = False
             return None
 
     def read_multiple_registers(self, start_address, count):
         """
-        批量读取寄存器
+        批量讀取寄存器
         
         Args:
-            start_address: 起始地址
-            count: 读取数量
+            start_address: 起始位址
+            count: 讀取數量
             
         Returns:
-            list or None: 寄存器值列表，失败返回None
+            list or None: 寄存器值列表，失敗返回None
         """
         if not self.is_connected():
             if not self.connect():
@@ -200,22 +200,22 @@ class VibrationPlate:
                 )
                 
                 if response.isError():
-                    self.logger.error(f"⚠️ 批量读取寄存器失败: {response}")
+                    self.logger.error(f"批量讀取寄存器失敗: {response}")
                     return None
                 else:
                     return response.registers
                     
         except Exception as e:
-            self.logger.error(f"❌ 批量读取寄存器异常: {e}")
+            self.logger.error(f"批量讀取寄存器異常: {e}")
             self.connected = False
             return None
 
     def set_backlight(self, state):
         """
-        设置背光开关
+        設定背光開關
         
         Args:
-            state: True开启，False关闭
+            state: True開啟，False關閉
             
         Returns:
             bool: 操作是否成功
@@ -224,7 +224,7 @@ class VibrationPlate:
 
     def set_backlight_brightness(self, brightness):
         """
-        设置背光亮度
+        設定背光亮度
         
         Args:
             brightness: 亮度值 (0-255)
@@ -237,17 +237,17 @@ class VibrationPlate:
 
     def trigger_action(self, action):
         """
-        触发指定动作
+        觸發指定動作
         
         Args:
-            action: 动作名称或编码
+            action: 動作名稱或編碼
             
         Returns:
             bool: 操作是否成功
         """
         if isinstance(action, str):
             if action not in self.ACTION_MAP:
-                self.logger.error(f"未知动作: {action}")
+                self.logger.error(f"未知動作: {action}")
                 return False
             action_code = self.ACTION_MAP[action]
         else:
@@ -257,12 +257,12 @@ class VibrationPlate:
 
     def set_action_parameters(self, action, strength=None, frequency=None):
         """
-        设置动作参数
+        設定動作參數
         
         Args:
-            action: 动作名称
-            strength: 强度值
-            frequency: 频率值
+            action: 動作名稱
+            strength: 強度值
+            frequency: 頻率值
             
         Returns:
             bool: 操作是否成功
@@ -270,7 +270,7 @@ class VibrationPlate:
         success = True
         
         if action not in self.REGISTERS['strength']:
-            self.logger.error(f"未知动作: {action}")
+            self.logger.error(f"未知動作: {action}")
             return False
             
         if strength is not None:
@@ -285,26 +285,26 @@ class VibrationPlate:
 
     def execute_action(self, action, strength=None, frequency=None, duration=None):
         """
-        执行动作（设置参数并触发）
+        執行動作（設定參數並觸發）
         
         Args:
-            action: 动作名称
-            strength: 强度值
-            frequency: 频率值
-            duration: 持续时间(秒)，None表示不自动停止
+            action: 動作名稱
+            strength: 強度值
+            frequency: 頻率值
+            duration: 持續時間(秒)，None表示不自動停止
             
         Returns:
             bool: 操作是否成功
         """
-        # 设置参数
+        # 設定參數
         if not self.set_action_parameters(action, strength, frequency):
             return False
             
-        # 触发动作
+        # 觸發動作
         if not self.trigger_action(action):
             return False
             
-        # 如果指定了持续时间，则延时后停止
+        # 如果指定了持續時間，則延時後停止
         if duration is not None:
             def stop_after_delay():
                 time.sleep(duration)
@@ -315,18 +315,18 @@ class VibrationPlate:
         return True
 
     def stop(self):
-        """停止所有动作"""
+        """停止所有動作"""
         success = self.trigger_action('stop')
         if success:
-            self.logger.info("🛑 所有动作已停止")
+            self.logger.info("所有動作已停止")
         return success
 
     def get_status(self):
         """
-        获取震动盘状态
+        取得震動盤狀態
         
         Returns:
-            dict: 状态信息
+            dict: 狀態資訊
         """
         status = {
             'connected': self.is_connected(),
@@ -338,19 +338,19 @@ class VibrationPlate:
         if not self.is_connected():
             return status
             
-        # 读取震动状态
+        # 讀取震動狀態
         vibration_status = self.read_register(self.REGISTERS['vibration_status'])
         if vibration_status is not None:
             status['vibration_active'] = bool(vibration_status)
             
-        # 读取背光亮度
+        # 讀取背光亮度
         brightness = self.read_register(self.REGISTERS['backlight_brightness'])
         if brightness is not None:
             status['backlight_brightness'] = brightness
             
-        # 读取所有动作参数
-        strength_registers = self.read_multiple_registers(20, 11)  # 强度寄存器20-30
-        frequency_registers = self.read_multiple_registers(60, 11)  # 频率寄存器60-70
+        # 讀取所有動作參數
+        strength_registers = self.read_multiple_registers(20, 11)  # 強度寄存器20-30
+        frequency_registers = self.read_multiple_registers(60, 11)  # 頻率寄存器60-70
         
         if strength_registers and frequency_registers:
             actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft', 
@@ -373,5 +373,5 @@ class VibrationPlate:
         self.disconnect()
 
     def __del__(self):
-        """析构函数"""
+        """析構函數"""
         self.disconnect()
