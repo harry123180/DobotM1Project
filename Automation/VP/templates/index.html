@@ -504,6 +504,16 @@
             <div class="card">
                 <h3>背光控制</h3>
                 <div class="control-group">
+                    <label>背光開關</label>
+                    <div class="input-group">
+                        <label class="switch">
+                            <input type="checkbox" id="backlightSwitch" onchange="toggleBacklight()" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="switch-status enabled" id="backlightStatus">開啟</span>
+                    </div>
+                </div>
+                <div class="control-group">
                     <label for="brightness">背光亮度 (0-255)</label>
                     <div class="input-group">
                         <input type="range" id="brightnessSlider" min="0" max="255" value="128" onchange="updateBrightness()">
@@ -735,6 +745,21 @@
                 document.getElementById('lastUpdate').textContent = 
                     '最後更新: ' + lastUpdate.toLocaleTimeString();
                 
+                // 更新背光開關狀態
+                if (status.backlight_on !== undefined) {
+                    const backlightSwitch = document.getElementById('backlightSwitch');
+                    const backlightStatus = document.getElementById('backlightStatus');
+                    
+                    backlightSwitch.checked = status.backlight_on;
+                    if (status.backlight_on) {
+                        backlightStatus.textContent = '開啟';
+                        backlightStatus.className = 'switch-status enabled';
+                    } else {
+                        backlightStatus.textContent = '關閉';
+                        backlightStatus.className = 'switch-status disabled';
+                    }
+                }
+                
                 // 更新參數值
                 if (status.backlight_brightness !== undefined) {
                     document.getElementById('brightnessSlider').value = status.backlight_brightness;
@@ -763,8 +788,8 @@
         // 更新寄存器數值顯示
         async function updateRegisterValues() {
             try {
-                const response = await fetch('/api/status');
-                const status = await response.json();
+                const response = await fetch('/api/register_values');
+                const data = await response.json();
                 
                 // 基本寄存器列表
                 const basicRegisters = [100, 101, 102, 103, 104, 105, 106, 107, 108];
@@ -775,19 +800,19 @@
                 
                 const allRegisters = [...basicRegisters, ...strengthRegisters, ...frequencyRegisters];
                 
-                // 模擬讀取寄存器數值
-                if (status.modbus_connected) {
+                if (data.connected) {
+                    // 更新所有寄存器數值
                     allRegisters.forEach(regAddr => {
                         const element = document.getElementById(`reg_${regAddr}`);
                         if (element) {
-                            let value = getSimulatedRegisterValue(regAddr, status);
+                            const value = data.registers[regAddr] || 0;
                             element.textContent = value;
                             element.className = 'register-value connected';
                         }
                     });
 
                     // 更新外部控制開關狀態
-                    updateExternalControlUI(getSimulatedRegisterValue(107, status));
+                    updateExternalControlUI(data.registers[107] || 0);
                 } else {
                     // 連線斷開時顯示 --
                     allRegisters.forEach(regAddr => {
@@ -807,25 +832,43 @@
             }
         }
 
-        // 模擬寄存器數值 (實際應用中應該從ModbusTCP讀取)
-        function getSimulatedRegisterValue(regAddr, status) {
-            switch(regAddr) {
-                case 100: return status.backlight_brightness || 0;
-                case 101: return status.default_frequency || 0;
-                case 102: return status.default_strength || 0;
-                case 103: return 0; // 動作觸發器通常為0
-                case 104: return 0; // 急停觸發器通常為0
-                case 105: return status.vp_connected ? 1 : 0;
-                case 106: return status.vibration_active ? 1 : 0;
-                case 107: return document.getElementById('externalControlSwitch').checked ? 1 : 0;
-                case 108: return Math.random() > 0.5 ? 1 : 0; // 背光開關模擬
-                default:
-                    if (regAddr >= 110 && regAddr <= 120) {
-                        return status.default_strength || 100; // 強度寄存器
-                    } else if (regAddr >= 130 && regAddr <= 140) {
-                        return status.default_frequency || 100; // 頻率寄存器
+        // 切換背光開關
+        async function toggleBacklight() {
+            const switchElement = document.getElementById('backlightSwitch');
+            const statusElement = document.getElementById('backlightStatus');
+            const state = switchElement.checked;
+            
+            try {
+                const response = await fetch('/api/toggle_backlight', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ state: state })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        if (state) {
+                            statusElement.textContent = '開啟';
+                            statusElement.className = 'switch-status enabled';
+                        } else {
+                            statusElement.textContent = '關閉';
+                            statusElement.className = 'switch-status disabled';
+                        }
+                        showToast(result.message, 'success');
+                    } else {
+                        switchElement.checked = !state; // 恢復開關狀態
+                        showToast('設定失敗: ' + result.message, 'error');
                     }
-                    return 0;
+                } else {
+                    switchElement.checked = !state; // 恢復開關狀態
+                    showToast('網路錯誤', 'error');
+                }
+            } catch (error) {
+                switchElement.checked = !state; // 恢復開關狀態
+                showToast('操作失敗: ' + error.message, 'error');
             }
         }
 
@@ -835,7 +878,6 @@
             const enableControl = switchElement.checked;
             
             try {
-                // 這裡應該調用API設定寄存器107
                 const response = await fetch('/api/set_external_control', {
                     method: 'POST',
                     headers: {
