@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多軸搬運機台整合管理 - 戰情室</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #0c1426 0%, #1a2332 100%);
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .control-room {
+            height: 100vh;
+            display: grid;
+            grid-template-areas: 
+                "header header header"
+                "left-panel main-display right-panel"
+                "status-bar status-bar status-bar";
+            grid-template-rows: 60px 1fr 40px;
+            grid-template-columns: 350px 1fr 350px;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .header .time {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .left-panel {
+            grid-area: left-panel;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            overflow-y: auto;
+        }
+
+        .main-display {
+            grid-area: main-display;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .right-panel {
+            grid-area: right-panel;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            overflow-y: auto;
+        }
+
+        .status-bar {
+            grid-area: status-bar;
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #60a5fa;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 5px;
+        }
+
+        .axis-card {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .axis-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .axis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .axis-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-ready { background-color: #10b981; }
+        .status-moving { background-color: #f59e0b; }
+        .status-error { background-color: #ef4444; }
+        .status-idle { background-color: #6b7280; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .parameter-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .parameter-label {
+            color: #9ca3af;
+        }
+
+        .parameter-value {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .video-container {
+            flex: 1;
+            background: #000000;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 300px;
+            border: 2px solid #374151;
+        }
+
+        .video-placeholder {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .data-card {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .data-card.warning {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+        }
+
+        .data-card.error {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        }
+
+        .data-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .data-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .emergency-stop {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 20px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            animation: emergency-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes emergency-glow {
+            from { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+            to { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+        }
+
+        .log-container {
+            background: #111827;
+            border-radius: 8px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .log-time {
+            color: #6b7280;
+        }
+
+        .log-info { color: #10b981; }
+        .log-warning { color: #f59e0b; }
+        .log-error { color: #ef4444; }
+
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-room">
+        <header class="header">
+            <h1> 光學檢測自動化產線戰情室系統</h1>
+            <div class="time" id="currentTime"></div>
+        </header>
+
+        <div class="left-panel">
+            <div class="section-title">EtherCAT狀態</div>
+            <div class="axis-card">
+                <div class="axis-header">
+                    <span class="axis-name">Card No: <span id="cardNo">1</span></span>
+                    <div class="status-indicator status-ready"></div>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Slave Num:</span>
+                    <span class="parameter-value" id="slaveNum">8</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">初始狀態:</span>
+                    <span class="parameter-value" id="initialStatus">就緒</span>
+                </div>
+            </div>
+
+            <div class="section-title">X軸狀態</div>
+            <div class="axis-card" data-axis="x_axis">
+                <div class="axis-header">
+                    <span class="axis-name">X軸控制器</span>
+                    <div class="status-indicator status-moving"></div>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Command Pos:</span>
+                    <span class="parameter-value" id="xCommandPos">1250.5</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Feedback Pos:</span>
+                    <span class="parameter-value" id="xFeedbackPos">1250.2</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">速度:</span>
+                    <span class="parameter-value" id="xSpeed">85.3</span>
+                </div>
+            </div>
+
+            <div class="section-title">Y軸狀態</div>
+            <div class="axis-card" data-axis="y_axis">
+                <div class="axis-header">
+                    <span class="axis-name">Y軸控制器</span>
+                    <div class="status-indicator status-ready"></div>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Command Pos:</span>
+                    <span class="parameter-value" id="yCommandPos">890.1</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Feedback Pos:</span>
+                    <span class="parameter-value" id="yFeedbackPos">890.1</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">速度:</span>
+                    <span class="parameter-value" id="ySpeed">0.0</span>
+                </div>
+            </div>
+
+            <div class="section-title">Z軸狀態</div>
+            <div class="axis-card" data-axis="z_axis">
+                <div class="axis-header">
+                    <span class="axis-name">Z軸控制器</span>
+                    <div class="status-indicator status-ready"></div>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Command Pos:</span>
+                    <span class="parameter-value" id="zCommandPos">156.8</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Feedback Pos:</span>
+                    <span class="parameter-value" id="zFeedbackPos">156.8</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">速度:</span>
+                    <span class="parameter-value" id="zSpeed">0.0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-display">
+            <div class="data-grid">
+                <div class="data-card">
+                    <div class="data-value" id="totalOperations">1,247</div>
+                    <div class="data-label">總操作次數</div>
+                </div>
+                <div class="data-card">
+                    <div class="data-value" id="successRate">98.7%</div>
+                    <div class="data-label">成功率</div>
+                </div>
+                <div class="data-card warning">
+                    <div class="data-value" id="avgCycleTime">23.5s</div>
+                    <div class="data-label">平均週期時間</div>
+                </div>
+                <div class="data-card">
+                    <div class="data-value" id="systemUptime">72.3h</div>
+                    <div class="data-label">系統運行時間</div>
+                </div>
+            </div>
+
+            <div class="video-container">
+                <div class="video-placeholder">📹</div>
+                <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+                    主相機視窗 - 即時監控
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button class="control-btn" onclick="switchCamera(1)">相機1</button>
+                <button class="control-btn" onclick="switchCamera(2)">相機2</button>
+                <button class="control-btn" onclick="switchCamera(3)">俯視角</button>
+                <button class="control-btn" onclick="switchCamera(4)">側視角</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <button class="emergency-stop" onclick="emergencyStop()">🛑 緊急停止</button>
+
+            <div class="section-title">系統狀態</div>
+            <div class="data-grid">
+                <div class="data-card">
+                    <div class="data-value" id="temperature">24°C</div>
+                    <div class="data-label">系統溫度</div>
+                </div>
+                <div class="data-card">
+                    <div class="data-value" id="pressure">1.2bar</div>
+                    <div class="data-label">氣壓值</div>
+                </div>
+            </div>
+
+            <div class="section-title">PLC通訊狀態</div>
+            <div class="axis-card">
+                <div class="parameter-row">
+                    <span class="parameter-label">Z_SON:</span>
+                    <span class="parameter-value" id="zSon">ON</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Z_EMG:</span>
+                    <span class="parameter-value" id="zEmg">OFF</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Z_DOG:</span>
+                    <span class="parameter-value" id="zDog">OFF</span>
+                </div>
+                <div class="parameter-row">
+                    <span class="parameter-label">Z_DONE:</span>
+                    <span class="parameter-value" id="zDone">TRUE</span>
+                </div>
+            </div>
+
+            <div class="section-title">系統日誌</div>
+            <div class="log-container" id="systemLog">
+                <div class="log-entry log-info">
+                    <span class="log-time">[14:23:45]</span> X軸到達目標位置
+                </div>
+                <div class="log-entry log-info">
+                    <span class="log-time">[14:23:42]</span> 開始執行移動指令
+                </div>
+                <div class="log-entry log-warning">
+                    <span class="log-time">[14:23:30]</span> 氣壓值略低，請檢查
+                </div>
+                <div class="log-entry log-info">
+                    <span class="log-time">[14:23:15]</span> 系統自檢完成
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="network-status">
+                <div class="connection-dot"></div>
+                <span>EtherCAT: 連線正常</span>
+            </div>
+            <div>系統版本: v2.1.3</div>
+            <div>CPU使用率: <span id="cpuUsage">15%</span></div>
+            <div>記憶體: <span id="memoryUsage">892MB / 4GB</span></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="websocket_client.js"></script>
+    <script>
+        // 時間更新
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('currentTime').textContent = timeString;
+        }
+
+        // 模擬數據更新（備用）
+        function updateDataFallback() {
+            const xCmd = document.getElementById('xCommandPos');
+            const xFb = document.getElementById('xFeedbackPos');
+            const xSpeed = document.getElementById('xSpeed');
+            
+            const newXCmd = (Math.random() * 2000).toFixed(1);
+            const newXFb = (parseFloat(newXCmd) + (Math.random() - 0.5) * 2).toFixed(1);
+            const newXSpeed = (Math.random() * 150).toFixed(1);
+            
+            xCmd.textContent = newXCmd;
+            xFb.textContent = newXFb;
+            xSpeed.textContent = newXSpeed;
+
+            const yCmd = document.getElementById('yCommandPos');
+            const yFb = document.getElementById('yFeedbackPos');
+            const ySpeed = document.getElementById('ySpeed');
+            
+            const newYCmd = (Math.random() * 1500).toFixed(1);
+            const newYFb = (parseFloat(newYCmd) + (Math.random() - 0.5) * 1.5).toFixed(1);
+            const newYSpeed = (Math.random() * 120).toFixed(1);
+            
+            yCmd.textContent = newYCmd;
+            yFb.textContent = newYFb;
+            ySpeed.textContent = newYSpeed;
+
+            const zCmd = document.getElementById('zCommandPos');
+            const zFb = document.getElementById('zFeedbackPos');
+            const zSpeed = document.getElementById('zSpeed');
+            
+            const newZCmd = (Math.random() * 300).toFixed(1);
+            const newZFb = (parseFloat(newZCmd) + (Math.random() - 0.5) * 0.8).toFixed(1);
+            const newZSpeed = (Math.random() * 80).toFixed(1);
+            
+            zCmd.textContent = newZCmd;
+            zFb.textContent = newZFb;
+            zSpeed.textContent = newZSpeed;
+
+            // 統計數據更新
+            const totalOps = document.getElementById('totalOperations');
+            const currentOps = parseInt(totalOps.textContent.replace(',', ''));
+            totalOps.textContent = (currentOps + Math.floor(Math.random() * 3)).toLocaleString();
+
+            const successRate = document.getElementById('successRate');
+            const newRate = (98 + Math.random() * 2).toFixed(1);
+            successRate.textContent = newRate + '%';
+
+            const cycleTime = document.getElementById('avgCycleTime');
+            const newCycle = (20 + Math.random() * 10).toFixed(1);
+            cycleTime.textContent = newCycle + 's';
+
+            const temperature = document.getElementById('temperature');
+            const newTemp = (20 + Math.random() * 10).toFixed(0);
+            temperature.textContent = newTemp + '°C';
+
+            const pressure = document.getElementById('pressure');
+            const newPressure = (1.0 + Math.random() * 0.5).toFixed(1);
+            pressure.textContent = newPressure + 'bar';
+
+            const cpuUsage = document.getElementById('cpuUsage');
+            const newCpu = (10 + Math.random() * 20).toFixed(0);
+            cpuUsage.textContent = newCpu + '%';
+        }
+
+        // 相機切換
+        function switchCamera(cameraId) {
+            console.log(`切換到相機 ${cameraId}`);
+            
+            // 更新按鈕狀態
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            
+            if (window.wsClient) {
+                wsClient.switchCamera(cameraId);
+            } else {
+                addLogEntry(`切換到相機 ${cameraId}`, 'info');
+            }
+        }
+
+        // 緊急停止
+        function emergencyStop() {
+            if (confirm('確定要執行緊急停止嗎？')) {
+                console.log('執行緊急停止！');
+                
+                if (window.wsClient) {
+                    wsClient.triggerEmergencyStop();
+                } else {
+                    addLogEntry('緊急停止已啟動！', 'error');
+                }
+            }
+        }
+
+        // 添加日誌記錄
+        function addLogEntry(message, type = 'info') {
+            const logContainer = document.getElementById('systemLog');
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+            
+            // 保持最多50條記錄
+            if (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        // 初始化
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // 如果WebSocket未連接，使用備用數據更新
+        setTimeout(() => {
+            if (!window.wsClient || !window.wsClient.isConnected) {
+                console.log('WebSocket未連接，使用備用數據更新');
+                setInterval(updateDataFallback, 2000);
+            }
+        }, 3000);
+        
+        // 隨機添加日誌
+        setInterval(() => {
+            const messages = [
+                '位置校正完成',
+                '執行週期性檢查',
+                '數據傳輸正常',
+                '感測器讀取完成',
+                '馬達溫度正常'
+            ];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            addLogEntry(randomMessage);
+        }, 5000);
+    </script>
+</body>
+</html>
