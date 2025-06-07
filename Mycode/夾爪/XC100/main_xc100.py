@@ -7,7 +7,7 @@ def main():
     try:
         # 注意：unit_id請根據控制器上CH旋鈕值+1設定
         # 例如CH旋鈕設為1，則unit_id=2 (MODBUS RTU模式)
-        controller = XC100_Controller(port='COM4', baudrate=115200, parity='N', stopbits=1, unit_id=2)
+        controller = XC100_Controller(port='COM5', baudrate=115200, parity='N', stopbits=1, unit_id=2)
         
         print("=" * 60)
         print("🤖 XC100 控制器測試程序啟動")
@@ -117,7 +117,7 @@ def main():
 def simple_test():
     """簡化測試功能"""
     try:
-        controller = XC100_Controller(port='COM4', baudrate=115200, unit_id=2)
+        controller = XC100_Controller(port='COM5', baudrate=115200, unit_id=2)
         print("=" * 60)
         print("🔧 XC100 簡化測試")
         print("=" * 60)
@@ -155,7 +155,7 @@ def simple_test():
 def manual_control():
     """手動控制模式"""
     try:
-        controller = XC100_Controller(port='COM4', baudrate=115200, unit_id=2)
+        controller = XC100_Controller(port='COM5', baudrate=115200, unit_id=2)
         print("=" * 60)
         print("🎮 XC100 手動控制模式")
         print("=" * 60)
