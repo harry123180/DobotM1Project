@@ -608,7 +608,7 @@ class RS485Gateway:
             """獲取支援的設備列表"""
             return jsonify(self.DEVICE_CONFIG)
     
-    def run_server(self, host='0.0.0.0', port=5000, debug=False):
+    def run_server(self, host='0.0.0.0', port=5005, debug=False):
         """啟動Flask伺服器"""
         logger.info(f"🚀 啟動RS485 Gateway伺服器於 {host}:{port}")
         self.app.run(host=host, port=port, debug=debug, threaded=True)
@@ -622,7 +622,7 @@ def main():
     if gateway.connect():
         try:
             # 啟動Flask伺服器
-            gateway.run_server(host='0.0.0.0', port=5000, debug=False)
+            gateway.run_server(host='0.0.0.0', port=5005, debug=False)
         except KeyboardInterrupt:
             logger.info("收到中斷信號，正在關閉...")
         finally:
