@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DH-Robotics 夾爪控制台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e1e8ed;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .connection-status {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .device-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .device-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .device-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .device-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            margin-right: 15px;
+        }
+
+        .pge-icon { background: linear-gradient(45deg, #3498db, #2980b9); }
+        .pghl-icon { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .pgc-icon { background: linear-gradient(45deg, #2ecc71, #27ae60); }
+
+        .device-title {
+            flex-grow: 1;
+        }
+
+        .device-title h3 {
+            color: #2c3e50;
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        .device-title p {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .status-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .status-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .status-value {
+            color: #007bff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .controls-section {
+            margin-bottom: 20px;
+        }
+
+        .controls-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .controls-title::before {
+            content: "⚙️";
+            margin-right: 8px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(45deg, #17a2b8, #138496);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #545b62);
+            color: white;
+        }
+
+        .log-section {
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 20px;
+            color: #ecf0f1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .log-title {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .log-clear {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-entry.success {
+            background: rgba(46, 204, 113, 0.2);
+        }
+
+        .log-entry.error {
+            background: rgba(231, 76, 60, 0.2);
+        }
+
+        .log-entry.info {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .connection-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .pghl-specific {
+            background: linear-gradient(145deg, #fff5f5, #ffe6e6);
+            border: 1px solid #feb2b2;
+        }
+
+        .refresh-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .refresh-btn:hover {
+            background: #138496;
+        }
+
+        @media (max-width: 768px) {
+            .devices-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 DH-Robotics 夾爪控制台</h1>
+            <div class="connection-status">
+                <div class="status-indicator" id="connectionIndicator"></div>
+                <span id="connectionText">未連接</span>
+                <div class="connection-controls">
+                    <button class="btn btn-success" onclick="connectGateway()">連接</button>
+                    <button class="btn btn-danger" onclick="disconnectGateway()">斷開</button>
+                    <button class="refresh-btn" onclick="checkHealth()">🔄 刷新</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="devices-grid">
+            <!-- PGE 夾爪控制 -->
+            <div class="device-card">
+                <div class="device-header">
+                    <div class="device-icon pge-icon">🦾</div>
+                    <div class="device-title">
+                        <h3>PGE 夾爪 (ID: 4)</h3>
+                        <p>工業型平行電爪</p>
+                    </div>
+                </div>
+
+                <div class="status-display" id="pgeStatus">
+                    <div class="status-row">
+                        <span class="status-label">初始化狀態:</span>
+                        <span class="status-value" id="pgeInitStatus">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">夾持狀態:</span>
+                        <span class="status-value" id="pgeGripStatus">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">當前位置:</span>
+                        <span class="status-value" id="pgePosition">未知</span>
+                    </div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="controls-title">參數設定</div>
+                    <div class="controls-grid">
+                        <div class="input-group">
+                            <label>力值 (20-100%)</label>
+                            <input type="number" id="pgeForce" min="20" max="100" value="50">
+                        </div>
+                        <div class="input-group">
+                            <label>位置 (0-1000‰)</label>
+                            <input type="number" id="pgePosition" min="0" max="1000" value="500">
+                        </div>
+                        <div class="input-group">
+                            <label>速度 (1-100%)</label>
+                            <input type="number" id="pgeSpeed" min="1" max="100" value="50">
+                        </div>
+                    </div>
+                    
+                    <div class="button-grid">
+                        <button class="btn btn-primary" onclick="initializeDevice('pge')">初始化</button>
+                        <button class="btn btn-info" onclick="setGripperParameters('pge')">設定參數</button>
+                        <button class="btn btn-success" onclick="openGripper('pge')">張開</button>
+                        <button class="btn btn-warning" onclick="closeGripper('pge')">閉合</button>
+                        <button class="btn btn-danger" onclick="stopDevice('pge')">停止</button>
+                        <button class="btn btn-secondary" onclick="saveSettings('pge')">保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PGHL 電缸控制 -->
+            <div class="device-card pghl-specific">
+                <div class="device-header">
+                    <div class="device-icon pghl-icon">📏</div>
+                    <div class="device-title">
+                        <h3>PGHL 電缸 (ID: 5)</h3>
+                        <p>長行程電動缸</p>
+                    </div>
+                </div>
+
+                <div class="status-display" id="pghlStatus">
+                    <div class="status-row">
+                        <span class="status-label">回零狀態:</span>
+                        <span class="status-value" id="pghlHomeStatus">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">運行狀態:</span>
+                        <span class="status-value" id="pghlRunStatus">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">當前位置:</span>
+                        <span class="status-value" id="pghlPositionValue">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">電流值:</span>
+                        <span class="status-value" id="pghlCurrent">未知</span>
+                    </div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="controls-title">參數設定</div>
+                    <div class="controls-grid">
+                        <div class="input-group">
+                            <label>推壓力值 (20-100%)</label>
+                            <input type="number" id="pghlPushForce" min="20" max="100" value="50">
+                        </div>
+                        <div class="input-group">
+                            <label>推壓段長度 (mm)</label>
+                            <input type="number" id="pghlPushLength" min="0" max="655.35" step="0.01" value="10">
+                        </div>
+                        <div class="input-group">
+                            <label>目標位置 (mm)</label>
+                            <input type="number" id="pghlTargetPos" min="0" max="655.35" step="0.01" value="50">
+                        </div>
+                        <div class="input-group">
+                            <label>最大速度 (50-100%)</label>
+                            <input type="number" id="pghlMaxSpeed" min="50" max="100" value="80">
+                        </div>
+                        <div class="input-group">
+                            <label>加速度 (1-100%)</label>
+                            <input type="number" id="pghlAccel" min="1" max="100" value="50">
+                        </div>
+                        <div class="input-group">
+                            <label>相對移動 (mm)</label>
+                            <input type="number" id="pghlRelativePos" min="-327.67" max="327.67" step="0.01" value="10">
+                        </div>
+                    </div>
+                    
+                    <div class="button-grid">
+                        <button class="btn btn-primary" onclick="homePghl()">回零</button>
+                        <button class="btn btn-info" onclick="setPghlParameters()">設定參數</button>
+                        <button class="btn btn-success" onclick="movePghlToPosition()">移動到位置</button>
+                        <button class="btn btn-warning" onclick="movePghlRelative()">相對移動</button>
+                        <button class="btn btn-danger" onclick="stopPghl()">停止</button>
+                        <button class="btn btn-secondary" onclick="saveSettings('pghl')">保存</button>
+                    </div>
+                    
+                    <div class="controls-title">點動控制</div>
+                    <div class="button-grid">
+                        <button class="btn btn-success" onclick="jogPghl(1)">👆 張開</button>
+                        <button class="btn btn-warning" onclick="jogPghl(0)">⏹️ 停止</button>
+                        <button class="btn btn-danger" onclick="jogPghl(-1)">👇 閉合</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PGC 夾爪控制 -->
+            <div class="device-card">
+                <div class="device-header">
+                    <div class="device-icon pgc-icon">🤏</div>
+                    <div class="device-title">
+                        <h3>PGC 夾爪 (ID: 6)</h3>
+                        <p>協作型平行電爪</p>
+                    </div>
+                </div>
+
+                <div class="status-display" id="pgcStatus">
+                    <div class="status-row">
+                        <span class="status-label">初始化狀態:</span>
+                        <span class="status-value" id="pgcInitStatus">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">夾持狀態:</span>
+                        <span class="status-value" id="pgcGripStatus">未知</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">當前位置:</span>
+                        <span class="status-value" id="pgcPosition">未知</span>
+                    </div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="controls-title">參數設定</div>
+                    <div class="controls-grid">
+                        <div class="input-group">
+                            <label>力值 (20-100%)</label>
+                            <input type="number" id="pgcForce" min="20" max="100" value="50">
+                        </div>
+                        <div class="input-group">
+                            <label>位置 (0-1000‰)</label>
+                            <input type="number" id="pgcPosition" min="0" max="1000" value="500">
+                        </div>
+                        <div class="input-group">
+                            <label>速度 (1-100%)</label>
+                            <input type="number" id="pgcSpeed" min="1" max="100" value="50">
+                        </div>
+                    </div>
+                    
+                    <div class="button-grid">
+                        <button class="btn btn-primary" onclick="initializeDevice('pgc')">初始化</button>
+                        <button class="btn btn-info" onclick="setGripperParameters('pgc')">設定參數</button>
+                        <button class="btn btn-success" onclick="openGripper('pgc')">張開</button>
+                        <button class="btn btn-warning" onclick="closeGripper('pgc')">閉合</button>
+                        <button class="btn btn-danger" onclick="stopDevice('pgc')">停止</button>
+                        <button class="btn btn-secondary" onclick="saveSettings('pgc')">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作日誌 -->
+        <div class="log-section">
+            <div class="log-header">
+                <span class="log-title">📋 操作日誌</span>
+                <button class="log-clear" onclick="clearLog()">清除日誌</button>
+            </div>
+            <div id="logContainer">
+                <div class="log-entry info">系統已啟動，等待連接Gateway...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全域變數
+        let statusUpdateInterval = null;
+        let isConnected = false;
+
+        // 日誌管理
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '';
+            addLog('日誌已清除', 'info');
+        }
+
+        // API 請求函數
+        async function apiRequest(url, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                if (result.success === false) {
+                    addLog(`API錯誤: ${result.message}`, 'error');
+                }
+                
+                return result;
+            } catch (error) {
+                addLog(`請求失敗: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        // Gateway 連接管理
+        async function checkHealth() {
+            const result = await apiRequest('/api/gateway/health');
+            const indicator = document.getElementById('connectionIndicator');
+            const text = document.getElementById('connectionText');
+            
+            if (result.connected) {
+                indicator.classList.add('connected');
+                text.textContent = `已連接 (${result.port} @ ${result.baudrate}bps)`;
+                isConnected = true;
+                if (!statusUpdateInterval) {
+                    startStatusUpdate();
+                }
+                addLog('Gateway連接正常', 'success');
+            } else {
+                indicator.classList.remove('connected');
+                text.textContent = '未連接';
+                isConnected = false;
+                if (statusUpdateInterval) {
+                    clearInterval(statusUpdateInterval);
+                    statusUpdateInterval = null;
+                }
+                addLog('Gateway未連接', 'error');
+            }
+        }
+
+        async function connectGateway() {
+            addLog('正在連接Gateway...', 'info');
+            const result = await apiRequest('/api/gateway/connect', 'POST');
+            if (result.success) {
+                addLog('Gateway連接成功', 'success');
+                await checkHealth();
+            } else {
+                addLog(`Gateway連接失敗: ${result.message}`, 'error');
+            }
+        }
+
+        async function disconnectGateway() {
+            const result = await apiRequest('/api/gateway/disconnect', 'POST');
+            if (result.success) {
+                addLog('Gateway已斷開連接', 'info');
+                await checkHealth();
+            }
+        }
+
+        // 狀態更新
+        async function updateDeviceStatus() {
+            if (!isConnected) return;
+
+            // 更新 PGE 狀態
+            const pgeStatus = await apiRequest('/api/gripper/pge/status');
+            if (pgeStatus.init_status) {
+                document.getElementById('pgeInitStatus').textContent = pgeStatus.init_status.text || '未知';
+            }
+            if (pgeStatus.grip_status) {
+                document.getElementById('pgeGripStatus').textContent = pgeStatus.grip_status.text || '未知';
+            }
+            if (pgeStatus.position && pgeStatus.position.value !== null) {
+                document.getElementById('pgePosition').textContent = pgeStatus.position.value;
+            }
+
+            // 更新 PGC 狀態
+            const pgcStatus = await apiRequest('/api/gripper/pgc/status');
+            if (pgcStatus.init_status) {
+                document.getElementById('pgcInitStatus').textContent = pgcStatus.init_status.text || '未知';
+            }
+            if (pgcStatus.grip_status) {
+                document.getElementById('pgcGripStatus').textContent = pgcStatus.grip_status.text || '未知';
+            }
+            if (pgcStatus.position && pgcStatus.position.value !== null) {
+                document.getElementById('pgcPosition').textContent = pgcStatus.position.value;
+            }
+
+            // 更新 PGHL 狀態
+            const pghlStatus = await apiRequest('/api/pghl/status');
+            if (pghlStatus.home_status) {
+                document.getElementById('pghlHomeStatus').textContent = pghlStatus.home_status.text || '未知';
+            }
+            if (pghlStatus.run_status) {
+                document.getElementById('pghlRunStatus').textContent = pghlStatus.run_status.text || '未知';
+            }
+            if (pghlStatus.position && pghlStatus.position.value_mm !== null) {
+                document.getElementById('pghlPositionValue').textContent = `${pghlStatus.position.value_mm} mm`;
+            }
+            if (pghlStatus.current && pghlStatus.current.value !== null) {
+                document.getElementById('pghlCurrent').textContent = pghlStatus.current.value;
+            }
+        }
+
+        function startStatusUpdate() {
+            statusUpdateInterval = setInterval(updateDeviceStatus, 1000);
+        }
+
+        // 夾爪控制函數
+        async function initializeDevice(deviceType) {
+            addLog(`正在初始化 ${deviceType.toUpperCase()} 夾爪...`, 'info');
+            const result = await apiRequest(`/api/gripper/${deviceType}/initialize`, 'POST', { mode: 1 });
+            if (result.success) {
+                addLog(`${deviceType.toUpperCase()} 初始化成功`, 'success');
+            }
+        }
+
+        async function setGripperParameters(deviceType) {
+            const force = document.getElementById(`${deviceType}Force`).value;
+            const position = document.getElementById(`${deviceType}Position`).value;
+            const speed = document.getElementById(`${deviceType}Speed`).value;
+
+            addLog(`設定 ${deviceType.toUpperCase()} 參數: 力值${force}%, 位置${position}, 速度${speed}%`, 'info');
+
+            // 依序設定參數
+            await apiRequest(`/api/gripper/${deviceType}/force`, 'POST', { force: parseInt(force) });
+            await apiRequest(`/api/gripper/${deviceType}/speed`, 'POST', { speed: parseInt(speed) });
+            const result = await apiRequest(`/api/gripper/${deviceType}/position`, 'POST', { position: parseInt(position) });
+            
+            if (result.success) {
+                addLog(`${deviceType.toUpperCase()} 參數設定完成`, 'success');
+            }
+        }
+
+        async function openGripper(deviceType) {
+            addLog(`張開 ${deviceType.toUpperCase()} 夾爪`, 'info');
+            const result = await apiRequest(`/api/gripper/${deviceType}/open`, 'POST');
+            if (result.success) {
+                addLog(`${deviceType.toUpperCase()} 夾爪已張開`, 'success');
+            }
+        }
+
+        async function closeGripper(deviceType) {
+            addLog(`閉合 ${deviceType.toUpperCase()} 夾爪`, 'info');
+            const result = await apiRequest(`/api/gripper/${deviceType}/close`, 'POST');
+            if (result.success) {
+                addLog(`${deviceType.toUpperCase()} 夾爪已閉合`, 'success');
+            }
+        }
+
+        async function stopDevice(deviceType) {
+            addLog(`停止 ${deviceType.toUpperCase()} 夾爪`, 'warning');
+            const result = await apiRequest(`/api/gripper/${deviceType}/stop`, 'POST');
+            if (result.success) {
+                addLog(`${deviceType.toUpperCase()} 夾爪已停止`, 'success');
+            }
+        }
+
+        // PGHL 控制函數
+        async function homePghl() {
+            addLog('PGHL 電缸回零中...', 'info');
+            const result = await apiRequest('/api/pghl/home', 'POST');
+            if (result.success) {
+                addLog('PGHL 回零成功', 'success');
+            }
+        }
+
+        async function stopPghl() {
+            addLog('停止 PGHL 電缸', 'warning');
+            const result = await apiRequest('/api/pghl/stop', 'POST');
+            if (result.success) {
+                addLog('PGHL 電缸已停止', 'success');
+            }
+        }
+
+        async function setPghlParameters() {
+            const pushForce = document.getElementById('pghlPushForce').value;
+            const pushLength = document.getElementById('pghlPushLength').value;
+            const maxSpeed = document.getElementById('pghlMaxSpeed').value;
+            const accel = document.getElementById('pghlAccel').value;
+
+            addLog(`設定 PGHL 參數: 推壓力${pushForce}%, 推壓長度${pushLength}mm, 速度${maxSpeed}%, 加速度${accel}%`, 'info');
+
+            await apiRequest('/api/pghl/push_force', 'POST', { force: parseInt(pushForce) });
+            await apiRequest('/api/pghl/push_length', 'POST', { length_mm: parseFloat(pushLength) });
+            await apiRequest('/api/pghl/max_speed', 'POST', { speed: parseInt(maxSpeed) });
+            const result = await apiRequest('/api/pghl/acceleration', 'POST', { acceleration: parseInt(accel) });
+            
+            if (result.success) {
+                addLog('PGHL 參數設定完成', 'success');
+            }
+        }
+
+        async function movePghlToPosition() {
+            const targetPos = document.getElementById('pghlTargetPos').value;
+            addLog(`PGHL 移動到位置: ${targetPos}mm`, 'info');
+            const result = await apiRequest('/api/pghl/target_position', 'POST', { position_mm: parseFloat(targetPos) });
+            if (result.success) {
+                addLog(`PGHL 開始移動到 ${targetPos}mm`, 'success');
+            }
+        }
+
+        async function movePghlRelative() {
+            const relativePos = document.getElementById('pghlRelativePos').value;
+            addLog(`PGHL 相對移動: ${relativePos}mm`, 'info');
+            const result = await apiRequest('/api/pghl/relative_position', 'POST', { distance_mm: parseFloat(relativePos) });
+            if (result.success) {
+                addLog(`PGHL 開始相對移動 ${relativePos}mm`, 'success');
+            }
+        }
+
+        async function jogPghl(direction) {
+            const directionText = { 1: '張開', 0: '停止', '-1': '閉合' }[direction];
+            addLog(`PGHL 點動: ${directionText}`, 'info');
+            const result = await apiRequest('/api/pghl/jog', 'POST', { direction: parseInt(direction) });
+            if (result.success) {
+                addLog(`PGHL 點動 ${directionText} 成功`, 'success');
+            }
+        }
+
+        // 保存設定
+        async function saveSettings(deviceType) {
+            addLog(`保存 ${deviceType.toUpperCase()} 設定到Flash...`, 'info');
+            const result = await apiRequest(`/api/save/${deviceType}`, 'POST');
+            if (result.success) {
+                addLog(`${deviceType.toUpperCase()} 設定已保存`, 'success');
+            }
+        }
+
+        // 頁面載入時自動檢查健康狀態
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('頁面載入完成', 'info');
+            checkHealth();
+        });
+
+        // 每5秒檢查一次連接狀態
+        setInterval(checkHealth, 5000);
+    </script>
+</body>
+</html>
