@@ -3,7 +3,7 @@ from pymodbus import __version__
 print(__version__)
 
 class PGE_Gripper:
-    def __init__(self, port='COM3', baudrate=115200, parity='N', stopbits=1, unit_id=1):
+    def __init__(self, port='COM4', baudrate=115200, parity='N', stopbits=1, unit_id=4):
         self.client = ModbusSerialClient(
             port=port,
             baudrate=baudrate,

@@ -6,11 +6,12 @@ def main():
     # 建立夾爪控制物件（根據你的實際連接參數調整）
     # 根據說明書，PGE系列默認配置：波特率115200，ID為1
     try:
-        gripper = PGE_Gripper(port='COM3', baudrate=115200, parity='N', stopbits=1, unit_id=1)
+        gripper = PGE_Gripper(port='COM4', baudrate=115200, parity='N', stopbits=1, unit_id=1)
         print("=" * 50)
         print("🤖 PGE 夾爪測試程序啟動")
         print("=" * 50)
         
+
         # 檢查初始化狀態
         print("\n📋 步驟 1: 檢查初始化狀態")
         gripper.get_initialization_status()

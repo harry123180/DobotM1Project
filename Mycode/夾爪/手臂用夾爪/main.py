@@ -3,7 +3,7 @@ from pgc_gripper_control import PGC_Gripper
 import time
 
 # 建立夾爪控制物件（根據你提供的參數）
-gripper = PGC_Gripper(port='COM3', baudrate=115200, parity='N', stopbits=1, unit_id=7)
+gripper = PGC_Gripper(port='COM4', baudrate=115200, parity='N', stopbits=1, unit_id=6)
 
 # 初始化（歸零）
 gripper.initialize()
