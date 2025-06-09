@@ -1,560 +1,735 @@
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import messagebox
-from pymodbus.client import ModbusSerialClient
-from pymodbus import ModbusException
+from tkinter import ttk
 import threading
 import time
-from typing import Optional
 import serial.tools.list_ports
+from pymodbus.client import ModbusSerialClient
 
-class XC100Controller:
+# 設定customtkinter外觀
+ctk.set_appearance_mode("light")  # "light" 或 "dark"
+ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
+
+class XC100ControlTool:
     def __init__(self):
-        # 初始化GUI
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
-        
         self.root = ctk.CTk()
-        self.root.title("XC100 滑台控制工具")
-        self.root.geometry("800x600")
+        self.root.title("XC100 控制工具")
+        self.root.geometry("700x700")  # 增加視窗高度
+        self.root.resizable(False, False)
         
-        # Modbus客戶端
-        self.client: Optional[ModbusSerialClient] = None
+        # MODBUS連線參數
+        self.selected_port = tk.StringVar()
+        self.baudrate = 115200
+        self.unit_id = 2
+        self.client = None
         self.is_connected = False
-        self.station_id = 3  # 預設站號改為3
         
-        # 狀態變數
-        self.action_status = tk.StringVar(value="未連線")
-        self.alarm_status = tk.StringVar(value="未連線")
-        self.servo_status = tk.StringVar(value="未連線")
-        self.current_position = tk.StringVar(value="0")
+        # 位置設定
+        self.position_A = 400
+        self.position_B = 2682
         
-        # 移動量輸入變數
-        self.relative_move_var = tk.StringVar(value="0")
-        self.absolute_move_var = tk.StringVar(value="0")
-        
-        # 建立GUI介面
-        self.create_widgets()
-        
-        # 自動掃描COM口
+        self.setup_ui()
         self.scan_com_ports()
         
-        # 啟動狀態監控執行緒
-        self.monitoring = False
-        self.monitor_thread = None
+    def setup_ui(self):
+        """設置使用者介面"""
+        # 主標題
+        title_label = ctk.CTkLabel(
+            self.root, 
+            text="XC100 控制工具", 
+            font=ctk.CTkFont(size=24, weight="bold")
+        )
+        title_label.pack(pady=15)
         
-    def create_widgets(self):
-        """建立GUI組件"""
+        # 連線設定框架
+        self.connection_frame = ctk.CTkFrame(self.root)
+        self.connection_frame.pack(pady=10, padx=20, fill="x")
         
-        # 連線控制區域
-        connection_frame = ctk.CTkFrame(self.root)
-        connection_frame.pack(pady=10, padx=20, fill="x")
+        conn_title = ctk.CTkLabel(
+            self.connection_frame, 
+            text="連線設定", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        conn_title.pack(pady=5)
         
-        ctk.CTkLabel(connection_frame, text="連線設定", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=5)
+        # 連線參數設定區
+        settings_frame = ctk.CTkFrame(self.connection_frame)
+        settings_frame.pack(pady=5, padx=10, fill="x")
         
-        # 串列埠設定
-        port_frame = ctk.CTkFrame(connection_frame)
-        port_frame.pack(pady=5, padx=10, fill="x")
+        # COM口選擇
+        com_frame = ctk.CTkFrame(settings_frame)
+        com_frame.pack(pady=5, fill="x")
         
-        ctk.CTkLabel(port_frame, text="串列埠:").pack(side="left", padx=5)
-        self.port_combo = ctk.CTkComboBox(port_frame, values=["掃描中..."], width=120)
-        self.port_combo.pack(side="left", padx=5)
+        ctk.CTkLabel(com_frame, text="COM口:", width=80).pack(side="left", padx=5)
         
-        # 重新掃描按鈕
-        self.scan_btn = ctk.CTkButton(port_frame, text="重新掃描", command=self.scan_com_ports, width=80)
-        self.scan_btn.pack(side="left", padx=5)
+        self.com_combobox = ctk.CTkComboBox(
+            com_frame,
+            variable=self.selected_port,
+            width=120,
+            state="readonly"
+        )
+        self.com_combobox.pack(side="left", padx=5)
         
-        ctk.CTkLabel(port_frame, text="鮑率:").pack(side="left", padx=5)
-        self.baudrate_combo = ctk.CTkComboBox(port_frame, values=["9600", "19200", "38400", "57600", "115200"])
-        self.baudrate_combo.set("115200")
-        self.baudrate_combo.pack(side="left", padx=5)
+        self.refresh_button = ctk.CTkButton(
+            com_frame,
+            text="🔄",
+            width=30,
+            command=self.scan_com_ports
+        )
+        self.refresh_button.pack(side="left", padx=5)
         
-        ctk.CTkLabel(port_frame, text="站號:").pack(side="left", padx=5)
-        self.station_entry = ctk.CTkEntry(port_frame, placeholder_text="3", width=60)
-        self.station_entry.insert(0, "3")
-        self.station_entry.pack(side="left", padx=5)
+        # 其他參數顯示
+        params_frame = ctk.CTkFrame(settings_frame)
+        params_frame.pack(pady=5, fill="x")
         
-        self.connect_btn = ctk.CTkButton(connection_frame, text="連線", command=self.connect_device)
-        self.connect_btn.pack(pady=10)
+        params_text = f"波特率: {self.baudrate} | 資料位: 8 | 停止位: 1 | 校驗位: N | Slave ID: {self.unit_id}"
+        ctk.CTkLabel(params_frame, text=params_text, font=ctk.CTkFont(size=12)).pack(pady=5)
         
-        # 狀態顯示區域
-        status_frame = ctk.CTkFrame(self.root)
-        status_frame.pack(pady=10, padx=20, fill="x")
+        # 連線控制按鈕
+        control_frame = ctk.CTkFrame(self.connection_frame)
+        control_frame.pack(pady=5, padx=10, fill="x")
         
-        ctk.CTkLabel(status_frame, text="設備狀態", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=5)
+        self.connect_button = ctk.CTkButton(
+            control_frame,
+            text="連接",
+            width=100,
+            command=self.connect_modbus,
+            fg_color="#28a745",
+            hover_color="#218838"
+        )
+        self.connect_button.pack(side="left", padx=5)
         
-        # 狀態資訊網格
-        status_grid = ctk.CTkFrame(status_frame)
-        status_grid.pack(pady=5, padx=10, fill="x")
+        self.disconnect_button = ctk.CTkButton(
+            control_frame,
+            text="斷開",
+            width=100,
+            command=self.disconnect_modbus,
+            fg_color="#dc3545",
+            hover_color="#c82333",
+            state="disabled"
+        )
+        self.disconnect_button.pack(side="left", padx=5)
         
-        # 動作狀態
-        ctk.CTkLabel(status_grid, text="動作狀態:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
-        ctk.CTkLabel(status_grid, textvariable=self.action_status, fg_color="gray").grid(row=0, column=1, sticky="w", padx=5, pady=2)
+        # 連線狀態
+        self.connection_status = ctk.CTkLabel(
+            control_frame, 
+            text="狀態: 未連線", 
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="red"
+        )
+        self.connection_status.pack(side="left", padx=20)
         
-        # 警報狀態
-        ctk.CTkLabel(status_grid, text="警報狀態:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
-        ctk.CTkLabel(status_grid, textvariable=self.alarm_status, fg_color="gray").grid(row=1, column=1, sticky="w", padx=5, pady=2)
+        # 狀態監控框架
+        self.status_frame = ctk.CTkFrame(self.root)
+        self.status_frame.pack(pady=10, padx=20, fill="x")
         
-        # 伺服狀態
-        ctk.CTkLabel(status_grid, text="伺服狀態:").grid(row=2, column=0, sticky="w", padx=5, pady=2)
-        ctk.CTkLabel(status_grid, textvariable=self.servo_status, fg_color="gray").grid(row=2, column=1, sticky="w", padx=5, pady=2)
+        status_title = ctk.CTkLabel(
+            self.status_frame, 
+            text="設備狀態", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        status_title.pack(pady=5)
         
-        # 目前位置
-        ctk.CTkLabel(status_grid, text="目前位置:").grid(row=3, column=0, sticky="w", padx=5, pady=2)
-        ctk.CTkLabel(status_grid, textvariable=self.current_position, fg_color="gray").grid(row=3, column=1, sticky="w", padx=5, pady=2)
+        # 錯誤狀態
+        self.error_status = ctk.CTkLabel(
+            self.status_frame, 
+            text="錯誤狀態: 未檢查", 
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        self.error_status.pack(pady=5)
         
-        # 控制區域
-        control_frame = ctk.CTkFrame(self.root)
-        control_frame.pack(pady=10, padx=20, fill="both", expand=True)
+        # 控制按鈕框架
+        control_panel_frame = ctk.CTkFrame(self.root)
+        control_panel_frame.pack(pady=15, padx=20, fill="x")
         
-        ctk.CTkLabel(control_frame, text="控制指令", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=5)
+        control_title = ctk.CTkLabel(
+            control_panel_frame, 
+            text="控制面板", 
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        control_title.pack(pady=10)
         
-        # 初始化按鈕
-        self.init_btn = ctk.CTkButton(control_frame, text="初始化滑台(原點復歸)", command=self.initialize_device)
-        self.init_btn.pack(pady=5)
+        # 按鈕容器
+        button_container = ctk.CTkFrame(control_panel_frame)
+        button_container.pack(pady=10, padx=20, fill="x")
         
-        # 伺服控制
-        servo_frame = ctk.CTkFrame(control_frame)
-        servo_frame.pack(pady=5, padx=10, fill="x")
+        # Servo控制框架
+        servo_frame = ctk.CTkFrame(button_container)
+        servo_frame.pack(pady=5, fill="x")
         
-        self.servo_on_btn = ctk.CTkButton(servo_frame, text="伺服ON", command=self.servo_on, fg_color="green")
-        self.servo_on_btn.pack(side="left", padx=5)
+        servo_title = ctk.CTkLabel(
+            servo_frame, 
+            text="伺服控制", 
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        servo_title.pack(pady=3)
         
-        self.servo_off_btn = ctk.CTkButton(servo_frame, text="伺服OFF", command=self.servo_off, fg_color="red")
-        self.servo_off_btn.pack(side="left", padx=5)
+        servo_buttons_frame = ctk.CTkFrame(servo_frame)
+        servo_buttons_frame.pack(pady=3, fill="x")
         
-        # 移動控制
-        move_frame = ctk.CTkFrame(control_frame)
-        move_frame.pack(pady=10, padx=10, fill="x")
+        # Servo ON按鈕
+        self.servo_on_button = ctk.CTkButton(
+            servo_buttons_frame,
+            text="Servo ON",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            height=35,
+            width=100,
+            command=self.servo_on_action,
+            fg_color="#28a745",
+            hover_color="#218838",
+            state="disabled"
+        )
+        self.servo_on_button.pack(side="left", padx=10, expand=True, fill="x")
         
-        # 相對移動
-        rel_frame = ctk.CTkFrame(move_frame)
-        rel_frame.pack(pady=5, fill="x")
+        # Servo OFF按鈕
+        self.servo_off_button = ctk.CTkButton(
+            servo_buttons_frame,
+            text="Servo OFF",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            height=35,
+            width=100,
+            command=self.servo_off_action,
+            fg_color="#dc3545",
+            hover_color="#c82333",
+            state="disabled"
+        )
+        self.servo_off_button.pack(side="right", padx=10, expand=True, fill="x")
         
-        ctk.CTkLabel(rel_frame, text="相對移動:", font=ctk.CTkFont(size=14, weight="bold")).pack(anchor="w", padx=5)
+        # Servo狀態顯示
+        self.servo_status = ctk.CTkLabel(
+            servo_frame, 
+            text="Servo狀態: 未檢查", 
+            font=ctk.CTkFont(size=11, weight="bold")
+        )
+        self.servo_status.pack(pady=2)
         
-        rel_input_frame = ctk.CTkFrame(rel_frame)
-        rel_input_frame.pack(pady=5, fill="x")
+        # 移動控制框架
+        move_frame = ctk.CTkFrame(button_container)
+        move_frame.pack(pady=5, fill="x")
         
-        ctk.CTkLabel(rel_input_frame, text="移動量(0.01mm):").pack(side="left", padx=5)
-        rel_entry = ctk.CTkEntry(rel_input_frame, textvariable=self.relative_move_var, placeholder_text="輸入移動量")
-        rel_entry.pack(side="left", padx=5, fill="x", expand=True)
+        move_title = ctk.CTkLabel(
+            move_frame, 
+            text="移動控制", 
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        move_title.pack(pady=3)
         
-        self.rel_move_btn = ctk.CTkButton(rel_input_frame, text="執行相對移動", command=self.relative_move)
-        self.rel_move_btn.pack(side="right", padx=5)
+        # 原點復歸按鈕
+        self.home_button = ctk.CTkButton(
+            move_frame,
+            text="原點復歸 (HOME)",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=45,
+            width=150,
+            command=self.home_action,
+            fg_color="#ff6b6b",
+            hover_color="#ff5252",
+            state="disabled"
+        )
+        self.home_button.pack(pady=3)
         
-        # 絕對移動
-        abs_frame = ctk.CTkFrame(move_frame)
-        abs_frame.pack(pady=5, fill="x")
+        # A點B點按鈕框架
+        ab_frame = ctk.CTkFrame(button_container)
+        ab_frame.pack(pady=5, fill="x")
         
-        ctk.CTkLabel(abs_frame, text="絕對移動:", font=ctk.CTkFont(size=14, weight="bold")).pack(anchor="w", padx=5)
+        # A點按鈕
+        self.point_a_button = ctk.CTkButton(
+            ab_frame,
+            text=f"移動到A點\n(位置: {self.position_A})",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=60,
+            width=180,
+            command=self.move_to_a,
+            fg_color="#4dabf7",
+            hover_color="#339af0",
+            state="disabled"
+        )
+        self.point_a_button.pack(side="left", padx=10, expand=True, fill="x")
         
-        abs_input_frame = ctk.CTkFrame(abs_frame)
-        abs_input_frame.pack(pady=5, fill="x")
+        # B點按鈕
+        self.point_b_button = ctk.CTkButton(
+            ab_frame,
+            text=f"移動到B點\n(位置: {self.position_B})",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=60,
+            width=180,
+            command=self.move_to_b,
+            fg_color="#51cf66",
+            hover_color="#40c057",
+            state="disabled"
+        )
+        self.point_b_button.pack(side="right", padx=10, expand=True, fill="x")
         
-        ctk.CTkLabel(abs_input_frame, text="目標位置(0.01mm):").pack(side="left", padx=5)
-        abs_entry = ctk.CTkEntry(abs_input_frame, textvariable=self.absolute_move_var, placeholder_text="輸入目標位置")
-        abs_entry.pack(side="left", padx=5, fill="x", expand=True)
+        # 日誌框架
+        log_frame = ctk.CTkFrame(self.root)
+        log_frame.pack(pady=10, padx=20, fill="both", expand=True)
         
-        self.abs_move_btn = ctk.CTkButton(abs_input_frame, text="執行絕對移動", command=self.absolute_move)
-        self.abs_move_btn.pack(side="right", padx=5)
+        log_title = ctk.CTkLabel(
+            log_frame, 
+            text="操作日誌", 
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        log_title.pack(pady=5)
         
-        # 緊急停止
-        self.emergency_stop_btn = ctk.CTkButton(control_frame, text="緊急停止", command=self.emergency_stop, 
-                                               fg_color="red", hover_color="darkred", font=ctk.CTkFont(size=16, weight="bold"))
-        self.emergency_stop_btn.pack(pady=10)
+        # 日誌文字框
+        self.log_text = ctk.CTkTextbox(log_frame, height=120)  # 減少日誌區域高度
+        self.log_text.pack(pady=5, padx=10, fill="both", expand=True)
         
-        # 初始狀態下停用控制按鈕
-        self.disable_control_buttons()
-    
+        # 日誌清除按鈕
+        clear_button = ctk.CTkButton(
+            log_frame,
+            text="清除日誌",
+            width=100,
+            command=self.clear_log,
+            fg_color="#6c757d",
+            hover_color="#545b62"
+        )
+        clear_button.pack(pady=5)
+        
     def scan_com_ports(self):
         """掃描可用的COM口"""
         try:
-            # 獲取所有可用的串列埠
             ports = serial.tools.list_ports.comports()
-            port_list = []
+            port_list = [port.device for port in ports]
             
-            for port in ports:
-                # 格式化顯示：COM口 - 描述
-                port_desc = f"{port.device} - {port.description}"
-                port_list.append(port_desc)
-            
-            if not port_list:
-                port_list = ["未找到可用的COM口"]
-                self.port_combo.configure(values=port_list)
-                self.port_combo.set("未找到可用的COM口")
+            if port_list:
+                self.com_combobox.configure(values=port_list)
+                if not self.selected_port.get() or self.selected_port.get() not in port_list:
+                    self.selected_port.set(port_list[0])
+                self.log_message(f"🔍 掃描到COM口: {', '.join(port_list)}")
             else:
-                self.port_combo.configure(values=port_list)
-                # 預設選擇第一個可用的COM口
-                self.port_combo.set(port_list[0])
+                self.com_combobox.configure(values=["無可用COM口"])
+                self.selected_port.set("無可用COM口")
+                self.log_message("⚠️ 未發現可用的COM口")
                 
         except Exception as e:
-            print(f"掃描COM口錯誤: {e}")
-            self.port_combo.configure(values=["掃描失敗"])
-            self.port_combo.set("掃描失敗")
+            self.log_message(f"❌ COM口掃描失敗: {e}")
     
-    def get_selected_port(self):
-        """從下拉選單中提取COM口名稱"""
-        selected = self.port_combo.get()
-        if " - " in selected:
-            # 提取COM口名稱（例如從 "COM3 - USB Serial Port" 提取 "COM3"）
-            return selected.split(" - ")[0]
-        return selected
+    def connect_modbus(self):
+        """連線到MODBUS設備"""
+        if not self.selected_port.get() or self.selected_port.get() == "無可用COM口":
+            self.log_message("❌ 請選擇有效的COM口")
+            return
+            
+        def connect_thread():
+            try:
+                self.log_message(f"🔌 正在連接到 {self.selected_port.get()}...")
+                
+                self.client = ModbusSerialClient(
+                    port=self.selected_port.get(),
+                    baudrate=self.baudrate,
+                    stopbits=1,
+                    parity='N',
+                    timeout=0.2
+                )
+                
+                if self.client.connect():
+                    self.is_connected = True
+                    self.root.after(0, self.update_connection_ui, True)
+                    self.log_message("✅ MODBUS連線成功")
+                    
+                    # 連線成功後立即檢查錯誤狀態和Servo狀態
+                    self.check_error_status()
+                    self.check_servo_status()
+                else:
+                    raise Exception("連線失敗")
+                    
+            except Exception as e:
+                self.is_connected = False
+                self.root.after(0, self.update_connection_ui, False)
+                self.log_message(f"❌ MODBUS連線失敗: {e}")
+        
+        threading.Thread(target=connect_thread, daemon=True).start()
     
+    def disconnect_modbus(self):
+        """斷開MODBUS連線"""
+        try:
+            if self.client and self.is_connected:
+                self.client.close()
+                self.is_connected = False
+                self.update_connection_ui(False)
+                self.log_message("🔌 MODBUS連線已斷開")
+            else:
+                self.log_message("⚠️ 沒有活動的連線")
+        except Exception as e:
+            self.log_message(f"❌ 斷開連線時發生錯誤: {e}")
+    
+    def update_connection_ui(self, connected):
+        """更新連線相關的UI狀態"""
+        if connected:
+            self.connection_status.configure(
+                text="狀態: 已連線", 
+                text_color="green"
+            )
+            self.connect_button.configure(state="disabled")
+            self.disconnect_button.configure(state="normal")
+            self.com_combobox.configure(state="disabled")
+            self.refresh_button.configure(state="disabled")
+            
+            # 啟用控制按鈕
+            self.servo_on_button.configure(state="normal")
+            self.servo_off_button.configure(state="normal")
+            self.home_button.configure(state="normal")
+            self.point_a_button.configure(state="normal")
+            self.point_b_button.configure(state="normal")
+        else:
+            self.connection_status.configure(
+                text="狀態: 未連線", 
+                text_color="red"
+            )
+            self.connect_button.configure(state="normal")
+            self.disconnect_button.configure(state="disabled")
+            self.com_combobox.configure(state="readonly")
+            self.refresh_button.configure(state="normal")
+            
+            # 禁用控制按鈕
+            self.servo_on_button.configure(state="disabled")
+            self.servo_off_button.configure(state="disabled")
+            self.home_button.configure(state="disabled")
+            self.point_a_button.configure(state="disabled")
+            self.point_b_button.configure(state="disabled")
+            
+            # 重置狀態顯示
+            self.servo_status.configure(
+                text="Servo狀態: 未檢查",
+                text_color="gray"
+            )
+    
+    def log_message(self, message):
+        """添加日誌訊息"""
+        timestamp = time.strftime("%H:%M:%S")
+        log_entry = f"[{timestamp}] {message}\n"
+        self.log_text.insert("end", log_entry)
+        self.log_text.see("end")
+        self.root.update()
+    
+    def clear_log(self):
+        """清除日誌"""
+        self.log_text.delete("1.0", "end")
+        self.log_message("📝 日誌已清除")
+    
+    def check_servo_status(self):
+        """檢查100CH Servo狀態"""
+        if not self.is_connected:
+            self.log_message("❌ 未連線，無法檢查Servo狀態")
+            return False
+            
+        try:
+            # 讀取100CH寄存器
+            result = self.client.read_holding_registers(address=0x100C, count=1, slave=self.unit_id)
+            
+            if result.isError():
+                self.log_message("❌ 讀取Servo狀態失敗")
+                return False
+                
+            servo_status = result.registers[0]
+            
+            if servo_status == 1:
+                self.servo_status.configure(
+                    text="Servo狀態: ON ✅", 
+                    text_color="green"
+                )
+                self.log_message("✅ Servo狀態: ON")
+                return True
+            else:
+                self.servo_status.configure(
+                    text="Servo狀態: OFF ❌", 
+                    text_color="red"
+                )
+                self.log_message("⚠️ Servo狀態: OFF")
+                return False
+                
+        except Exception as e:
+            self.log_message(f"❌ 檢查Servo狀態異常: {e}")
+            return False
+    def check_error_status(self):
+        """檢查100DH錯誤狀態"""
+        if not self.is_connected:
+            self.log_message("❌ 未連線，無法檢查錯誤狀態")
+            return False
+            
+        try:
+            # 讀取100DH寄存器
+            result = self.client.read_holding_registers(address=0x100D, count=1, slave=self.unit_id)
+            
+            if result.isError():
+                self.log_message("❌ 讀取錯誤狀態失敗")
+                return False
+                
+            error_code = result.registers[0]
+            
+            if error_code == 0:
+                self.error_status.configure(
+                    text="錯誤狀態: 正常 ✅", 
+                    text_color="green"
+                )
+                self.log_message("✅ 設備狀態正常")
+                return True
+            else:
+                error_messages = {
+                    1: "在動作中接收動作指令",
+                    2: "上下限錯誤", 
+                    3: "位置錯誤",
+                    4: "格式錯誤",
+                    5: "控制模式錯誤",
+                    6: "斷電重開",
+                    7: "初始化未完成",
+                    8: "Servo ON/OFF 錯誤",
+                    9: "LOCK",
+                    10: "軟體極限",
+                    11: "參數寫入權限不足",
+                    12: "原點復歸未完成",
+                    13: "剎車已解除"
+                }
+                error_msg = error_messages.get(error_code, f"未知錯誤代碼: {error_code}")
+                self.error_status.configure(
+                    text=f"錯誤狀態: {error_msg} ⚠️", 
+                    text_color="red"
+                )
+                self.log_message(f"⚠️ 設備錯誤: {error_msg}")
+                return False
+                
+        except Exception as e:
+            self.log_message(f"❌ 檢查錯誤狀態異常: {e}")
+            return False
+    
+    def write_absolute_position(self, position):
+        """設定絕對移動位置"""
+        try:
+            # 將32位元位置分解為兩個16位元值
+            position_high = (position >> 16) & 0xFFFF
+            position_low = position & 0xFFFF
+            
+            # 寫入2002H (ABSamount)
+            result = self.client.write_registers(
+                address=0x2002, 
+                values=[position_high, position_low], 
+                slave=self.unit_id
+            )
+            
+            if result.isError():
+                raise Exception("寫入位置失敗")
+                
+            self.log_message(f"📍 設定目標位置: {position}")
+            return True
+            
+        except Exception as e:
+            self.log_message(f"❌ 設定位置失敗: {e}")
+            return False
+    
+    def execute_movement(self, move_type):
+        """執行移動指令"""
+        try:
+            # 寫入201EH (MovType)
+            result = self.client.write_register(
+                address=0x201E, 
+                value=move_type, 
+                slave=self.unit_id
+            )
+            
+            if result.isError():
+                raise Exception("執行移動指令失敗")
+                
+            move_types = {1: "絕對位置移動", 3: "原點復歸"}
+            self.log_message(f"🚀 執行: {move_types.get(move_type, f'移動類型{move_type}')}")
+            return True
+            
+        except Exception as e:
+            self.log_message(f"❌ 執行移動失敗: {e}")
+            return False
+    
+    def servo_on_action(self):
+        """Servo ON動作"""
+        def run_servo_on():
+            try:
+                start_time = time.time()
+                
+                # 立即禁用按鈕並更新UI
+                self.root.after(0, self.disable_control_buttons)
+                self.root.after(0, lambda: self.log_message("🔧 執行Servo ON..."))
+                
+                # 寫入2011H寄存器，值為0 (Servo ON)
+                result = self.client.write_register(
+                    address=0x2011, 
+                    value=0, 
+                    slave=self.unit_id
+                )
+                
+                if result.isError():
+                    self.root.after(0, lambda: self.log_message("❌ Servo ON指令發送失敗"))
+                else:
+                    elapsed = (time.time() - start_time) * 1000
+                    self.root.after(0, lambda: self.log_message(f"✅ Servo ON指令發送完成 ({elapsed:.1f}ms)"))
+                    
+                    # 檢查Servo狀態
+                    time.sleep(0.1)  # 短暫延遲等待狀態更新
+                    self.check_servo_status()
+                    
+            except Exception as e:
+                self.root.after(0, lambda: self.log_message(f"❌ Servo ON操作異常: {e}"))
+            finally:
+                self.root.after(0, self.enable_control_buttons)
+        
+        threading.Thread(target=run_servo_on, daemon=True).start()
+    
+    def servo_off_action(self):
+        """Servo OFF動作"""
+        def run_servo_off():
+            try:
+                start_time = time.time()
+                
+                # 立即禁用按鈕並更新UI
+                self.root.after(0, self.disable_control_buttons)
+                self.root.after(0, lambda: self.log_message("🔧 執行Servo OFF..."))
+                
+                # 寫入2011H寄存器，值為1 (Servo OFF)
+                result = self.client.write_register(
+                    address=0x2011, 
+                    value=1, 
+                    slave=self.unit_id
+                )
+                
+                if result.isError():
+                    self.root.after(0, lambda: self.log_message("❌ Servo OFF指令發送失敗"))
+                else:
+                    elapsed = (time.time() - start_time) * 1000
+                    self.root.after(0, lambda: self.log_message(f"✅ Servo OFF指令發送完成 ({elapsed:.1f}ms)"))
+                    
+                    # 檢查Servo狀態
+                    time.sleep(0.1)  # 短暫延遲等待狀態更新
+                    self.check_servo_status()
+                    
+            except Exception as e:
+                self.root.after(0, lambda: self.log_message(f"❌ Servo OFF操作異常: {e}"))
+            finally:
+                self.root.after(0, self.enable_control_buttons)
+        
+        threading.Thread(target=run_servo_off, daemon=True).start()
     def disable_control_buttons(self):
-        """停用控制按鈕"""
-        buttons = [self.init_btn, self.servo_on_btn, self.servo_off_btn, 
-                  self.rel_move_btn, self.abs_move_btn, self.emergency_stop_btn]
-        for btn in buttons:
-            btn.configure(state="disabled")
+        """禁用控制按鈕"""
+        self.servo_on_button.configure(state="disabled")
+        self.servo_off_button.configure(state="disabled")
+        self.home_button.configure(state="disabled")
+        self.point_a_button.configure(state="disabled")
+        self.point_b_button.configure(state="disabled")
     
     def enable_control_buttons(self):
         """啟用控制按鈕"""
-        buttons = [self.init_btn, self.servo_on_btn, self.servo_off_btn, 
-                  self.rel_move_btn, self.abs_move_btn, self.emergency_stop_btn]
-        for btn in buttons:
-            btn.configure(state="normal")
+        if self.is_connected:
+            self.servo_on_button.configure(state="normal")
+            self.servo_off_button.configure(state="normal")
+            self.home_button.configure(state="normal")
+            self.point_a_button.configure(state="normal")
+            self.point_b_button.configure(state="normal")
     
-    def connect_device(self):
-        """連接設備"""
-        try:
-            if self.is_connected:
-                # 斷開連線
-                self.disconnect_device()
-                return
-                
-            port = self.get_selected_port()
-            if not port or port in ["掃描中...", "未找到可用的COM口", "掃描失敗"]:
-                messagebox.showerror("錯誤", "請選擇有效的COM口")
-                return
-            baudrate = int(self.baudrate_combo.get())
-            station = self.station_entry.get()
-            
-            if station:
-                self.station_id = int(station)
-            
-            # 建立Modbus客戶端 - pymodbus 3.9.2版本（徹底移除strict參數）
-            self.client = ModbusSerialClient(
-                port=port,
-                baudrate=baudrate,
-                timeout=3,
-                parity='N',
-                stopbits=1,
-                bytesize=8
-            )
-            
-            if self.client.connect():
-                self.is_connected = True
-                self.connect_btn.configure(text="斷開連線", fg_color="red")
-                self.enable_control_buttons()
-                
-                # 啟動狀態監控前先測試連線
-                if self.test_connection():
-                    self.start_monitoring()
-                    messagebox.showinfo("成功", f"已連線到 {port}\n站號: {self.station_id}")
-                else:
-                    messagebox.showwarning("警告", f"連線到 {port} 但無法與XC100通訊\n請檢查:\n1. 站號設定是否正確\n2. XC100是否開機\n3. 通訊參數設定")
-            else:
-                messagebox.showerror("錯誤", "連線失敗")
-                
-        except Exception as e:
-            messagebox.showerror("錯誤", f"連線錯誤: {str(e)}")
-    
-    def disconnect_device(self):
-        """斷開設備連線"""
-        self.stop_monitoring()
-        
-        if self.client:
-            self.client.close()
-            self.client = None
-            
-        self.is_connected = False
-        self.connect_btn.configure(text="連線", fg_color=["#3B8ED0", "#1F6AA5"])
-        self.disable_control_buttons()
-        
-        # 重設狀態顯示
-        self.action_status.set("未連線")
-        self.alarm_status.set("未連線")
-        self.servo_status.set("未連線")
-        self.current_position.set("0")
-    
-    def start_monitoring(self):
-        """啟動狀態監控"""
-        self.monitoring = True
-        self.monitor_thread = threading.Thread(target=self.monitor_status)
-        self.monitor_thread.daemon = True
-        self.monitor_thread.start()
-    
-    def stop_monitoring(self):
-        """停止狀態監控"""
-        self.monitoring = False
-        if self.monitor_thread:
-            self.monitor_thread.join(timeout=1)
-    
-    def monitor_status(self):
-        """狀態監控執行緒"""
-        consecutive_errors = 0
-        max_errors = 3
-        
-        while self.monitoring and self.is_connected:
+    def home_action(self):
+        """原點復歸動作"""
+        def run_home():
             try:
-                self.read_status()
-                consecutive_errors = 0  # 重設錯誤計數
-                time.sleep(1.0)  # 每1秒更新一次，減少通訊負荷
-            except Exception as e:
-                consecutive_errors += 1
-                print(f"監控錯誤 ({consecutive_errors}/{max_errors}): {e}")
+                start_time = time.time()
                 
-                if consecutive_errors >= max_errors:
-                    print("連續錯誤過多，停止監控")
-                    self.disconnect_device()
-                    break
+                # 立即禁用按鈕並更新UI
+                self.root.after(0, self.disable_control_buttons)
+                self.root.after(0, lambda: self.log_message("🏠 開始原點復歸操作..."))
+                
+                # 檢查錯誤狀態
+                if not self.check_error_status():
+                    self.root.after(0, lambda: self.log_message("❌ 設備狀態異常，操作取消"))
+                    return
+                
+                # 執行原點復歸 (MovType = 3)
+                if self.execute_movement(3):
+                    elapsed = (time.time() - start_time) * 1000
+                    self.root.after(0, lambda: self.log_message(f"✅ 原點復歸指令發送完成 ({elapsed:.1f}ms)"))
+                else:
+                    self.root.after(0, lambda: self.log_message("❌ 原點復歸指令發送失敗"))
                     
-                time.sleep(2)  # 錯誤後等待較長時間
+            finally:
+                self.root.after(0, self.enable_control_buttons)
+        
+        # 在新線程中執行，避免界面凍結
+        threading.Thread(target=run_home, daemon=True).start()
     
-    def read_status(self):
-        """讀取設備狀態"""
-        if not self.client or not self.is_connected:
-            return
-            
-        try:
-            # 讀取動作狀態 (1000H) - pymodbus 3.9.2正確格式
-            result = self.client.read_holding_registers(
-                address=0x1000, 
-                count=1, 
-                slave=self.station_id
-            )
-            
-            if not result.isError():
-                action_code = result.registers[0]
-                action_texts = {0: "停止", 1: "動作中", 2: "異常停止"}
-                self.action_status.set(action_texts.get(action_code, f"未知({action_code})"))
-            else:
-                print(f"讀取1000H失敗: {result}")
-                return
-            
-            # 讀取警報狀態 (1005H)
-            result = self.client.read_holding_registers(
-                address=0x1005, 
-                count=1, 
-                slave=self.station_id
-            )
-            
-            if not result.isError():
-                alarm_code = result.registers[0]
-                alarm_texts = {
-                    0: "無警報", 1: "迴路錯誤", 2: "計數滿", 3: "過速度",
-                    4: "增益值調整不良", 5: "過電壓", 6: "初期化異常", 7: "EEPROM異常",
-                    8: "主迴路電源電壓不足", 9: "過電流", 10: "回生異常", 11: "緊急停止",
-                    12: "馬達斷線", 13: "編碼器斷線", 14: "保護電流值", 15: "電源再投入", 17: "動作逾時"
-                }
-                self.alarm_status.set(alarm_texts.get(alarm_code, f"未知警報({alarm_code})"))
-            
-            # 讀取伺服狀態 (100CH)
-            result = self.client.read_holding_registers(
-                address=0x100C, 
-                count=1, 
-                slave=self.station_id
-            )
-            
-            if not result.isError():
-                servo_code = result.registers[0]
-                servo_texts = {0: "伺服OFF", 1: "伺服ON"}
-                self.servo_status.set(servo_texts.get(servo_code, f"未知({servo_code})"))
-            
-            # 讀取目前位置 (1008H-1009H, 2個Word)
-            result = self.client.read_holding_registers(
-                address=0x1008, 
-                count=2, 
-                slave=self.station_id
-            )
-            
-            if not result.isError():
-                # 組合32位元位置資料
-                position = (result.registers[0] << 16) | result.registers[1]
-                # 處理有號整數
-                if position > 0x7FFFFFFF:
-                    position -= 0x100000000
-                self.current_position.set(f"{position * 0.01:.2f} mm")
+    def move_to_a(self):
+        """移動到A點"""
+        def run_move_a():
+            try:
+                start_time = time.time()
                 
-        except ModbusException as e:
-            print(f"Modbus通訊錯誤: {e}")
-            if "No response" in str(e) or "timeout" in str(e).lower():
-                print("嘗試重新連線...")
-                self.reconnect_device()
-        except Exception as e:
-            print(f"讀取狀態錯誤: {e}")
-            if "No response" in str(e) or "timeout" in str(e).lower():
-                print("嘗試重新連線...")
-                self.reconnect_device()
-    
-    def reconnect_device(self):
-        """重新連線設備"""
-        try:
-            if self.client:
-                self.client.close()
-                time.sleep(1)
+                # 立即禁用按鈕並更新UI
+                self.root.after(0, self.disable_control_buttons)
+                self.root.after(0, lambda: self.log_message(f"📍 開始移動到A點操作 (目標位置: {self.position_A})..."))
                 
-                # 重新建立連線
-                if self.client.connect():
-                    print("重新連線成功")
-                    return True
+                # 檢查錯誤狀態
+                if not self.check_error_status():
+                    self.root.after(0, lambda: self.log_message("❌ 設備狀態異常，操作取消"))
+                    return
+                
+                # 設定絕對位置
+                if not self.write_absolute_position(self.position_A):
+                    return
+                
+                # 執行絕對位置移動 (MovType = 1)
+                if self.execute_movement(1):
+                    elapsed = (time.time() - start_time) * 1000
+                    self.root.after(0, lambda: self.log_message(f"✅ 移動到A點指令發送完成 ({elapsed:.1f}ms)"))
                 else:
-                    print("重新連線失敗")
-                    self.disconnect_device()
-                    return False
-        except Exception as e:
-            print(f"重新連線錯誤: {e}")
-            self.disconnect_device()
-            return False
+                    self.root.after(0, lambda: self.log_message("❌ 移動到A點指令發送失敗"))
+                    
+            finally:
+                self.root.after(0, self.enable_control_buttons)
+        
+        threading.Thread(target=run_move_a, daemon=True).start()
     
-    def test_connection(self):
-        """測試連線功能"""
-        if not self.client or not self.is_connected:
-            return False
-            
-        try:
-            # 嘗試讀取控制器型號 (10E0H) 來測試連線
-            result = self.client.read_holding_registers(
-                address=0x10E0, 
-                count=1, 
-                slave=self.station_id
-            )
-            return not result.isError()
-        except (ModbusException, Exception):
-            return False
-
-    def write_register(self, address, value):
-        """寫入暫存器"""
-        if not self.client or not self.is_connected:
-            messagebox.showerror("錯誤", "設備未連線")
-            return False
-            
-        try:
-            result = self.client.write_register(
-                address=address, 
-                value=value, 
-                slave=self.station_id
-            )
-            return not result.isError()
-        except ModbusException as e:
-            messagebox.showerror("錯誤", f"Modbus寫入失敗: {str(e)}")
-            return False
-        except Exception as e:
-            messagebox.showerror("錯誤", f"寫入失敗: {str(e)}")
-            return False
-    
-    def write_registers(self, address, values):
-        """寫入多個暫存器"""
-        if not self.client or not self.is_connected:
-            messagebox.showerror("錯誤", "設備未連線")
-            return False
-            
-        try:
-            result = self.client.write_registers(
-                address=address, 
-                values=values, 
-                slave=self.station_id
-            )
-            return not result.isError()
-        except ModbusException as e:
-            messagebox.showerror("錯誤", f"Modbus寫入失敗: {str(e)}")
-            return False
-        except Exception as e:
-            messagebox.showerror("錯誤", f"寫入失敗: {str(e)}")
-            return False
-    
-    def initialize_device(self):
-        """初始化設備(原點復歸)"""
-        if messagebox.askyesno("確認", "確定要執行原點復歸嗎？"):
-            # 寫入移動類型 = 3 (ORG 原點復歸) 到 201EH
-            if self.write_register(0x201E, 3):
-                messagebox.showinfo("成功", "原點復歸指令已發送")
-            else:
-                messagebox.showerror("錯誤", "原點復歸指令發送失敗")
-    
-    def servo_on(self):
-        """伺服ON"""
-        # 寫入伺服控制 = 0 (伺服ON) 到 2011H
-        if self.write_register(0x2011, 0):
-            messagebox.showinfo("成功", "伺服ON指令已發送")
-        else:
-            messagebox.showerror("錯誤", "伺服ON指令發送失敗")
-    
-    def servo_off(self):
-        """伺服OFF"""
-        # 寫入伺服控制 = 1 (伺服OFF) 到 2011H
-        if self.write_register(0x2011, 1):
-            messagebox.showinfo("成功", "伺服OFF指令已發送")
-        else:
-            messagebox.showerror("錯誤", "伺服OFF指令發送失敗")
-    
-    def relative_move(self):
-        """相對移動"""
-        try:
-            move_amount = float(self.relative_move_var.get())
-            # 轉換為脈衝數 (0.01mm單位)
-            pulse_amount = int(move_amount * 100)
-            
-            # 分解為兩個16位元資料 (高位元、低位元)
-            high_word = (pulse_amount >> 16) & 0xFFFF
-            low_word = pulse_amount & 0xFFFF
-            
-            # 寫入相對移動量到 2000H-2001H
-            if self.write_registers(0x2000, [high_word, low_word]):
-                # 寫入移動類型 = 0 (INC 相對位置移動) 到 201EH
-                if self.write_register(0x201E, 0):
-                    messagebox.showinfo("成功", f"相對移動指令已發送: {move_amount} mm")
-                else:
-                    messagebox.showerror("錯誤", "移動類型設定失敗")
-            else:
-                messagebox.showerror("錯誤", "移動量設定失敗")
+    def move_to_b(self):
+        """移動到B點"""
+        def run_move_b():
+            try:
+                start_time = time.time()
                 
-        except ValueError:
-            messagebox.showerror("錯誤", "請輸入有效的數值")
-    
-    def absolute_move(self):
-        """絕對移動"""
-        try:
-            target_position = float(self.absolute_move_var.get())
-            # 轉換為脈衝數 (0.01mm單位)
-            pulse_position = int(target_position * 100)
-            
-            # 分解為兩個16位元資料 (高位元、低位元)
-            high_word = (pulse_position >> 16) & 0xFFFF
-            low_word = pulse_position & 0xFFFF
-            
-            # 寫入絕對移動量到 2002H-2003H
-            if self.write_registers(0x2002, [high_word, low_word]):
-                # 寫入移動類型 = 1 (ABS 絕對位置移動) 到 201EH
-                if self.write_register(0x201E, 1):
-                    messagebox.showinfo("成功", f"絕對移動指令已發送: {target_position} mm")
-                else:
-                    messagebox.showerror("錯誤", "移動類型設定失敗")
-            else:
-                messagebox.showerror("錯誤", "目標位置設定失敗")
+                # 立即禁用按鈕並更新UI
+                self.root.after(0, self.disable_control_buttons)
+                self.root.after(0, lambda: self.log_message(f"📍 開始移動到B點操作 (目標位置: {self.position_B})..."))
                 
-        except ValueError:
-            messagebox.showerror("錯誤", "請輸入有效的數值")
-    
-    def emergency_stop(self):
-        """緊急停止"""
-        # 寫入移動類型 = 9 (緊急停止) 到 201EH
-        if self.write_register(0x201E, 9):
-            messagebox.showinfo("成功", "緊急停止指令已發送")
-        else:
-            messagebox.showerror("錯誤", "緊急停止指令發送失敗")
-    
-    def run(self):
-        """執行應用程式"""
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.root.mainloop()
+                # 檢查錯誤狀態
+                if not self.check_error_status():
+                    self.root.after(0, lambda: self.log_message("❌ 設備狀態異常，操作取消"))
+                    return
+                
+                # 設定絕對位置
+                if not self.write_absolute_position(self.position_B):
+                    return
+                
+                # 執行絕對位置移動 (MovType = 1) 
+                if self.execute_movement(1):
+                    elapsed = (time.time() - start_time) * 1000
+                    self.root.after(0, lambda: self.log_message(f"✅ 移動到B點指令發送完成 ({elapsed:.1f}ms)"))
+                else:
+                    self.root.after(0, lambda: self.log_message("❌ 移動到B點指令發送失敗"))
+                    
+            finally:
+                self.root.after(0, self.enable_control_buttons)
+        
+        threading.Thread(target=run_move_b, daemon=True).start()
     
     def on_closing(self):
-        """關閉應用程式時的清理"""
-        self.disconnect_device()
+        """程式關閉時的處理"""
+        if self.client and self.is_connected:
+            self.disconnect_modbus()
         self.root.destroy()
+    
+    def run(self):
+        """執行主程式"""
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.root.mainloop()
+
+def main():
+    """主函數"""
+    try:
+        app = XC100ControlTool()
+        app.run()
+    except Exception as e:
+        print(f"程式啟動失敗: {e}")
 
 if __name__ == "__main__":
-    app = XC100Controller()
-    app.run()
+    main()
