@@ -1,745 +1,585 @@
-from flask import Flask, render_template, request, jsonify
-from vibration_plate import VibrationPlate
-import threading
-import time
-import logging
-import signal
+# -*- coding: utf-8 -*-
+"""
+VP_main.py - 震動盤Modbus TCP Client主程序
+實現震動盤RTU轉TCP橋接，狀態機交握，自動重連
+適用於自動化設備對接流程
+"""
+
 import sys
+import os
+import time
+import threading
+import json
+import signal
+import logging
+from typing import Dict, Any, Optional
 from datetime import datetime
 from pymodbus.client import ModbusTcpClient
+from vibration_plate import VibrationPlate
 
-# 設定日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
-class VibrationPlateController:
-    """震動盤控制器主類"""
+class VibrationPlateModbusClient:
+    """震動盤Modbus TCP Client - RTU轉TCP橋接模組"""
     
-    def __init__(self):
-        # 預設配置
-        self.config = {
-            'vp_ip': '192.168.1.7',          # 震動盤IP
-            'vp_port': 1000,                 # 震動盤埠口
-            'vp_slave_id': 10,               # 震動盤從機ID
-            'modbus_server_ip': '127.0.0.1', # ModbusTCP伺服器IP
-            'modbus_server_port': 502,       # ModbusTCP伺服器埠口
-            'modbus_slave_id': 1,            # ModbusTCP從機ID
-            'web_port': 5050,                # Web服務埠口
-            'default_brightness': 128,        # 預設背光亮度
-            'default_frequency': 100,         # 預設震動頻率
-            'default_strength': 100           # 預設震動強度
-        }
+    def __init__(self, config_file="vp_config.json"):
+        # 載入配置
+        self.config = self.load_config(config_file)
+        
+        # 核心組件
+        self.vibration_plate: Optional[VibrationPlate] = None
+        self.modbus_client: Optional[ModbusTcpClient] = None
+        self.running = False
         
         # 狀態變數
-        self.vibration_plate = None
-        self.modbus_client = None
-        self.running = False
-        self.backlight_on = True  # 背光開關狀態
-        self.external_control_enabled = False  # 外部控制啟用狀態
-        
-        # 控制寄存器定義 (可由外部ModbusTCP伺服器控制)
-        self.control_registers = {
-            # 基本控制寄存器 (100-109)
-            'backlight_brightness': 100,     # 背光亮度控制 (0-255)
-            'default_frequency': 101,        # 預設頻率控制 (0-255)
-            'default_strength': 102,         # 預設強度控制 (0-255)
-            'action_trigger': 103,           # 動作觸發控制 (0-11, 0=停止)
-            'emergency_stop': 104,           # 急停控制 (寫入任意值觸發)
-            'connection_status': 105,        # 連線狀態 (0=未連線, 1=已連線) [只讀]
-            'vibration_status': 106,         # 震動狀態 (0=停止, 1=運行) [只讀]
-            'enable_control': 107,           # 啟用外部控制 (0=停用, 1=啟用)
-            'backlight_switch': 108,         # 背光開關控制 (0=關閉, 1=開啟)
-            
-            # 各動作強度控制寄存器 (110-120)
-            'up_strength': 110,
-            'down_strength': 111,
-            'left_strength': 112,
-            'right_strength': 113,
-            'upleft_strength': 114,
-            'downleft_strength': 115,
-            'upright_strength': 116,
-            'downright_strength': 117,
-            'horizontal_strength': 118,
-            'vertical_strength': 119,
-            'spread_strength': 120,
-            
-            # 各動作頻率控制寄存器 (130-140)
-            'up_frequency': 130,
-            'down_frequency': 131,
-            'left_frequency': 132,
-            'right_frequency': 133,
-            'upleft_frequency': 134,
-            'downleft_frequency': 135,
-            'upright_frequency': 136,
-            'downright_frequency': 137,
-            'horizontal_frequency': 138,
-            'vertical_frequency': 139,
-            'spread_frequency': 140,
-        }
-        
-        # 同步狀態
-        self.last_register_values = {}
-        self.last_update = datetime.now()
+        self.connected_to_server = False
+        self.connected_to_device = False
+        self.last_command_id = 0
+        self.executing_command = False
         
         # 執行緒控制
-        self.modbus_monitor_thread = None
-        self.status_update_thread = None
+        self.main_loop_thread = None
+        self.loop_lock = threading.Lock()
         
-        self.init_flask_app()
+        # 統計計數
+        self.operation_count = 0
+        self.error_count = 0
+        self.connection_count = 0
+        self.start_time = time.time()
         
-    def init_flask_app(self):
-        """初始化Flask應用"""
-        self.app = Flask(__name__)
-        self.app.secret_key = 'vibration_plate_controller_2024'
+        # 寄存器映射 (基地址 + 偏移)
+        self.base_address = self.config['modbus_mapping']['base_address']
+        self.init_register_mapping()
         
-        # 註冊路由
-        self.app.add_url_rule('/', 'index', self.index)
-        self.app.add_url_rule('/api/status', 'get_status', self.get_status, methods=['GET'])
-        self.app.add_url_rule('/api/connect', 'connect_vp', self.connect_vp, methods=['POST'])
-        self.app.add_url_rule('/api/disconnect', 'disconnect_vp', self.disconnect_vp, methods=['POST'])
-        self.app.add_url_rule('/api/connect_modbus', 'connect_modbus', self.connect_modbus, methods=['POST'])
-        self.app.add_url_rule('/api/disconnect_modbus', 'disconnect_modbus', self.disconnect_modbus, methods=['POST'])
-        self.app.add_url_rule('/api/action', 'trigger_action', self.trigger_action, methods=['POST'])
-        self.app.add_url_rule('/api/stop', 'stop_action', self.stop_action, methods=['POST'])
-        self.app.add_url_rule('/api/set_brightness', 'set_brightness', self.set_brightness, methods=['POST'])
-        self.app.add_url_rule('/api/toggle_backlight', 'toggle_backlight', self.toggle_backlight, methods=['POST'])
-        self.app.add_url_rule('/api/set_defaults', 'set_defaults', self.set_defaults, methods=['POST'])
-        self.app.add_url_rule('/api/set_action_params', 'set_action_params', self.set_action_params, methods=['POST'])
-        self.app.add_url_rule('/api/config', 'update_config', self.update_config, methods=['POST'])
-        self.app.add_url_rule('/api/register_values', 'get_register_values', self.get_register_values, methods=['GET'])
-        self.app.add_url_rule('/api/set_external_control', 'set_external_control', self.set_external_control, methods=['POST'])
+    def load_config(self, config_file: str) -> Dict[str, Any]:
+        """載入配置檔案"""
+        default_config = {
+            "module_id": "震動盤模組",
+            "device_connection": {
+                "ip": "192.168.1.7",
+                "port": 1000,
+                "slave_id": 10,
+                "timeout": 0.2
+            },
+            "tcp_server": {
+                "host": "127.0.0.1",
+                "port": 502,
+                "unit_id": 1,
+                "timeout": 1.0
+            },
+            "modbus_mapping": {
+                "base_address": 300
+            },
+            "timing": {
+                "fast_loop_interval": 0.02,
+                "movement_delay": 0.1,
+                "command_delay": 0.02
+            }
+        }
+        
+        try:
+            # 取得當前執行檔案的目錄
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            config_path = os.path.join(current_dir, config_file)
             
-    def connect_modbus_server(self):
-        """連線到ModbusTCP伺服器"""
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+                    # 合併配置
+                    default_config.update(loaded_config)
+                print(f"已載入配置檔案: {config_path}")
+            else:
+                # 創建預設配置檔案在執行檔案同層目錄
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(default_config, f, indent=2, ensure_ascii=False)
+                print(f"已創建預設配置檔案: {config_path}")
+        except Exception as e:
+            print(f"載入配置檔案失敗: {e}")
+            
+        return default_config
+    
+    def init_register_mapping(self):
+        """初始化寄存器映射"""
+        base = self.base_address
+        
+        # 狀態寄存器區 (只讀) base+0 ~ base+14
+        self.status_registers = {
+            'module_status': base + 0,          # 模組狀態
+            'device_connection': base + 1,      # 設備連接狀態
+            'device_status': base + 2,          # 設備狀態
+            'error_code': base + 3,             # 錯誤代碼
+            'current_action_low': base + 4,     # 當前動作低位
+            'current_action_high': base + 5,    # 當前動作高位
+            'target_action_low': base + 6,      # 目標動作低位
+            'target_action_high': base + 7,     # 目標動作高位
+            'command_status': base + 8,         # 指令執行狀態
+            'comm_error_count': base + 9,       # 通訊錯誤計數
+            'brightness_status': base + 10,     # 背光亮度狀態
+            'backlight_status': base + 11,      # 背光開關狀態
+            'vibration_status': base + 12,      # 震動狀態
+            'reserved_13': base + 13,           # 保留
+            'timestamp': base + 14              # 時間戳
+        }
+        
+        # 指令寄存器區 (讀寫) base+20 ~ base+24
+        self.command_registers = {
+            'command_code': base + 20,          # 指令代碼
+            'param1': base + 21,                # 參數1 (強度/亮度)
+            'param2': base + 22,                # 參數2 (頻率)
+            'command_id': base + 23,            # 指令ID
+            'reserved': base + 24               # 保留
+        }
+        
+        # 所有寄存器
+        self.all_registers = {**self.status_registers, **self.command_registers}
+        
+        logger.info(f"寄存器映射初始化完成 - 基地址: {base}")
+        print(f"震動盤模組寄存器映射:")
+        print(f"  基地址: {base}")
+        print(f"  狀態寄存器: {base} ~ {base + 14}")
+        print(f"  指令寄存器: {base + 20} ~ {base + 24}")
+        print(f"  模組狀態({base}): 0=離線, 1=閒置, 2=執行中, 3=初始化, 4=錯誤")
+        print(f"  設備連接({base + 1}): 0=斷開, 1=已連接")
+        print(f"  指令執行狀態({base + 8}): 0=空閒, 1=執行中")
+    
+    def connect_main_server(self) -> bool:
+        """連接到主Modbus TCP服務器"""
         try:
             if self.modbus_client:
                 self.modbus_client.close()
-                
+            
+            server_config = self.config['tcp_server']
             self.modbus_client = ModbusTcpClient(
-                host=self.config['modbus_server_ip'], 
-                port=self.config['modbus_server_port']
+                host=server_config['host'],
+                port=server_config['port'],
+                timeout=server_config['timeout']
             )
             
             if self.modbus_client.connect():
-                logger.info(f"成功連線到ModbusTCP伺服器 {self.config['modbus_server_ip']}:{self.config['modbus_server_port']}")
+                self.connected_to_server = True
+                self.connection_count += 1
+                print(f"連接到主服務器成功: {server_config['host']}:{server_config['port']}")
+                
                 # 初始化寄存器
-                self.init_modbus_registers()
+                self.init_status_registers()
                 return True
             else:
-                logger.error(f"無法連線到ModbusTCP伺服器")
+                print("連接到主服務器失敗")
                 return False
                 
         except Exception as e:
-            logger.error(f"連線ModbusTCP伺服器失敗: {e}")
+            print(f"連接主服務器異常: {e}")
+            self.connected_to_server = False
             return False
-
-    def init_modbus_registers(self):
-        """初始化ModbusTCP寄存器"""
-        try:
-            # 初始化基本參數
-            self.write_modbus_register(self.control_registers['backlight_brightness'], self.config['default_brightness'])
-            self.write_modbus_register(self.control_registers['default_frequency'], self.config['default_frequency'])
-            self.write_modbus_register(self.control_registers['default_strength'], self.config['default_strength'])
-            self.write_modbus_register(self.control_registers['backlight_switch'], int(self.backlight_on))
-            self.write_modbus_register(self.control_registers['enable_control'], int(self.external_control_enabled))
-            logger.info("ModbusTCP寄存器初始化完成")
-        except Exception as e:
-            logger.error(f"ModbusTCP寄存器初始化失敗: {e}")
-            
-    def read_modbus_register(self, address):
-        """讀取ModbusTCP寄存器"""
-        if not self.modbus_client or not self.modbus_client.is_socket_open():
-            return None
-            
-        try:
-            response = self.modbus_client.read_holding_registers(
-                address=address, 
-                count=1, 
-                slave=self.config['modbus_slave_id']
-            )
-            
-            if response.isError():
-                logger.debug(f"讀取寄存器 {address} 失敗: {response}")
-                return None
-            else:
-                return response.registers[0]
-                
-        except Exception as e:
-            logger.debug(f"讀取寄存器異常: {e}")
-            return None
-            
-    def write_modbus_register(self, address, value):
-        """寫入ModbusTCP寄存器"""
-        if not self.modbus_client or not self.modbus_client.is_socket_open():
-            return False
-            
-        try:
-            response = self.modbus_client.write_register(
-                address=address, 
-                value=value, 
-                slave=self.config['modbus_slave_id']
-            )
-            
-            if response.isError():
-                logger.debug(f"寫入寄存器 {address} 失敗: {response}")
-                return False
-            else:
-                return True
-                
-        except Exception as e:
-            logger.debug(f"寫入寄存器異常: {e}")
-            return False
-            
-    def connect_vibration_plate(self):
-        """連線震動盤"""
+    
+    def connect_device(self) -> bool:
+        """連接到震動盤設備"""
         try:
             if self.vibration_plate:
                 self.vibration_plate.disconnect()
-                
+            
+            device_config = self.config['device_connection']
             self.vibration_plate = VibrationPlate(
-                ip=self.config['vp_ip'],
-                port=self.config['vp_port'],
-                slave_id=self.config['vp_slave_id'],
+                ip=device_config['ip'],
+                port=device_config['port'],
+                slave_id=device_config['slave_id'],
                 auto_connect=True
             )
             
             if self.vibration_plate.is_connected():
-                # 初始化預設參數
-                self.vibration_plate.set_backlight_brightness(self.config['default_brightness'])
-                # 🔧 修正：初始化時設定背光狀態
-                self.vibration_plate.set_backlight(self.backlight_on)
+                self.connected_to_device = True
+                print(f"連接到震動盤成功: {device_config['ip']}:{device_config['port']}")
                 
-                # 設定所有動作的預設參數
-                actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft', 
-                          'upright', 'downright', 'horizontal', 'vertical', 'spread']
+                # 初始化設備
+                self.vibration_plate.set_backlight_brightness(128)
+                self.vibration_plate.set_backlight(True)
                 
-                for action in actions:
-                    self.vibration_plate.set_action_parameters(
-                        action, 
-                        strength=self.config['default_strength'],
-                        frequency=self.config['default_frequency']
-                    )
-                
-                # 回寫連線狀態到ModbusTCP伺服器
-                self.write_modbus_register(self.control_registers['connection_status'], 1)
-                
-                logger.info("震動盤連線成功並完成初始化")
                 return True
             else:
-                self.write_modbus_register(self.control_registers['connection_status'], 0)
+                print("連接到震動盤失敗")
                 return False
                 
         except Exception as e:
-            logger.error(f"連線震動盤失敗: {e}")
-            self.write_modbus_register(self.control_registers['connection_status'], 0)
+            print(f"連接震動盤異常: {e}")
+            self.connected_to_device = False
             return False
-            
-    def start_modbus_monitor(self):
-        """啟動ModbusTCP監控執行緒"""
-        def monitor_loop():
-            while self.running:
-                try:
-                    self.process_modbus_commands()
-                    time.sleep(0.05)  # 50ms更新間隔
-                except Exception as e:
-                    logger.error(f"ModbusTCP監控異常: {e}")
-                    time.sleep(1)
-                    
-        self.modbus_monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
-        self.modbus_monitor_thread.start()
-        logger.info("ModbusTCP監控執行緒已啟動")
-        
-    def process_modbus_commands(self):
-        """處理ModbusTCP指令 (異步處理)"""
-        if not self.modbus_client or not self.modbus_client.is_socket_open():
-            return
-            
-        if not self.vibration_plate or not self.vibration_plate.is_connected():
-            return
-            
+    
+    def init_status_registers(self):
+        """初始化狀態寄存器"""
         try:
-            # 🔧 修正：先檢查外部控制狀態變化
-            enable_control = self.read_modbus_register(self.control_registers['enable_control'])
-            if enable_control is not None:
-                old_external_control = self.external_control_enabled
-                self.external_control_enabled = bool(enable_control)
-                
-                # 如果外部控制狀態改變，記錄日誌
-                if old_external_control != self.external_control_enabled:
-                    logger.info(f"外部控制狀態變更: {'啟用' if self.external_control_enabled else '停用'}")
-
-            # 🔧 修正：只有在外部控制啟用時才處理外部指令
-            if not self.external_control_enabled:
-                # 外部控制停用時，仍然更新狀態但不處理控制指令
-                self.update_status_to_modbus()
-                return
-                
-            # 檢查背光開關變化
-            backlight_switch = self.read_modbus_register(self.control_registers['backlight_switch'])
-            if backlight_switch is not None and backlight_switch != self.last_register_values.get('backlight_switch', -1):
-                # 🔧 修正：直接調用震動盤的背光控制
-                success = self.vibration_plate.set_backlight(bool(backlight_switch))
-                if success:
-                    self.backlight_on = bool(backlight_switch)
-                    logger.info(f"外部設定背光開關: {'開啟' if backlight_switch else '關閉'}")
-                else:
-                    logger.warning(f"外部設定背光開關失敗")
-                self.last_register_values['backlight_switch'] = backlight_switch
-                
-            # 檢查背光亮度變化
-            brightness = self.read_modbus_register(self.control_registers['backlight_brightness'])
-            if brightness is not None and brightness != self.last_register_values.get('brightness', -1):
-                success = self.vibration_plate.set_backlight_brightness(brightness)
-                if success:
-                    self.config['default_brightness'] = brightness
-                    logger.info(f"外部設定背光亮度: {brightness}")
-                self.last_register_values['brightness'] = brightness
-                
-            # 檢查預設頻率變化
-            default_freq = self.read_modbus_register(self.control_registers['default_frequency'])
-            if default_freq is not None and default_freq != self.last_register_values.get('default_freq', -1):
-                self.config['default_frequency'] = default_freq
-                self.last_register_values['default_freq'] = default_freq
-                logger.info(f"外部設定預設頻率: {default_freq}")
-                
-            # 檢查預設強度變化
-            default_strength = self.read_modbus_register(self.control_registers['default_strength'])
-            if default_strength is not None and default_strength != self.last_register_values.get('default_strength', -1):
-                self.config['default_strength'] = default_strength
-                self.last_register_values['default_strength'] = default_strength
-                logger.info(f"外部設定預設強度: {default_strength}")
-                
-            # 檢查動作觸發
-            action_trigger = self.read_modbus_register(self.control_registers['action_trigger'])
-            if action_trigger is not None and action_trigger > 0 and action_trigger != self.last_register_values.get('action_trigger', -1):
-                actions = ['stop', 'up', 'down', 'left', 'right', 'upleft', 'downleft', 
-                          'upright', 'downright', 'horizontal', 'vertical', 'spread']
-                if action_trigger < len(actions):
-                    action_name = actions[action_trigger]
-                    
-                    # 使用動作專屬參數或預設參數
-                    strength = self.get_action_strength(action_name)
-                    frequency = self.get_action_frequency(action_name)
-                    
-                    if action_name == 'stop':
-                        self.vibration_plate.stop()
-                    else:
-                        self.vibration_plate.execute_action(action_name, strength, frequency)
-                    
-                    logger.info(f"外部觸發動作: {action_name} (強度:{strength}, 頻率:{frequency})")
-                    
-                self.last_register_values['action_trigger'] = action_trigger
-                # 清除觸發器 (寫回0)
-                self.write_modbus_register(self.control_registers['action_trigger'], 0)
-                
-            # 檢查急停
-            emergency_stop = self.read_modbus_register(self.control_registers['emergency_stop'])
-            if emergency_stop is not None and emergency_stop > 0 and emergency_stop != self.last_register_values.get('emergency_stop', -1):
-                self.vibration_plate.stop()
-                logger.info("外部急停觸發")
-                self.last_register_values['emergency_stop'] = emergency_stop
-                # 清除急停 (寫回0)
-                self.write_modbus_register(self.control_registers['emergency_stop'], 0)
-                
-            # 同步各動作參數變化
-            self.sync_action_parameters()
+            # 寫入模組基本資訊
+            self.write_register('module_status', 1)  # 閒置狀態
+            self.write_register('error_code', 0)     # 無錯誤
+            self.write_register('command_status', 0) # 空閒
+            self.write_register('comm_error_count', self.error_count)
             
-            # 更新狀態回寫
-            self.update_status_to_modbus()
-                
+            print("狀態寄存器初始化完成")
         except Exception as e:
-            logger.error(f"處理ModbusTCP指令失敗: {e}")
-            
-    def get_action_strength(self, action):
-        """取得動作強度"""
-        if action == 'stop':
-            return 0
-            
-        strength_reg = f"{action}_strength"
-        if strength_reg in self.control_registers:
-            strength = self.read_modbus_register(self.control_registers[strength_reg])
-            if strength is not None and strength > 0:
-                return strength
-                
-        return self.config['default_strength']
+            print(f"初始化狀態寄存器失敗: {e}")
+    
+    def read_register(self, register_name: str) -> Optional[int]:
+        """讀取寄存器"""
+        if not self.connected_to_server or register_name not in self.all_registers:
+            return None
         
-    def get_action_frequency(self, action):
-        """取得動作頻率"""
-        if action == 'stop':
-            return 0
-            
-        frequency_reg = f"{action}_frequency"
-        if frequency_reg in self.control_registers:
-            frequency = self.read_modbus_register(self.control_registers[frequency_reg])
-            if frequency is not None and frequency > 0:
-                return frequency
-                
-        return self.config['default_frequency']
-        
-    def sync_action_parameters(self):
-        """同步動作參數變化"""
-        actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft', 
-                  'upright', 'downright', 'horizontal', 'vertical', 'spread']
-        
-        for action in actions:
-            # 檢查強度變化
-            strength_reg = f"{action}_strength"
-            if strength_reg in self.control_registers:
-                strength = self.read_modbus_register(self.control_registers[strength_reg])
-                if strength is not None and strength != self.last_register_values.get(strength_reg, -1):
-                    if strength > 0:
-                        self.vibration_plate.set_action_parameters(action, strength=strength)
-                        logger.debug(f"外部設定 {action} 強度: {strength}")
-                    self.last_register_values[strength_reg] = strength
-                    
-            # 檢查頻率變化
-            frequency_reg = f"{action}_frequency"
-            if frequency_reg in self.control_registers:
-                frequency = self.read_modbus_register(self.control_registers[frequency_reg])
-                if frequency is not None and frequency != self.last_register_values.get(frequency_reg, -1):
-                    if frequency > 0:
-                        self.vibration_plate.set_action_parameters(action, frequency=frequency)
-                        logger.debug(f"外部設定 {action} 頻率: {frequency}")
-                    self.last_register_values[frequency_reg] = frequency
-                    
-    def update_status_to_modbus(self):
-        """更新狀態到ModbusTCP伺服器"""
         try:
-            if self.vibration_plate and self.vibration_plate.is_connected():
-                status = self.vibration_plate.get_status()
-                self.write_modbus_register(self.control_registers['connection_status'], 1 if status['connected'] else 0)
-                self.write_modbus_register(self.control_registers['vibration_status'], 1 if status['vibration_active'] else 0)
-                # 🔧 修正：同步背光狀態到ModbusTCP
-                self.write_modbus_register(self.control_registers['backlight_switch'], int(self.backlight_on))
+            address = self.all_registers[register_name]
+            result = self.modbus_client.read_holding_registers(
+                address, count=1, slave=self.config['tcp_server']['unit_id']
+            )
+            
+            if not result.isError():
+                return result.registers[0]
             else:
-                self.write_modbus_register(self.control_registers['connection_status'], 0)
-                self.write_modbus_register(self.control_registers['vibration_status'], 0)
+                return None
+                
         except Exception as e:
-            logger.debug(f"更新狀態到ModbusTCP失敗: {e}")
-
-    def start_status_monitor(self):
-        """啟動狀態監控執行緒"""
-        def monitor_loop():
-            while self.running:
-                try:
-                    self.last_update = datetime.now()
-                    time.sleep(1)  # 1秒更新間隔
-                except Exception as e:
-                    logger.error(f"狀態監控異常: {e}")
-                    time.sleep(1)
-                    
-        self.status_update_thread = threading.Thread(target=monitor_loop, daemon=True)
-        self.status_update_thread.start()
-
-    # Flask路由處理函數
-    def index(self):
-        """主頁面"""
-        register_info = {
-            'control_registers': self.control_registers,
-            'config': self.config
-        }
-        return render_template('index.html', register_info=register_info)
+            pass  # 靜默處理讀取錯誤
+    
+    def write_register(self, register_name: str, value: int) -> bool:
+        """寫入寄存器"""
+        if not self.connected_to_server or register_name not in self.all_registers:
+            return False
         
-    def get_status(self):
-        """取得系統狀態API"""
-        status = {
-            'vp_connected': False,
-            'modbus_connected': False,
-            'vibration_active': False,
-            'backlight_brightness': self.config['default_brightness'],
-            'default_frequency': self.config['default_frequency'],
-            'default_strength': self.config['default_strength'],
-            'backlight_on': self.backlight_on,
-            'external_control_enabled': self.external_control_enabled,  # 🔧 新增
-            'action_parameters': {},
-            'server_running': self.running,
-            'config': self.config,
-            'control_registers': self.control_registers,
-            'last_update': self.last_update.isoformat()
-        }
-        
-        # 震動盤狀態
-        if self.vibration_plate and self.vibration_plate.is_connected():
-            vp_status = self.vibration_plate.get_status()
-            status['vp_connected'] = vp_status['connected']
-            status['vibration_active'] = vp_status['vibration_active']
-            status['action_parameters'] = vp_status.get('action_parameters', {})
-            
-        # ModbusTCP狀態
-        if self.modbus_client and self.modbus_client.is_socket_open():
-            status['modbus_connected'] = True
-            
-        return jsonify(status)
-
-    def get_register_values(self):
-        """取得所有寄存器數值API"""
         try:
-            if not self.modbus_client or not self.modbus_client.is_socket_open():
-                return jsonify({'connected': False, 'registers': {}})
-                
-            registers = {}
+            address = self.all_registers[register_name]
+            result = self.modbus_client.write_register(
+                address, value, slave=self.config['tcp_server']['unit_id']
+            )
             
-            # 基本寄存器 (100-108)
-            for addr in range(100, 109):
-                value = self.read_modbus_register(addr)
-                registers[addr] = value if value is not None else 0
+            return not result.isError()
                 
-            # 動作強度寄存器 (110-120)
-            for addr in range(110, 121):
-                value = self.read_modbus_register(addr)
-                registers[addr] = value if value is not None else 0
-                
-            # 動作頻率寄存器 (130-140)
-            for addr in range(130, 141):
-                value = self.read_modbus_register(addr)
-                registers[addr] = value if value is not None else 0
-                
-            return jsonify({
-                'connected': True,
-                'registers': registers,
-                'external_control_enabled': self.external_control_enabled
-            })
-            
         except Exception as e:
-            logger.error(f"取得寄存器數值失敗: {e}")
-            return jsonify({'connected': False, 'registers': {}, 'error': str(e)})
-
-    def set_external_control(self):
-        """設定外部控制API"""
+            pass  # 靜默處理寫入錯誤
+            return False
+    
+    def execute_command(self, command: int, param1: int, param2: int) -> bool:
+        """執行指令"""
+        if not self.connected_to_device:
+            print("設備未連接，無法執行指令")
+            return False
+        
         try:
-            data = request.get_json()
-            enable = data.get('enable', False)
+            success = False
             
-            if not self.modbus_client or not self.modbus_client.is_socket_open():
-                return jsonify({'success': False, 'message': 'ModbusTCP未連線'})
+            if command == 0:  # NOP
+                success = True
                 
-            # 寫入寄存器107
-            success = self.write_modbus_register(self.control_registers['enable_control'], 1 if enable else 0)
+            elif command == 1:  # 設備啟用 (背光開啟)
+                success = self.vibration_plate.set_backlight(True)
+                
+            elif command == 2:  # 設備停用 (背光關閉)
+                success = self.vibration_plate.set_backlight(False)
+                
+            elif command == 3:  # 停止所有動作
+                success = self.vibration_plate.stop()
+                
+            elif command == 4:  # 設定背光亮度
+                success = self.vibration_plate.set_backlight_brightness(param1)
+                
+            elif command == 5:  # 執行動作 (param1=動作碼, param2=強度)
+                actions = ['stop', 'up', 'down', 'left', 'right', 'upleft', 'downleft',
+                          'upright', 'downright', 'horizontal', 'vertical', 'spread']
+                if 0 <= param1 < len(actions):
+                    action = actions[param1]
+                    if action == 'stop':
+                        success = self.vibration_plate.stop()
+                    else:
+                        success = self.vibration_plate.execute_action(action, param2, param2)
+                
+            elif command == 6:  # 緊急停止
+                success = self.vibration_plate.stop()
+                
+            elif command == 7:  # 錯誤重置
+                self.error_count = 0
+                success = True
+                
+            # 震動盤專用指令 (11-30)
+            elif 11 <= command <= 30:
+                success = self.execute_vp_specific_command(command, param1, param2)
             
             if success:
-                self.external_control_enabled = enable
-                logger.info(f"外部控制{'啟用' if enable else '停用'}")
+                self.operation_count += 1
+                print(f"指令執行成功: cmd={command}, p1={param1}, p2={param2}")
+            else:
+                self.error_count += 1
+                print(f"指令執行失敗: cmd={command}, p1={param1}, p2={param2}")
                 
-            return jsonify({
-                'success': success, 
-                'message': f'外部控制已{"啟用" if enable else "停用"}' if success else '設定失敗',
-                'external_control_enabled': self.external_control_enabled
-            })
-        except Exception as e:
-            logger.error(f"設定外部控制失敗: {e}")
-            return jsonify({'success': False, 'message': f'設定失敗: {str(e)}'})
-        
-    def connect_vp(self):
-        """連線震動盤API"""
-        success = self.connect_vibration_plate()
-        return jsonify({'success': success, 'message': '連線成功' if success else '連線失敗'})
-        
-    def disconnect_vp(self):
-        """中斷震動盤連線API"""
-        if self.vibration_plate:
-            self.vibration_plate.disconnect()
-            self.write_modbus_register(self.control_registers['connection_status'], 0)
-        return jsonify({'success': True, 'message': '已中斷連線'})
-        
-    def connect_modbus(self):
-        """連線ModbusTCP伺服器API"""
-        success = self.connect_modbus_server()
-        return jsonify({'success': success, 'message': 'ModbusTCP連線成功' if success else 'ModbusTCP連線失敗'})
-        
-    def disconnect_modbus(self):
-        """中斷ModbusTCP連線API"""
-        if self.modbus_client:
-            self.modbus_client.close()
-        return jsonify({'success': True, 'message': 'ModbusTCP已中斷連線'})
-        
-    def trigger_action(self):
-        """觸發動作API"""
-        data = request.get_json()
-        action = data.get('action')
-        strength = data.get('strength')
-        frequency = data.get('frequency')
-        duration = data.get('duration')
-        
-        # 🔧 修正：檢查外部控制狀態
-        if self.external_control_enabled:
-            return jsonify({'success': False, 'message': '外部控制已啟用，本地操作被禁用'})
-        
-        if not self.vibration_plate or not self.vibration_plate.is_connected():
-            return jsonify({'success': False, 'message': '震動盤未連線'})
+            return success
             
+        except Exception as e:
+            print(f"執行指令異常: {e}")
+            self.error_count += 1
+            return False
+    
+    def execute_vp_specific_command(self, command: int, param1: int, param2: int) -> bool:
+        """執行震動盤專用指令"""
         try:
-            success = self.vibration_plate.execute_action(action, strength, frequency, duration)
-            return jsonify({'success': success, 'message': f'動作 {action} 執行{"成功" if success else "失敗"}'})
+            if command == 11:  # 設定動作參數
+                actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft',
+                          'upright', 'downright', 'horizontal', 'vertical', 'spread']
+                if 0 <= param1 < len(actions):
+                    return self.vibration_plate.set_action_parameters(actions[param1], param2)
+                    
+            elif command == 12:  # 背光切換
+                return self.vibration_plate.set_backlight(bool(param1))
+                
+            elif command == 13:  # 執行特定動作並設定參數
+                actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft',
+                          'upright', 'downright', 'horizontal', 'vertical', 'spread']
+                if 0 <= param1 < len(actions) and param1 > 0:
+                    action = actions[param1]
+                    return self.vibration_plate.execute_action(action, param2, param2)
+                    
+            return False
+            
         except Exception as e:
-            return jsonify({'success': False, 'message': f'執行失敗: {str(e)}'})
-            
-    def stop_action(self):
-        """停止動作API"""
-        # 🔧 修正：急停功能不受外部控制限制
-        if not self.vibration_plate or not self.vibration_plate.is_connected():
-            return jsonify({'success': False, 'message': '震動盤未連線'})
-            
-        success = self.vibration_plate.stop()
-        return jsonify({'success': success, 'message': '停止成功' if success else '停止失敗'})
-        
-    def set_brightness(self):
-        """設定背光亮度API"""
-        data = request.get_json()
-        brightness = data.get('brightness', 128)
-        
-        # 🔧 修正：檢查外部控制狀態
-        if self.external_control_enabled:
-            return jsonify({'success': False, 'message': '外部控制已啟用，本地操作被禁用'})
-        
-        if not self.vibration_plate or not self.vibration_plate.is_connected():
-            return jsonify({'success': False, 'message': '震動盤未連線'})
-            
-        success = self.vibration_plate.set_backlight_brightness(brightness)
-        if success:
-            self.config['default_brightness'] = brightness
-            # 同步到ModbusTCP
-            self.write_modbus_register(self.control_registers['backlight_brightness'], brightness)
-            
-        return jsonify({'success': success, 'message': '亮度設定成功' if success else '亮度設定失敗'})
-        
-    def toggle_backlight(self):
-        """切換背光開關API"""
-        data = request.get_json()
-        state = data.get('state', not self.backlight_on)  # 如果沒指定狀態則切換
-        
-        # 🔧 修正：檢查外部控制狀態
-        if self.external_control_enabled:
-            return jsonify({'success': False, 'message': '外部控制已啟用，本地操作被禁用'})
-        
-        if not self.vibration_plate or not self.vibration_plate.is_connected():
-            return jsonify({'success': False, 'message': '震動盤未連線'})
-            
-        success = self.vibration_plate.set_backlight(state)
-        if success:
-            self.backlight_on = state
-            # 更新ModbusTCP寄存器
-            self.write_modbus_register(self.control_registers['backlight_switch'], int(state))
-            
-        return jsonify({
-            'success': success, 
-            'message': f'背光{"開啟" if state else "關閉"}成功' if success else '背光開關設定失敗',
-            'backlight_on': self.backlight_on
-        })
-        
-    def set_defaults(self):
-        """設定預設參數API"""
-        data = request.get_json()
-        frequency = data.get('frequency', self.config['default_frequency'])
-        strength = data.get('strength', self.config['default_strength'])
-        
-        # 🔧 修正：檢查外部控制狀態
-        if self.external_control_enabled:
-            return jsonify({'success': False, 'message': '外部控制已啟用，本地操作被禁用'})
-        
-        self.config['default_frequency'] = frequency
-        self.config['default_strength'] = strength
-        
-        # 同步到ModbusTCP
-        self.write_modbus_register(self.control_registers['default_frequency'], frequency)
-        self.write_modbus_register(self.control_registers['default_strength'], strength)
-        
-        return jsonify({'success': True, 'message': '預設參數設定成功'})
-        
-    def set_action_params(self):
-        """設定動作參數API"""
-        data = request.get_json()
-        action = data.get('action')
-        strength = data.get('strength')
-        frequency = data.get('frequency')
-        
-        # 🔧 修正：檢查外部控制狀態
-        if self.external_control_enabled:
-            return jsonify({'success': False, 'message': '外部控制已啟用，本地操作被禁用'})
-        
-        if not self.vibration_plate or not self.vibration_plate.is_connected():
-            return jsonify({'success': False, 'message': '震動盤未連線'})
-            
-        success = self.vibration_plate.set_action_parameters(action, strength, frequency)
-        
-        return jsonify({'success': success, 'message': '參數設定成功' if success else '參數設定失敗'})
-
-    def update_config(self):
-        """更新設定API"""
-        data = request.get_json()
-        
-        if 'modbus_server_ip' in data:
-            self.config['modbus_server_ip'] = data['modbus_server_ip']
-        if 'modbus_server_port' in data:
-            self.config['modbus_server_port'] = int(data['modbus_server_port'])
-        if 'modbus_slave_id' in data:
-            self.config['modbus_slave_id'] = int(data['modbus_slave_id'])
-            
-        return jsonify({'success': True, 'message': '設定更新成功'})
-
-    def run(self):
-        """執行主程式"""
-        self.running = True
-        
-        # 啟動狀態監控
-        self.start_status_monitor()
-        
-        # 嘗試連線ModbusTCP伺服器
-        logger.info("正在連線ModbusTCP伺服器...")
-        if self.connect_modbus_server():
-            # 啟動ModbusTCP監控
-            self.start_modbus_monitor()
-        
-        # 嘗試連線震動盤
-        logger.info("正在連線震動盤...")
-        self.connect_vibration_plate()
-        
-        # 註冊信號處理
-        def signal_handler(sig, frame):
-            logger.info("收到停止信號，正在關閉...")
-            self.shutdown()
-            sys.exit(0)
-            
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-        
-        # 啟動Flask Web伺服器
-        logger.info(f"啟動Web伺服器 - http://localhost:{self.config['web_port']}")
+            print(f"震動盤專用指令執行失敗: {e}")
+            return False
+    
+    def update_status_registers(self):
+        """更新狀態寄存器"""
         try:
-            self.app.run(
-                host='0.0.0.0',
-                port=self.config['web_port'],
-                debug=False,
-                threaded=True
-            )
-        except Exception as e:
-            logger.error(f"Web伺服器啟動失敗: {e}")
+            # 更新連接狀態
+            self.write_register('device_connection', 1 if self.connected_to_device else 0)
             
-    def shutdown(self):
-        """關閉程式"""
+            # 更新設備狀態
+            if self.connected_to_device:
+                vp_status = self.vibration_plate.get_status()
+                self.write_register('device_status', 1 if vp_status['connected'] else 0)
+                self.write_register('vibration_status', 1 if vp_status['vibration_active'] else 0)
+                self.write_register('brightness_status', vp_status.get('backlight_brightness', 0))
+            else:
+                self.write_register('device_status', 0)
+                self.write_register('vibration_status', 0)
+            
+            # 更新模組狀態
+            if self.executing_command:
+                self.write_register('module_status', 2)  # 執行中
+            elif not self.connected_to_device:
+                self.write_register('module_status', 0)  # 離線
+            elif self.error_count > 10:
+                self.write_register('module_status', 4)  # 錯誤
+            else:
+                self.write_register('module_status', 1)  # 閒置
+            
+            # 更新錯誤計數和時間戳
+            self.write_register('comm_error_count', self.error_count)
+            self.write_register('timestamp', int(time.time()) & 0xFFFF)
+            
+        except Exception as e:
+            pass  # 靜默處理狀態更新錯誤
+    
+    def process_commands(self):
+        """處理指令 (狀態機交握)"""
+        try:
+            # 讀取新指令ID
+            new_command_id = self.read_register('command_id')
+            if new_command_id is None or new_command_id == self.last_command_id:
+                return
+            
+            # 檢測到新指令
+            command_code = self.read_register('command_code')
+            param1 = self.read_register('param1')
+            param2 = self.read_register('param2')
+            
+            if command_code is None:
+                return
+            
+            print(f"收到新指令: ID={new_command_id}, CMD={command_code}, P1={param1}, P2={param2}")
+            
+            # 設置執行狀態
+            self.executing_command = True
+            self.write_register('command_status', 1)  # 執行中
+            
+            # 執行指令
+            success = self.execute_command(command_code, param1 or 0, param2 or 0)
+            
+            # 更新結果
+            if success:
+                self.write_register('error_code', 0)
+            else:
+                self.write_register('error_code', 1)  # 執行失敗
+            
+            # 清除執行狀態
+            self.executing_command = False
+            self.write_register('command_status', 0)  # 空閒
+            
+            # 清除指令寄存器
+            self.write_register('command_code', 0)
+            self.write_register('param1', 0)
+            self.write_register('param2', 0)
+            self.write_register('command_id', 0)
+            
+            # 更新指令ID
+            self.last_command_id = new_command_id
+            
+        except Exception as e:
+            print(f"處理指令失敗: {e}")
+            self.executing_command = False
+            self.write_register('command_status', 0)
+            self.error_count += 1
+    
+    def main_loop(self):
+        """主循環"""
+        loop_interval = self.config['timing']['fast_loop_interval']
+        
+        while self.running:
+            try:
+                with self.loop_lock:
+                    # 檢查連接狀態
+                    if not self.connected_to_server:
+                        if not self.connect_main_server():
+                            time.sleep(1)
+                            continue
+                    
+                    if not self.connected_to_device:
+                        if not self.connect_device():
+                            time.sleep(1)
+                            continue
+                    
+                    # 處理指令
+                    self.process_commands()
+                    
+                    # 更新狀態
+                    self.update_status_registers()
+                
+                time.sleep(loop_interval)
+                
+            except Exception as e:
+                print(f"主循環異常: {e}")
+                self.error_count += 1
+                time.sleep(0.5)
+    
+    def start(self) -> bool:
+        """啟動模組"""
+        if self.running:
+            print("模組已在運行中")
+            return False
+        
+        try:
+            # 連接服務器和設備
+            if not self.connect_main_server():
+                print("無法連接到主服務器")
+                return False
+            
+            if not self.connect_device():
+                print("無法連接到震動盤設備，將在主循環中重試")
+            
+            # 啟動主循環
+            self.running = True
+            self.main_loop_thread = threading.Thread(target=self.main_loop, daemon=True)
+            self.main_loop_thread.start()
+            
+            print("震動盤模組啟動成功")
+            return True
+            
+        except Exception as e:
+            print(f"啟動模組失敗: {e}")
+            return False
+    
+    def stop(self):
+        """停止模組"""
+        print("正在停止震動盤模組...")
+        
         self.running = False
         
+        # 停止震動盤
         if self.vibration_plate:
-            self.vibration_plate.stop()
-            self.vibration_plate.disconnect()
-            
+            try:
+                self.vibration_plate.stop()
+                self.vibration_plate.disconnect()
+            except:
+                pass
+        
+        # 更新狀態為離線
+        if self.connected_to_server:
+            try:
+                self.write_register('module_status', 0)  # 離線
+                self.write_register('device_connection', 0)
+                self.write_register('command_status', 0)
+            except:
+                pass
+        
+        # 關閉連接
         if self.modbus_client:
-            self.modbus_client.close()
+            try:
+                self.modbus_client.close()
+            except:
+                pass
+        
+        # 等待線程結束
+        if self.main_loop_thread and self.main_loop_thread.is_alive():
+            self.main_loop_thread.join(timeout=2)
+        
+        print("震動盤模組已停止")
+    
+    def get_status(self) -> Dict[str, Any]:
+        """獲取模組狀態"""
+        uptime = time.time() - self.start_time
+        
+        status = {
+            'module_id': self.config['module_id'],
+            'running': self.running,
+            'connected_to_server': self.connected_to_server,
+            'connected_to_device': self.connected_to_device,
+            'executing_command': self.executing_command,
+            'operation_count': self.operation_count,
+            'error_count': self.error_count,
+            'connection_count': self.connection_count,
+            'uptime_seconds': int(uptime),
+            'last_command_id': self.last_command_id,
+            'config': self.config,
+            'register_mapping': {
+                'base_address': self.base_address,
+                'status_registers': self.status_registers,
+                'command_registers': self.command_registers
+            }
+        }
+        
+        return status
+
+
+def main():
+    """主函數"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    print("震動盤Modbus TCP Client啟動中...")
+    print(f"執行目錄: {current_dir}")
+    
+    # 創建模組實例
+    vp_client = VibrationPlateModbusClient()
+    
+    # 信號處理
+    def signal_handler(sig, frame):
+        print("收到停止信號")
+        vp_client.stop()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    try:
+        # 啟動模組
+        if vp_client.start():
+            print(f"震動盤模組運行中 - 基地址: {vp_client.base_address}")
+            print("寄存器映射:")
+            print(f"  狀態寄存器: {vp_client.base_address} ~ {vp_client.base_address + 14}")
+            print(f"  指令寄存器: {vp_client.base_address + 20} ~ {vp_client.base_address + 24}")
+            print("按 Ctrl+C 停止程序")
             
-        logger.info("程式已關閉")
+            # 保持運行
+            while vp_client.running:
+                time.sleep(1)
+        else:
+            print("模組啟動失敗")
+            
+    except KeyboardInterrupt:
+        print("\n收到中斷信號")
+    except Exception as e:
+        print(f"運行異常: {e}")
+    finally:
+        vp_client.stop()
+
 
 if __name__ == '__main__':
-    try:
-        # 啟動控制器
-        controller = VibrationPlateController()
-        controller.run()
-        
-    except KeyboardInterrupt:
-        logger.info("收到中斷信號")
-    except Exception as e:
-        logger.error(f"程式啟動失敗: {e}")
-    finally:
-        if 'controller' in locals():
-            controller.shutdown()
+    main()

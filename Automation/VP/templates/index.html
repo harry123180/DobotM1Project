@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>震動盤控制系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,14 +14,14 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             min-height: 100vh;
             line-height: 1.6;
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -32,12 +33,6 @@
             background: rgba(255,255,255,0.1);
             border-radius: 15px;
             backdrop-filter: blur(10px);
-        }
-        
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         .status-bar {
@@ -69,15 +64,9 @@
         .status-dot.connected { background: #44ff44; }
         .status-dot.vibrating { background: #ffaa00; }
         
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
@@ -88,12 +77,6 @@
             padding: 25px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         
         .card h3 {
@@ -105,14 +88,13 @@
         }
         
         .control-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .control-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             font-weight: 500;
-            color: #e0e0e0;
         }
         
         .input-group {
@@ -121,61 +103,48 @@
             align-items: center;
         }
         
-        input[type="number"], input[type="range"], input[type="text"], select {
-            flex: 1;
-            padding: 10px;
+        input, select {
+            padding: 8px 12px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             background: rgba(255,255,255,0.2);
             color: #fff;
             font-size: 14px;
+            flex: 1;
         }
         
-        input[type="number"]:focus, input[type="range"]:focus, input[type="text"]:focus, select:focus {
+        input:focus, select:focus {
             outline: none;
             background: rgba(255,255,255,0.3);
-            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        
+        input::placeholder {
+            color: rgba(255,255,255,0.7);
         }
         
         select option {
-            background: #2a5298;
+            background: #764ba2;
             color: #fff;
         }
         
         .btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
         
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .btn-success {
-            background: linear-gradient(45deg, #56ab2f 0%, #a8e6cf 100%);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: linear-gradient(45deg, #ff416c 0%, #ff4b2b 100%);
-            color: white;
-        }
+        .btn-primary { background: #4facfe; color: white; }
+        .btn-success { background: #56ab2f; color: white; }
+        .btn-danger { background: #ff416c; color: white; }
+        .btn-warning { background: #ffaa00; color: white; }
         
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
         }
         
         .action-buttons {
@@ -187,65 +156,25 @@
         
         .action-btn {
             padding: 15px;
-            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            background: #4facfe;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             color: white;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
         
-        .action-btn:before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        .action-btn:hover:before {
-            left: 100%;
+        .action-btn:hover {
+            background: #667eea;
+            transform: translateY(-2px);
         }
         
         .emergency-stop {
-            background: linear-gradient(45deg, #ff0844 0%, #ffb199 100%);
-            font-size: 1.2em;
-            padding: 20px;
-            border-radius: 15px;
+            background: #ff416c;
             grid-column: span 3;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .register-info {
-            background: rgba(0,0,0,0.3);
             padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        
-        .register-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        .register-table th,
-        .register-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .register-table th {
-            background: rgba(255,255,255,0.1);
-            font-weight: 600;
+            font-size: 1.1em;
         }
         
         .toast {
@@ -253,7 +182,7 @@
             top: 20px;
             right: 20px;
             padding: 15px 25px;
-            border-radius: 10px;
+            border-radius: 8px;
             color: white;
             font-weight: 600;
             z-index: 1000;
@@ -261,180 +190,36 @@
             transition: transform 0.3s ease;
         }
         
-        .toast.show {
-            transform: translateX(0);
-        }
-        
-        .toast.success {
-            background: linear-gradient(45deg, #56ab2f 0%, #a8e6cf 100%);
-        }
-        
-        .toast.error {
-            background: linear-gradient(45deg, #ff416c 0%, #ff4b2b 100%);
-        }
-        
-        .parameter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .param-item {
-            background: rgba(0,0,0,0.2);
-            padding: 15px;
-            border-radius: 8px;
-        }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #56ab2f; }
+        .toast.error { background: #ff416c; }
         
         .value-display {
             background: rgba(255,255,255,0.1);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
             margin-left: 10px;
         }
-
-        /* 外部控制開關樣式 */
-        .external-control-panel {
-            background: rgba(255, 193, 7, 0.15);
-            border: 2px solid #ffc107;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .external-control-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .external-control-title {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #ffc107;
-            margin: 0;
-        }
-
-        .switch-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #4CAF50;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .switch-status {
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .switch-status.enabled {
-            background-color: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-            border: 1px solid #4CAF50;
-        }
-
-        .switch-status.disabled {
-            background-color: rgba(244, 67, 54, 0.2);
-            color: #f44336;
-            border: 1px solid #f44336;
-        }
-
-        .register-value {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 4px;
-            min-width: 40px;
-            text-align: center;
-        }
-
-        .register-value.connected {
-            background-color: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-        }
-
-        .register-value.disconnected {
-            background-color: rgba(158, 158, 158, 0.2);
-            color: #9e9e9e;
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
         }
         
         @media (max-width: 768px) {
             .grid {
                 grid-template-columns: 1fr;
             }
-            
             .action-buttons {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
+            .container {
+                padding: 10px;
+            }
             .header h1 {
                 font-size: 1.8em;
-            }
-            
-            .status-bar {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .external-control-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .switch-container {
-                width: 100%;
-                justify-content: space-between;
             }
         }
     </style>
@@ -443,21 +228,17 @@
     <div class="container">
         <div class="header">
             <h1>震動盤控制系統</h1>
-            <p>專業級工業震動盤遠端控制平台</p>
+            <p>Web UI 手動控制介面</p>
         </div>
         
         <div class="status-bar">
             <div class="status-indicator">
-                <div class="status-dot" id="vpConnectionStatus"></div>
-                <span id="vpConnectionText">震動盤: 未連線</span>
-            </div>
-            <div class="status-indicator">
-                <div class="status-dot" id="modbusConnectionStatus"></div>
-                <span id="modbusConnectionText">ModbusTCP: 未連線</span>
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">設備: 未連接</span>
             </div>
             <div class="status-indicator">
                 <div class="status-dot" id="vibrationStatus"></div>
-                <span id="vibrationText">震動狀態: 停止</span>
+                <span id="vibrationText">震動: 停止</span>
             </div>
             <div class="status-indicator">
                 <span id="lastUpdate">最後更新: --</span>
@@ -465,38 +246,25 @@
         </div>
         
         <div class="grid">
-            <!-- ModbusTCP連線設定 -->
+            <!-- 設備連接 -->
             <div class="card">
-                <h3>ModbusTCP伺服器設定</h3>
+                <h3>設備連接</h3>
                 <div class="control-group">
-                    <label for="modbusServerIp">伺服器IP位址</label>
-                    <input type="text" id="modbusServerIp" value="127.0.0.1">
+                    <label>IP位址</label>
+                    <input type="text" id="deviceIp" value="{{ config.vibration_plate.ip }}" placeholder="192.168.1.7">
                 </div>
                 <div class="control-group">
-                    <label for="modbusServerPort">埠口</label>
-                    <input type="number" id="modbusServerPort" value="502">
+                    <label>端口</label>
+                    <input type="number" id="devicePort" value="{{ config.vibration_plate.port }}" placeholder="1000">
                 </div>
                 <div class="control-group">
-                    <label for="modbusSlaveId">從機ID</label>
-                    <input type="number" id="modbusSlaveId" value="1">
+                    <label>從機ID</label>
+                    <input type="number" id="slaveId" value="{{ config.vibration_plate.slave_id }}" placeholder="10">
                 </div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="updateModbusConfig()">更新設定</button>
-                    <button class="btn btn-success" onclick="connectModbus()">連線</button>
-                    <button class="btn btn-danger" onclick="disconnectModbus()">中斷</button>
-                </div>
-            </div>
-            
-            <!-- 震動盤連線控制 -->
-            <div class="card">
-                <h3>震動盤連線控制</h3>
-                <div class="control-group">
-                    <label>震動盤位址: <span class="value-display">192.168.1.7:1000</span></label>
-                    <label>從機ID: <span class="value-display">10</span></label>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-success" onclick="connectVP()">連線設備</button>
-                    <button class="btn btn-danger" onclick="disconnectVP()">中斷連線</button>
+                    <button class="btn btn-success" onclick="connectDevice()">連接</button>
+                    <button class="btn btn-danger" onclick="disconnectDevice()">斷開</button>
+                    <button class="btn btn-warning" onclick="testConnection()">測試</button>
                 </div>
             </div>
             
@@ -504,44 +272,24 @@
             <div class="card">
                 <h3>背光控制</h3>
                 <div class="control-group">
-                    <label>背光開關</label>
+                    <label>亮度 (0-255)</label>
                     <div class="input-group">
-                        <label class="switch">
-                            <input type="checkbox" id="backlightSwitch" onchange="toggleBacklight()" checked>
-                            <span class="slider"></span>
-                        </label>
-                        <span class="switch-status enabled" id="backlightStatus">開啟</span>
+                        <input type="range" id="brightnessSlider" min="0" max="255" value="{{ config.defaults.brightness }}" onchange="updateBrightness()">
+                        <input type="number" id="brightnessValue" min="0" max="255" value="{{ config.defaults.brightness }}" onchange="setBrightnessFromInput()">
                     </div>
                 </div>
-                <div class="control-group">
-                    <label for="brightness">背光亮度 (0-255)</label>
-                    <div class="input-group">
-                        <input type="range" id="brightnessSlider" min="0" max="255" value="128" onchange="updateBrightness()">
-                        <input type="number" id="brightnessValue" min="0" max="255" value="128" onchange="setBrightnessFromInput()">
-                    </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="setBrightness()">設定亮度</button>
+                    <button class="btn btn-success" onclick="setBacklight(true)">開啟</button>
+                    <button class="btn btn-danger" onclick="setBacklight(false)">關閉</button>
                 </div>
-                <button class="btn btn-primary" onclick="setBrightness()">套用亮度</button>
             </div>
             
-            <!-- 預設參數 -->
+            <!-- 動作參數 -->
             <div class="card">
-                <h3>預設參數</h3>
+                <h3>動作參數</h3>
                 <div class="control-group">
-                    <label for="defaultFreq">預設頻率 (0-255)</label>
-                    <input type="number" id="defaultFreq" min="0" max="255" value="100">
-                </div>
-                <div class="control-group">
-                    <label for="defaultStrength">預設強度 (0-255)</label>
-                    <input type="number" id="defaultStrength" min="0" max="255" value="100">
-                </div>
-                <button class="btn btn-primary" onclick="setDefaults()">儲存預設值</button>
-            </div>
-            
-            <!-- 動作參數設定 -->
-            <div class="card">
-                <h3>動作參數設定</h3>
-                <div class="control-group">
-                    <label for="actionSelect">選擇動作</label>
+                    <label>選擇動作</label>
                     <select id="actionSelect">
                         <option value="up">向上</option>
                         <option value="down">向下</option>
@@ -557,395 +305,150 @@
                     </select>
                 </div>
                 <div class="control-group">
-                    <label for="actionStrength">強度 (0-255)</label>
-                    <input type="number" id="actionStrength" min="0" max="255" value="100">
+                    <label>強度 (0-255)</label>
+                    <input type="number" id="actionStrength" min="0" max="255" value="{{ config.defaults.strength }}" placeholder="100">
                 </div>
                 <div class="control-group">
-                    <label for="actionFrequency">頻率 (0-255)</label>
-                    <input type="number" id="actionFrequency" min="0" max="255" value="100">
+                    <label>頻率 (0-255)</label>
+                    <input type="number" id="actionFrequency" min="0" max="255" value="{{ config.defaults.frequency }}" placeholder="100">
+                </div>
+                <div class="control-group">
+                    <label>持續時間 (秒，0=持續)</label>
+                    <input type="number" id="actionDuration" min="0" max="60" value="0" step="0.1" placeholder="0">
                 </div>
                 <button class="btn btn-primary" onclick="setActionParams()">設定參數</button>
             </div>
+            
+            <!-- 即時狀態 -->
+            <div class="card">
+                <h3>即時狀態</h3>
+                <div class="control-group">
+                    <label>連接狀態: <span class="value-display" id="statusConnected">--</span></label>
+                </div>
+                <div class="control-group">
+                    <label>震動狀態: <span class="value-display" id="statusVibrating">--</span></label>
+                </div>
+                <div class="control-group">
+                    <label>當前亮度: <span class="value-display" id="statusBrightness">--</span></label>
+                </div>
+                <div class="control-group">
+                    <label>當前動作: <span class="value-display" id="statusAction">--</span></label>
+                </div>
+                <div class="control-group">
+                    <label>背光狀態: <span class="value-display" id="statusBacklight">--</span></label>
+                </div>
+                <button class="btn btn-primary" onclick="refreshStatus()">刷新狀態</button>
+            </div>
         </div>
         
-        <!-- 動作控制區域 -->
+        <!-- 動作控制 -->
         <div class="card">
             <h3>動作控制</h3>
             <div class="action-buttons">
-                <button class="action-btn" onclick="triggerAction('upleft')">左上</button>
-                <button class="action-btn" onclick="triggerAction('up')">向上</button>
-                <button class="action-btn" onclick="triggerAction('upright')">右上</button>
+                <button class="action-btn" onclick="executeAction('upleft')">左上</button>
+                <button class="action-btn" onclick="executeAction('up')">向上</button>
+                <button class="action-btn" onclick="executeAction('upright')">右上</button>
                 
-                <button class="action-btn" onclick="triggerAction('left')">向左</button>
-                <button class="action-btn" onclick="triggerAction('stop')" style="background: linear-gradient(45deg, #666 0%, #999 100%);">停止</button>
-                <button class="action-btn" onclick="triggerAction('right')">向右</button>
+                <button class="action-btn" onclick="executeAction('left')">向左</button>
+                <button class="action-btn" onclick="executeAction('stop')" style="background: #666;">停止</button>
+                <button class="action-btn" onclick="executeAction('right')">向右</button>
                 
-                <button class="action-btn" onclick="triggerAction('downleft')">左下</button>
-                <button class="action-btn" onclick="triggerAction('down')">向下</button>
-                <button class="action-btn" onclick="triggerAction('downright')">右下</button>
+                <button class="action-btn" onclick="executeAction('downleft')">左下</button>
+                <button class="action-btn" onclick="executeAction('down')">向下</button>
+                <button class="action-btn" onclick="executeAction('downright')">右下</button>
                 
-                <button class="action-btn" onclick="triggerAction('horizontal')">水平</button>
-                <button class="action-btn" onclick="triggerAction('vertical')">垂直</button>
-                <button class="action-btn" onclick="triggerAction('spread')">散開</button>
+                <button class="action-btn" onclick="executeAction('horizontal')">水平</button>
+                <button class="action-btn" onclick="executeAction('vertical')">垂直</button>
+                <button class="action-btn" onclick="executeAction('spread')">散開</button>
                 
                 <button class="action-btn emergency-stop" onclick="emergencyStop()">緊急停止</button>
             </div>
         </div>
         
-        <!-- 外部控制開關 -->
-        <div class="external-control-panel">
-            <div class="external-control-header">
-                <h3 class="external-control-title">🔧 外部控制設定</h3>
-                <div class="switch-container">
-                    <label class="switch">
-                        <input type="checkbox" id="externalControlSwitch" onchange="toggleExternalControl()">
-                        <span class="slider"></span>
-                    </label>
-                    <span class="switch-status disabled" id="externalControlStatus">停用</span>
-                </div>
+        <!-- 設備資訊 -->
+        <div class="card">
+            <h3>設備資訊</h3>
+            <div class="control-group">
+                <label>設備地址: <span class="value-display" id="deviceAddress">{{ config.vibration_plate.ip }}:{{ config.vibration_plate.port }}</span></label>
             </div>
-            <p style="margin-top: 10px; color: #e0e0e0; font-size: 14px;">
-                啟用後，外部ModbusTCP設備可透過寄存器107控制此系統。<br>
-                <strong>注意：</strong> 啟用外部控制時，本地操作可能會被外部指令覆蓋。
-            </p>
-        </div>
-        
-        <!-- ModbusTCP寄存器資訊 -->
-        <div class="card register-info">
-            <h3>ModbusTCP寄存器映射表</h3>
-            <p>外部設備可透過以下寄存器位址控制震動盤：</p>
-            <p><strong>伺服器位址:</strong> <span id="currentServerAddress">127.0.0.1:502</span></p>
-            
-            <table class="register-table">
-                <thead>
-                    <tr>
-                        <th>功能</th>
-                        <th>寄存器位址</th>
-                        <th>說明</th>
-                        <th>讀寫</th>
-                        <th>目前數值</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td>背光亮度控制</td><td>100</td><td>0-255</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_100">--</span></td></tr>
-                    <tr><td>預設頻率控制</td><td>101</td><td>0-255</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_101">--</span></td></tr>
-                    <tr><td>預設強度控制</td><td>102</td><td>0-255</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_102">--</span></td></tr>
-                    <tr><td>動作觸發</td><td>103</td><td>0-11 (0=停止, 1-11=動作)</td><td>寫</td><td><span class="register-value disconnected" id="reg_103">--</span></td></tr>
-                    <tr><td>緊急停止</td><td>104</td><td>寫入任意值觸發停止</td><td>寫</td><td><span class="register-value disconnected" id="reg_104">--</span></td></tr>
-                    <tr><td>連線狀態</td><td>105</td><td>0=未連線, 1=已連線</td><td>讀</td><td><span class="register-value disconnected" id="reg_105">--</span></td></tr>
-                    <tr><td>震動狀態</td><td>106</td><td>0=停止, 1=運行</td><td>讀</td><td><span class="register-value disconnected" id="reg_106">--</span></td></tr>
-                    <tr><td>啟用外部控制</td><td>107</td><td>0=停用, 1=啟用</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_107">--</span></td></tr>
-                    <tr><td>背光開關控制</td><td>108</td><td>0=關閉, 1=開啟</td><td>讀寫</td><td><span class="register-value disconnected" id="reg_108">--</span></td></tr>
-                </tbody>
-            </table>
-            
-            <details style="margin-top: 20px;">
-                <summary style="cursor: pointer; font-weight: 600;">動作強度寄存器 (110-120)</summary>
-                <div class="parameter-grid">
-                    <div class="param-item">向上強度: 110 <span class="register-value disconnected" id="reg_110">--</span></div>
-                    <div class="param-item">向下強度: 111 <span class="register-value disconnected" id="reg_111">--</span></div>
-                    <div class="param-item">向左強度: 112 <span class="register-value disconnected" id="reg_112">--</span></div>
-                    <div class="param-item">向右強度: 113 <span class="register-value disconnected" id="reg_113">--</span></div>
-                    <div class="param-item">左上強度: 114 <span class="register-value disconnected" id="reg_114">--</span></div>
-                    <div class="param-item">左下強度: 115 <span class="register-value disconnected" id="reg_115">--</span></div>
-                    <div class="param-item">右上強度: 116 <span class="register-value disconnected" id="reg_116">--</span></div>
-                    <div class="param-item">右下強度: 117 <span class="register-value disconnected" id="reg_117">--</span></div>
-                    <div class="param-item">水平強度: 118 <span class="register-value disconnected" id="reg_118">--</span></div>
-                    <div class="param-item">垂直強度: 119 <span class="register-value disconnected" id="reg_119">--</span></div>
-                    <div class="param-item">散開強度: 120 <span class="register-value disconnected" id="reg_120">--</span></div>
-                </div>
-            </details>
-            
-            <details style="margin-top: 15px;">
-                <summary style="cursor: pointer; font-weight: 600;">動作頻率寄存器 (130-140)</summary>
-                <div class="parameter-grid">
-                    <div class="param-item">向上頻率: 130 <span class="register-value disconnected" id="reg_130">--</span></div>
-                    <div class="param-item">向下頻率: 131 <span class="register-value disconnected" id="reg_131">--</span></div>
-                    <div class="param-item">向左頻率: 132 <span class="register-value disconnected" id="reg_132">--</span></div>
-                    <div class="param-item">向右頻率: 133 <span class="register-value disconnected" id="reg_133">--</span></div>
-                    <div class="param-item">左上頻率: 134 <span class="register-value disconnected" id="reg_134">--</span></div>
-                    <div class="param-item">左下頻率: 135 <span class="register-value disconnected" id="reg_135">--</span></div>
-                    <div class="param-item">右上頻率: 136 <span class="register-value disconnected" id="reg_136">--</span></div>
-                    <div class="param-item">右下頻率: 137 <span class="register-value disconnected" id="reg_137">--</span></div>
-                    <div class="param-item">水平頻率: 138 <span class="register-value disconnected" id="reg_138">--</span></div>
-                    <div class="param-item">垂直頻率: 139 <span class="register-value disconnected" id="reg_139">--</span></div>
-                    <div class="param-item">散開頻率: 140 <span class="register-value disconnected" id="reg_140">--</span></div>
-                </div>
-            </details>
+            <div class="control-group">
+                <label>從機ID: <span class="value-display" id="deviceSlaveId">{{ config.vibration_plate.slave_id }}</span></label>
+            </div>
+            <div class="control-group">
+                <label>Web端口: <span class="value-display">{{ config.web_server.port }}</span></label>
+            </div>
+            <button class="btn btn-warning" onclick="getRegisterMap()">查看寄存器映射</button>
         </div>
     </div>
 
     <script>
-        let statusUpdateInterval;
-        let registerMonitorInterval;
+        // Socket.IO連接
+        const socket = io();
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            updateStatus();
-            startStatusUpdates();
-            startRegisterMonitoring();
-            
-            // 亮度滑塊和輸入框同步
-            document.getElementById('brightnessSlider').addEventListener('input', function() {
-                document.getElementById('brightnessValue').value = this.value;
-            });
+            updateBrightness();
+            refreshStatus();
         });
         
-        // 開始狀態更新
-        function startStatusUpdates() {
-            statusUpdateInterval = setInterval(updateStatus, 2000); // 2秒更新一次
-        }
-
-        // 開始寄存器監控
-        function startRegisterMonitoring() {
-            registerMonitorInterval = setInterval(updateRegisterValues, 1000); // 1秒更新一次
-        }
+        // Socket事件處理
+        socket.on('connect', function() {
+            console.log('WebSocket已連接');
+            socket.emit('request_status');
+        });
         
-        // 更新系統狀態
-        async function updateStatus() {
-            try {
-                const response = await fetch('/api/status');
-                const status = await response.json();
-                
-                // 更新震動盤連線狀態
-                const vpConnectionDot = document.getElementById('vpConnectionStatus');
-                const vpConnectionText = document.getElementById('vpConnectionText');
-                if (status.vp_connected) {
-                    vpConnectionDot.className = 'status-dot connected';
-                    vpConnectionText.textContent = '震動盤: 已連線';
-                } else {
-                    vpConnectionDot.className = 'status-dot';
-                    vpConnectionText.textContent = '震動盤: 未連線';
-                }
-                
-                // 更新ModbusTCP連線狀態
-                const modbusConnectionDot = document.getElementById('modbusConnectionStatus');
-                const modbusConnectionText = document.getElementById('modbusConnectionText');
-                if (status.modbus_connected) {
-                    modbusConnectionDot.className = 'status-dot connected';
-                    modbusConnectionText.textContent = 'ModbusTCP: 已連線';
-                } else {
-                    modbusConnectionDot.className = 'status-dot';
-                    modbusConnectionText.textContent = 'ModbusTCP: 未連線';
-                }
-                
-                // 更新震動狀態
-                const vibrationDot = document.getElementById('vibrationStatus');
-                const vibrationText = document.getElementById('vibrationText');
-                if (status.vibration_active) {
-                    vibrationDot.className = 'status-dot vibrating';
-                    vibrationText.textContent = '震動狀態: 運行中';
-                } else {
-                    vibrationDot.className = 'status-dot';
-                    vibrationText.textContent = '震動狀態: 停止';
-                }
-                
-                // 更新最後更新時間
-                const lastUpdate = new Date(status.last_update);
-                document.getElementById('lastUpdate').textContent = 
-                    '最後更新: ' + lastUpdate.toLocaleTimeString();
-                
-                // 更新背光開關狀態
-                if (status.backlight_on !== undefined) {
-                    const backlightSwitch = document.getElementById('backlightSwitch');
-                    const backlightStatus = document.getElementById('backlightStatus');
-                    
-                    backlightSwitch.checked = status.backlight_on;
-                    if (status.backlight_on) {
-                        backlightStatus.textContent = '開啟';
-                        backlightStatus.className = 'switch-status enabled';
-                    } else {
-                        backlightStatus.textContent = '關閉';
-                        backlightStatus.className = 'switch-status disabled';
-                    }
-                }
-                
-                // 更新參數值
-                if (status.backlight_brightness !== undefined) {
-                    document.getElementById('brightnessSlider').value = status.backlight_brightness;
-                    document.getElementById('brightnessValue').value = status.backlight_brightness;
-                }
-                
-                if (status.default_frequency !== undefined) {
-                    document.getElementById('defaultFreq').value = status.default_frequency;
-                }
-                
-                if (status.default_strength !== undefined) {
-                    document.getElementById('defaultStrength').value = status.default_strength;
-                }
-
-                // 更新伺服器地址顯示
-                if (status.config) {
-                    document.getElementById('currentServerAddress').textContent = 
-                        `${status.config.modbus_server_ip}:${status.config.modbus_server_port}`;
-                }
-                
-            } catch (error) {
-                console.error('狀態更新失敗:', error);
-            }
-        }
-
-        // 更新寄存器數值顯示
-        async function updateRegisterValues() {
-            try {
-                const response = await fetch('/api/register_values');
-                const data = await response.json();
-                
-                // 基本寄存器列表
-                const basicRegisters = [100, 101, 102, 103, 104, 105, 106, 107, 108];
-                // 動作強度寄存器 (110-120)
-                const strengthRegisters = Array.from({length: 11}, (_, i) => 110 + i);
-                // 動作頻率寄存器 (130-140)  
-                const frequencyRegisters = Array.from({length: 11}, (_, i) => 130 + i);
-                
-                const allRegisters = [...basicRegisters, ...strengthRegisters, ...frequencyRegisters];
-                
-                if (data.connected) {
-                    // 更新所有寄存器數值
-                    allRegisters.forEach(regAddr => {
-                        const element = document.getElementById(`reg_${regAddr}`);
-                        if (element) {
-                            const value = data.registers[regAddr] || 0;
-                            element.textContent = value;
-                            element.className = 'register-value connected';
-                        }
-                    });
-
-                    // 更新外部控制開關狀態
-                    updateExternalControlUI(data.registers[107] || 0);
-                } else {
-                    // 連線斷開時顯示 --
-                    allRegisters.forEach(regAddr => {
-                        const element = document.getElementById(`reg_${regAddr}`);
-                        if (element) {
-                            element.textContent = '--';
-                            element.className = 'register-value disconnected';
-                        }
-                    });
-
-                    // 重置外部控制開關
-                    updateExternalControlUI(0);
-                }
-                
-            } catch (error) {
-                console.error('寄存器數值更新失敗:', error);
-            }
-        }
-
-        // 切換背光開關
-        async function toggleBacklight() {
-            const switchElement = document.getElementById('backlightSwitch');
-            const statusElement = document.getElementById('backlightStatus');
-            const state = switchElement.checked;
+        socket.on('status_update', function(data) {
+            updateStatusDisplay(data);
+        });
+        
+        // 更新狀態顯示
+        function updateStatusDisplay(data) {
+            const connectionDot = document.getElementById('connectionStatus');
+            const connectionText = document.getElementById('connectionText');
+            const vibrationDot = document.getElementById('vibrationStatus');
+            const vibrationText = document.getElementById('vibrationText');
+            const lastUpdate = document.getElementById('lastUpdate');
             
-            try {
-                const response = await fetch('/api/toggle_backlight', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ state: state })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        if (state) {
-                            statusElement.textContent = '開啟';
-                            statusElement.className = 'switch-status enabled';
-                        } else {
-                            statusElement.textContent = '關閉';
-                            statusElement.className = 'switch-status disabled';
-                        }
-                        showToast(result.message, 'success');
-                    } else {
-                        switchElement.checked = !state; // 恢復開關狀態
-                        showToast('設定失敗: ' + result.message, 'error');
-                    }
-                } else {
-                    switchElement.checked = !state; // 恢復開關狀態
-                    showToast('網路錯誤', 'error');
-                }
-            } catch (error) {
-                switchElement.checked = !state; // 恢復開關狀態
-                showToast('操作失敗: ' + error.message, 'error');
-            }
-        }
-
-        // 切換外部控制
-        async function toggleExternalControl() {
-            const switchElement = document.getElementById('externalControlSwitch');
-            const enableControl = switchElement.checked;
-            
-            try {
-                const response = await fetch('/api/set_external_control', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ enable: enableControl })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        updateExternalControlUI(enableControl ? 1 : 0);
-                        showToast(enableControl ? '外部控制已啟用' : '外部控制已停用', 'success');
-                    } else {
-                        switchElement.checked = !enableControl; // 恢復開關狀態
-                        showToast('設定失敗: ' + result.message, 'error');
-                    }
-                } else {
-                    switchElement.checked = !enableControl; // 恢復開關狀態
-                    showToast('網路錯誤', 'error');
-                }
-            } catch (error) {
-                switchElement.checked = !enableControl; // 恢復開關狀態
-                showToast('操作失敗: ' + error.message, 'error');
-            }
-        }
-
-        // 更新外部控制UI狀態
-        function updateExternalControlUI(value) {
-            const switchElement = document.getElementById('externalControlSwitch');
-            const statusElement = document.getElementById('externalControlStatus');
-            
-            const isEnabled = value === 1;
-            switchElement.checked = isEnabled;
-            
-            if (isEnabled) {
-                statusElement.textContent = '啟用';
-                statusElement.className = 'switch-status enabled';
+            // 連接狀態
+            if (data.connected) {
+                connectionDot.className = 'status-dot connected';
+                connectionText.textContent = '設備: 已連接';
             } else {
-                statusElement.textContent = '停用';
-                statusElement.className = 'switch-status disabled';
+                connectionDot.className = 'status-dot';
+                connectionText.textContent = '設備: 未連接';
+            }
+            
+            // 震動狀態
+            if (data.vibration_plate && data.vibration_plate.vibration_active) {
+                vibrationDot.className = 'status-dot vibrating';
+                vibrationText.textContent = '震動: 運行中';
+            } else {
+                vibrationDot.className = 'status-dot';
+                vibrationText.textContent = '震動: 停止';
+            }
+            
+            // 更新時間
+            const updateTime = new Date(data.timestamp);
+            lastUpdate.textContent = '最後更新: ' + updateTime.toLocaleTimeString();
+            
+            // 更新詳細狀態
+            if (data.vibration_plate) {
+                const vp = data.vibration_plate;
+                document.getElementById('statusConnected').textContent = vp.connected ? '是' : '否';
+                document.getElementById('statusVibrating').textContent = vp.vibration_active ? '是' : '否';
+                document.getElementById('statusBrightness').textContent = vp.backlight_brightness || '--';
+                document.getElementById('statusAction').textContent = vp.current_action || '--';
+                document.getElementById('statusBacklight').textContent = vp.backlight_on ? '開啟' : '關閉';
+            } else {
+                document.getElementById('statusConnected').textContent = '--';
+                document.getElementById('statusVibrating').textContent = '--';
+                document.getElementById('statusBrightness').textContent = '--';
+                document.getElementById('statusAction').textContent = '--';
+                document.getElementById('statusBacklight').textContent = '--';
             }
         }
         
-        // 顯示提示訊息
-        function showToast(message, type = 'success') {
-            // 移除現有toast
-            const existingToast = document.querySelector('.toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-            
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            // 顯示動畫
-            setTimeout(() => toast.classList.add('show'), 100);
-            
-            // 自動隱藏
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-        
-        // API呼叫函數
+        // API調用
         async function apiCall(url, data = null, method = 'POST') {
             try {
                 const options = {
@@ -962,14 +465,11 @@
                 const response = await fetch(url, options);
                 const result = await response.json();
                 
-                if (result.success) {
-                    showToast(result.message, 'success');
-                } else {
-                    showToast(result.message, 'error');
-                }
+                showToast(result.message, result.success ? 'success' : 'error');
                 
-                // 立即更新狀態
-                setTimeout(updateStatus, 100);
+                if (result.success) {
+                    setTimeout(refreshStatus, 100);
+                }
                 
                 return result;
             } catch (error) {
@@ -978,57 +478,43 @@
             }
         }
         
-        // 更新ModbusTCP設定
-        async function updateModbusConfig() {
-            const ip = document.getElementById('modbusServerIp').value;
-            const port = document.getElementById('modbusServerPort').value;
-            const slaveId = document.getElementById('modbusSlaveId').value;
+        // 設備控制
+        async function connectDevice() {
+            const ip = document.getElementById('deviceIp').value;
+            const port = document.getElementById('devicePort').value;
+            const slaveId = document.getElementById('slaveId').value;
             
-            await apiCall('/api/config', {
-                modbus_server_ip: ip,
-                modbus_server_port: parseInt(port),
-                modbus_slave_id: parseInt(slaveId)
+            const result = await apiCall('/api/connect', {
+                ip: ip,
+                port: parseInt(port),
+                slave_id: parseInt(slaveId)
             });
+            
+            if (result.success) {
+                document.getElementById('deviceAddress').textContent = ip + ':' + port;
+                document.getElementById('deviceSlaveId').textContent = slaveId;
+            }
         }
         
-        // 連線ModbusTCP
-        async function connectModbus() {
-            await apiCall('/api/connect_modbus');
-        }
-        
-        // 中斷ModbusTCP連線
-        async function disconnectModbus() {
-            await apiCall('/api/disconnect_modbus');
-        }
-        
-        // 連線震動盤
-        async function connectVP() {
-            await apiCall('/api/connect');
-        }
-        
-        // 中斷震動盤連線
-        async function disconnectVP() {
+        async function disconnectDevice() {
             await apiCall('/api/disconnect');
         }
         
-        // 觸發動作
-        async function triggerAction(action) {
-            const strength = document.getElementById('defaultStrength').value;
-            const frequency = document.getElementById('defaultFreq').value;
-            
-            await apiCall('/api/action', {
-                action: action,
-                strength: parseInt(strength),
-                frequency: parseInt(frequency)
-            });
+        async function testConnection() {
+            await apiCall('/api/test_connection');
         }
         
-        // 緊急停止
-        async function emergencyStop() {
-            await apiCall('/api/stop');
+        // 背光控制
+        function updateBrightness() {
+            const value = document.getElementById('brightnessSlider').value;
+            document.getElementById('brightnessValue').value = value;
         }
         
-        // 設定背光亮度
+        function setBrightnessFromInput() {
+            const value = document.getElementById('brightnessValue').value;
+            document.getElementById('brightnessSlider').value = value;
+        }
+        
         async function setBrightness() {
             const brightness = document.getElementById('brightnessValue').value;
             await apiCall('/api/set_brightness', {
@@ -1036,30 +522,13 @@
             });
         }
         
-        // 從輸入框設定亮度
-        function setBrightnessFromInput() {
-            const value = document.getElementById('brightnessValue').value;
-            document.getElementById('brightnessSlider').value = value;
-        }
-        
-        // 更新亮度顯示
-        function updateBrightness() {
-            const value = document.getElementById('brightnessSlider').value;
-            document.getElementById('brightnessValue').value = value;
-        }
-        
-        // 設定預設參數
-        async function setDefaults() {
-            const frequency = document.getElementById('defaultFreq').value;
-            const strength = document.getElementById('defaultStrength').value;
-            
-            await apiCall('/api/set_defaults', {
-                frequency: parseInt(frequency),
-                strength: parseInt(strength)
+        async function setBacklight(state) {
+            await apiCall('/api/set_backlight', {
+                state: state
             });
         }
         
-        // 設定動作參數
+        // 動作控制
         async function setActionParams() {
             const action = document.getElementById('actionSelect').value;
             const strength = document.getElementById('actionStrength').value;
@@ -1072,42 +541,95 @@
             });
         }
         
-        // 鍵盤快捷鍵支援
+        async function executeAction(action) {
+            const strength = document.getElementById('actionStrength').value;
+            const frequency = document.getElementById('actionFrequency').value;
+            const duration = document.getElementById('actionDuration').value;
+            
+            await apiCall('/api/action', {
+                action: action,
+                strength: parseInt(strength),
+                frequency: parseInt(frequency),
+                duration: parseFloat(duration) || null
+            });
+        }
+        
+        async function emergencyStop() {
+            await apiCall('/api/stop');
+        }
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                updateStatusDisplay(data);
+            } catch (error) {
+                showToast('狀態更新失敗', 'error');
+            }
+        }
+        
+        async function getRegisterMap() {
+            try {
+                const response = await fetch('/api/get_register_map');
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('寄存器映射:', result.register_map);
+                    showToast('寄存器映射已輸出到控制台', 'success');
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                showToast('獲取寄存器映射失敗', 'error');
+            }
+        }
+        
+        // 提示訊息
+        function showToast(message, type = 'success') {
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // 鍵盤快捷鍵
         document.addEventListener('keydown', function(event) {
             if (event.ctrlKey || event.altKey) return;
             
             switch(event.key) {
                 case 'ArrowUp':
                     event.preventDefault();
-                    triggerAction('up');
+                    executeAction('up');
                     break;
                 case 'ArrowDown':
                     event.preventDefault();
-                    triggerAction('down');
+                    executeAction('down');
                     break;
                 case 'ArrowLeft':
                     event.preventDefault();
-                    triggerAction('left');
+                    executeAction('left');
                     break;
                 case 'ArrowRight':
                     event.preventDefault();
-                    triggerAction('right');
+                    executeAction('right');
                     break;
                 case ' ':
                 case 'Escape':
                     event.preventDefault();
                     emergencyStop();
                     break;
-            }
-        });
-        
-        // 頁面卸載時清理
-        window.addEventListener('beforeunload', function() {
-            if (statusUpdateInterval) {
-                clearInterval(statusUpdateInterval);
-            }
-            if (registerMonitorInterval) {
-                clearInterval(registerMonitorInterval);
             }
         });
     </script>

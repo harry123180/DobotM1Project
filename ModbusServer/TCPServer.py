@@ -88,7 +88,7 @@ class ModbusTCPServerApp:
         self.web_port = 8000
         
         # 初始化暫存器數據 (0-999, 共1000個暫存器)
-        self.register_count = 1000
+        self.register_count = 3000
         self.registers = [0] * self.register_count
         
         # 暫存器註解

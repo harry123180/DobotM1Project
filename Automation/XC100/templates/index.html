@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XC100 滑台控制器 - Enhanced Web UI</title>
+    <title>XC100 控制面板 - 專業版</title>
     <style>
         * {
             margin: 0;
@@ -12,10 +12,10 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
             color: #333;
+            min-height: 100vh;
         }
         
         .container {
@@ -27,1155 +27,694 @@
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         
         .header h1 {
-            font-size: 2.5rem;
-            font-weight: 300;
-            margin-bottom: 10px;
+            font-size: 2.5em;
+            margin-bottom: 5px;
         }
         
-        .header p {
-            font-size: 1.1rem;
+        .header .subtitle {
+            font-size: 1.1em;
             opacity: 0.9;
         }
         
-        .card {
-            background: rgba(255, 255, 255, 0.95);
+        .status-bar {
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 24px;
+            padding: 15px;
+            border-radius: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
         }
         
-        .card-title {
-            font-size: 1.4rem;
-            font-weight: 600;
+        .status-item {
+            text-align: center;
+        }
+        
+        .status-item .label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .status-item .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
             margin-bottom: 20px;
-            color: #2c3e50;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .panel h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .grid {
+        .status-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        
-        /* iOS風格Toggle開關 */
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            grid-template-columns: 1fr;
+            gap: 15px;
             margin-bottom: 20px;
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 12px;
-            border: 2px solid #e9ecef;
         }
         
-        .toggle-label {
-            font-weight: 600;
-            color: #495057;
-            font-size: 1.1rem;
-        }
-        
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-        
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        input:checked + .slider {
-            background-color: #007AFF;
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-        
-        /* 表單元素 */
-        .form-group {
-            margin-bottom: 16px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: #495057;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e9ecef;
+        .status-detail {
+            background: #f7fafc;
+            padding: 12px;
             border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            background: white;
+            border-left: 4px solid #3182ce;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .form-control:focus {
-            outline: none;
-            border-color: #007AFF;
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        .status-detail label {
+            font-weight: bold;
+            color: #2d3748;
         }
         
-        .form-row {
+        .status-value {
+            font-size: 1.0em;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .health-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f56565, #fbb040, #48bb78);
+            transition: width 0.3s ease;
+        }
+        
+        .control-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
-        /* 按鈕樣式 */
         .btn {
-            padding: 12px 24px;
+            padding: 12px 16px;
             border: none;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 0.95em;
+            font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            min-width: 120px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary { background: #3182ce; color: white; }
+        .btn-success { background: #38a169; color: white; }
+        .btn-danger { background: #e53e3e; color: white; }
+        .btn-warning { background: #d69e2e; color: white; }
+        .btn-info { background: #319795; color: white; }
+        .btn-secondary { background: #718096; color: white; }
         
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
         }
         
-        .btn-primary {
-            background: linear-gradient(135deg, #007AFF, #5856D6);
-            color: white;
+        .position-section {
+            margin-top: 15px;
         }
         
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #34C759, #30D158);
-            color: white;
-        }
-        
-        .btn-success:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.4);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #FF3B30, #FF2D92);
-            color: white;
-        }
-        
-        .btn-danger:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
-        }
-        
-        .btn-warning {
-            background: linear-gradient(135deg, #FF9500, #FFCC02);
-            color: white;
-        }
-        
-        .btn-warning:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.4);
-        }
-        
-        .btn-secondary {
-            background: #8E8E93;
-            color: white;
-        }
-        
-        .btn-secondary:hover:not(:disabled) {
-            background: #6D6D70;
-        }
-        
-        .btn-group {
+        .position-row {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        
-        /* 狀態指示器 */
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-        }
-        
-        .status-item {
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 12px;
-            border-left: 4px solid #dee2e6;
-        }
-        
-        .status-item.ready {
-            border-left-color: #34C759;
-            background: rgba(52, 199, 89, 0.1);
-        }
-        
-        .status-item.running {
-            border-left-color: #FF9500;
-            background: rgba(255, 149, 0, 0.1);
-        }
-        
-        .status-item.alarm {
-            border-left-color: #FF3B30;
-            background: rgba(255, 59, 48, 0.1);
-        }
-        
-        .status-item.initialized {
-            border-left-color: #007AFF;
-            background: rgba(0, 122, 255, 0.1);
-        }
-        
-        .status-label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #8E8E93;
-            margin-bottom: 4px;
-        }
-        
-        .status-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1D1D1F;
-        }
-        
-        /* 連線狀態 */
-        .connection-status {
-            display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .connection-status.connected {
-            background: rgba(52, 199, 89, 0.2);
-            color: #34C759;
-        }
-        
-        .connection-status.disconnected {
-            background: rgba(255, 59, 48, 0.2);
-            color: #FF3B30;
-        }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-        }
-        
-        /* 輸入群組 */
-        .input-group {
-            display: flex;
-            gap: 12px;
-            align-items: end;
-        }
-        
-        .input-group .form-control {
-            flex: 1;
-        }
-        
-        /* 握手機制資訊 */
-        .handshake-info {
-            background: #e8f4fd;
-            border: 1px solid #bee5eb;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 20px;
-        }
-        
-        .handshake-info h4 {
-            color: #0c5460;
             margin-bottom: 10px;
         }
         
-        .handshake-info ul {
-            margin: 10px 0;
-            padding-left: 20px;
-            line-height: 1.6;
-            color: #0c5460;
+        .position-row label {
+            min-width: 50px;
+            font-weight: bold;
+            font-size: 0.9em;
         }
         
-        /* 統計資訊 */
-        .stats-container {
+        .position-row input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .position-row button {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+        
+        .statistics-panel {
+            grid-column: span 3;
+        }
+        
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-            margin-top: 20px;
+            gap: 15px;
         }
         
-        .stat-item {
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
             text-align: center;
-            padding: 12px;
-            background: #f1f3f4;
+        }
+        
+        .stat-card .number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .log-panel {
+            grid-column: span 3;
+            max-height: 350px;
+        }
+        
+        .log-content {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
             border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
         }
         
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #007AFF;
+        .log-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
         }
         
-        .stat-label {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 4px;
+        .connected { color: #38a169; }
+        .disconnected { color: #e53e3e; }
+        .executing { color: #d69e2e; }
+        .warning { color: #d69e2e; }
+        .error { color: #e53e3e; }
+        
+        .pulse {
+            animation: pulse 2s infinite;
         }
         
-        /* 響應式設計 */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .error-description {
+            font-size: 0.8em;
+            color: #e53e3e;
+            margin-top: 2px;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+            .statistics-panel, .log-panel {
+                grid-column: span 2;
+            }
+        }
+        
         @media (max-width: 768px) {
-            .container {
-                padding: 16px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .form-row {
+            .main-content {
                 grid-template-columns: 1fr;
             }
-            
-            .btn-group {
-                flex-direction: column;
+            .statistics-panel, .log-panel {
+                grid-column: span 1;
             }
-            
-            .btn {
-                width: 100%;
+            .control-grid {
+                grid-template-columns: 1fr;
             }
-        }
-        
-        /* 動畫效果 */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* 通知樣式 */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            max-width: 400px;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .notification.show {
-            transform: translateX(0);
-        }
-        
-        .notification.success {
-            background: linear-gradient(135deg, #34C759, #30D158);
-        }
-        
-        .notification.error {
-            background: linear-gradient(135deg, #FF3B30, #FF2D92);
-        }
-        
-        .notification.warning {
-            background: linear-gradient(135deg, #FF9500, #FFCC02);
+            .status-bar {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎛️ XC100 滑台控制器</h1>
-            <p>Enhanced Modbus TCP 控制協議 | 握手機制 | 狀態機通信</p>
+            <h1>🎮 XC100 控制面板</h1>
+            <p class="subtitle">Professional Web Control Interface v2.0</p>
         </div>
         
-        <div class="grid">
-            <!-- 連線控制區域 -->
-            <div class="card fade-in">
-                <div class="card-title">
-                    🔗 連線設定
-                    <div style="margin-left: auto;">
-                        <span id="connectionStatus" class="connection-status disconnected">
-                            <span class="status-dot"></span>
-                            未連線
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">串列埠</label>
-                    <select id="portSelect" class="form-control">
-                        <option value="">掃描中...</option>
-                    </select>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">鮑率</label>
-                        <select id="baudrateSelect" class="form-control">
-                            <option value="9600">9600</option>
-                            <option value="19200">19200</option>
-                            <option value="38400">38400</option>
-                            <option value="57600">57600</option>
-                            <option value="115200" selected>115200</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">站號</label>
-                        <input type="number" id="stationId" class="form-control" value="2" min="1" max="247">
-                    </div>
-                </div>
-                
-                <div class="btn-group">
-                    <button id="scanBtn" class="btn btn-secondary">🔍 重新掃描</button>
-                    <button id="connectBtn" class="btn btn-primary">🔗 連線</button>
-                    <button id="initializeBtn" class="btn btn-success">⚡ 初始化</button>
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="label">應用連線</div>
+                <div class="value" id="connectionStatus">未連線</div>
+            </div>
+            <div class="status-item">
+                <div class="label">XCModule狀態</div>
+                <div class="value" id="moduleStatus">未知</div>
+            </div>
+            <div class="status-item">
+                <div class="label">通訊健康度</div>
+                <div class="value" id="healthStatus">--</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="healthBar" style="width: 0%"></div>
                 </div>
             </div>
-            
-            <!-- 外部控制模式切換 -->
-            <div class="card fade-in">
-                <div class="card-title">⚙️ 控制模式</div>
-                
-                <div class="toggle-container">
-                    <span class="toggle-label">外部控制模式</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="externalControlToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                
-                <div id="controlModeInfo">
-                    <p><strong>手動控制模式：</strong>可直接操作所有控制功能</p>
-                </div>
+            <div class="status-item">
+                <div class="label">運行時間</div>
+                <div class="value" id="uptime">--</div>
             </div>
-            
-            <!-- 系統統計 -->
-            <div class="card fade-in">
-                <div class="card-title">📊 系統統計</div>
-                
-                <div class="stats-container">
-                    <div class="stat-item">
-                        <div class="stat-value" id="commandsSent">0</div>
-                        <div class="stat-label">已送指令</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="successfulCommands">0</div>
-                        <div class="stat-label">成功指令</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="connectionErrors">0</div>
-                        <div class="stat-label">連線錯誤</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="uptime">00:00:00</div>
-                        <div class="stat-label">運行時間</div>
-                    </div>
-                </div>
+            <div class="status-item">
+                <div class="label">最後更新</div>
+                <div class="value" id="updateTime">--</div>
             </div>
         </div>
         
-        <!-- 設備狀態顯示區域 -->
-        <div class="card fade-in">
-            <div class="card-title">📊 設備狀態</div>
-            
-            <div class="status-grid">
-                <div class="status-item" id="readyStatus">
-                    <div class="status-label">Ready 狀態</div>
-                    <div class="status-value" id="readyValue">未知</div>
-                </div>
-                <div class="status-item" id="runningStatus">
-                    <div class="status-label">Running 狀態</div>
-                    <div class="status-value" id="runningValue">未知</div>
-                </div>
-                <div class="status-item" id="alarmStatus">
-                    <div class="status-label">Alarm 狀態</div>
-                    <div class="status-value" id="alarmValue">未知</div>
-                </div>
-                <div class="status-item" id="initStatus">
-                    <div class="status-label">Initialized 狀態</div>
-                    <div class="status-value" id="initValue">未知</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">目前位置</div>
-                    <div class="status-value" id="positionValue">0.00 mm</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">伺服狀態</div>
-                    <div class="status-value" id="servoValue">未連線</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="grid-3">
-            <!-- 外部控制區域 (握手機制) -->
-            <div class="card fade-in" id="externalControlCard" style="display: none;">
-                <div class="card-title">🤖 外部控制 (握手機制)</div>
-                
-                <div class="form-group">
-                    <label class="form-label">目標位置 (mm)</label>
-                    <div class="input-group">
-                        <input type="number" id="handshakePosition" class="form-control" step="0.01" placeholder="輸入目標位置">
-                        <button id="handshakeMoveBtn" class="btn btn-primary">移動</button>
+        <div class="main-content">
+            <!-- 設備狀態面板 -->
+            <div class="panel">
+                <h2>📊 設備狀態</h2>
+                <div class="status-grid">
+                    <div class="status-detail">
+                        <label>設備狀態</label>
+                        <span id="deviceState" class="status-value">未知</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>Servo狀態</label>
+                        <span id="servoStatus" class="status-value">未知</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>當前位置</label>
+                        <span id="currentPosition" class="status-value">0</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>目標位置</label>
+                        <span id="targetPosition" class="status-value">0</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>錯誤代碼</label>
+                        <span id="errorCode" class="status-value">0</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>錯誤描述</label>
+                        <span id="errorDescription" class="status-value error-description">正常</span>
                     </div>
                 </div>
                 
-                <div class="btn-group">
-                    <button id="handshakeHomeBtn" class="btn btn-warning">🏠 原點賦歸</button>
-                    <button id="handshakeClearBtn" class="btn btn-secondary">🧹 清除</button>
-                    <button id="handshakeInitBtn" class="btn btn-success">⚡ 重新初始化</button>
-                </div>
-                
-                <div class="handshake-info">
-                    <h4>🤝 握手機制協議</h4>
-                    <ul>
-                        <li><strong>控制暫存器 (500H)：</strong>0=清除, 8=移動, 16=原點賦歸, 32=初始化</li>
-                        <li><strong>參數暫存器 (501H-502H)：</strong>32位元位置 (1數值=0.01mm)</li>
-                        <li><strong>狀態暫存器 (503H)：</strong>Bit0=Ready, Bit1=Running, Bit2=Alarm, Bit3=Init</li>
-                        <li><strong>握手流程：</strong>檢查Ready→送出指令→等待完成→Ready恢復</li>
-                    </ul>
+                <div class="control-grid">
+                    <button class="btn btn-info" onclick="connect()">
+                        🔌 連線
+                    </button>
+                    <button class="btn btn-danger" onclick="disconnect()">
+                        ❌ 斷線
+                    </button>
                 </div>
             </div>
             
-            <!-- 手動控制區域 -->
-            <div class="card fade-in" id="manualControlCard">
-                <div class="card-title">🎮 手動控制</div>
+            <!-- 控制面板 -->
+            <div class="panel">
+                <h2>🎮 設備控制</h2>
                 
-                <div class="form-group">
-                    <label class="form-label">相對移動 (mm)</label>
-                    <div class="input-group">
-                        <input type="number" id="relativeMove" class="form-control" step="0.01" placeholder="輸入移動量">
-                        <button id="relativeMoveBtn" class="btn btn-primary">相對移動</button>
+                <div class="control-grid">
+                    <button class="btn btn-success" onclick="sendCommand(1)">
+                        🟢 Servo ON
+                    </button>
+                    <button class="btn btn-danger" onclick="sendCommand(2)">
+                        🔴 Servo OFF
+                    </button>
+                    <button class="btn btn-warning" onclick="sendCommand(3)">
+                        🏠 原點復歸
+                    </button>
+                    <button class="btn btn-danger" onclick="sendCommand(6)">
+                        🛑 緊急停止
+                    </button>
+                </div>
+                
+                <div class="position-section">
+                    <h3 style="margin-bottom: 10px; color: #4a5568;">位置控制</h3>
+                    <div class="position-row">
+                        <label>A點:</label>
+                        <input type="number" id="positionA" value="400">
+                        <button class="btn btn-primary" onclick="updatePosition('A')">更新</button>
+                        <button class="btn btn-info" onclick="moveToPosition('A')">移動</button>
                     </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">絕對移動 (mm)</label>
-                    <div class="input-group">
-                        <input type="number" id="absoluteMove" class="form-control" step="0.01" placeholder="輸入目標位置">
-                        <button id="absoluteMoveBtn" class="btn btn-primary">絕對移動</button>
+                    <div class="position-row">
+                        <label>B點:</label>
+                        <input type="number" id="positionB" value="2682">
+                        <button class="btn btn-primary" onclick="updatePosition('B')">更新</button>
+                        <button class="btn btn-info" onclick="moveToPosition('B')">移動</button>
                     </div>
-                </div>
-                
-                <div class="btn-group">
-                    <button id="manualHomeBtn" class="btn btn-warning">🏠 原點賦歸</button>
-                    <button id="manualClearBtn" class="btn btn-secondary">🧹 清除控制</button>
-                </div>
-                
-                <div class="btn-group" style="margin-top: 12px;">
-                    <button id="servoOnBtn" class="btn btn-success">伺服 ON</button>
-                    <button id="servoOffBtn" class="btn btn-secondary">伺服 OFF</button>
-                </div>
-                
-                <div class="btn-group" style="margin-top: 12px;">
-                    <button id="emergencyStopBtn" class="btn btn-danger" style="width: 100%; font-size: 18px;">🚨 緊急停止</button>
+                    <div class="position-row">
+                        <label>自定義:</label>
+                        <input type="number" id="customPosition" placeholder="輸入位置">
+                        <button class="btn btn-success" onclick="moveToCustomPosition()">移動</button>
+                    </div>
                 </div>
             </div>
             
-            <!-- 快速移動預設位置 -->
-            <div class="card fade-in">
-                <div class="card-title">🎯 快速移動</div>
-                
-                <div class="btn-group" style="flex-direction: column;">
-                    <button id="moveToZeroBtn" class="btn btn-primary">移動到 0mm</button>
-                    <button id="moveTo10Btn" class="btn btn-primary">移動到 10mm</button>
-                    <button id="moveTo25Btn" class="btn btn-primary">移動到 25mm</button>
-                    <button id="moveTo50Btn" class="btn btn-primary">移動到 50mm</button>
+            <!-- 系統信息面板 -->
+            <div class="panel">
+                <h2>🔧 系統信息</h2>
+                <div class="status-grid">
+                    <div class="status-detail">
+                        <label>指令執行</label>
+                        <span id="commandStatus" class="status-value">閒置</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>成功率</label>
+                        <span id="successRate" class="status-value">--</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>總指令數</label>
+                        <span id="totalCommands" class="status-value">0</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>通訊錯誤</label>
+                        <span id="commErrors" class="status-value">0</span>
+                    </div>
                 </div>
                 
-                <div class="form-group" style="margin-top: 16px;">
-                    <label class="form-label">移動序列 (mm, 逗號分隔)</label>
-                    <input type="text" id="sequenceInput" class="form-control" placeholder="例: 0,10,25,50,0">
-                    <button id="executeSequenceBtn" class="btn btn-warning" style="margin-top: 8px; width: 100%;">執行序列</button>
+                <div class="control-grid">
+                    <button class="btn btn-secondary" onclick="resetStatistics()">
+                        🔄 重置統計
+                    </button>
+                    <button class="btn btn-warning" onclick="sendCommand(7)">
+                        🛠️ 錯誤重置
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 日誌面板 -->
+            <div class="panel log-panel">
+                <h2>📝 操作日誌</h2>
+                <div class="log-content" id="logContent">
+                    系統啟動...<br>
+                </div>
+                <div class="log-controls">
+                    <button class="btn btn-warning" onclick="clearLog()">清除日誌</button>
+                    <button class="btn btn-info" onclick="toggleAutoScroll()">
+                        <span id="autoScrollText">停止滾動</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- 通知容器 -->
-    <div id="notification" class="notification"></div>
-    
+
     <script>
-        // 全域變數
-        let connected = false;
-        let externalControlMode = false;
-        let statusUpdateInterval;
-        
-        // DOM元素
-        const elements = {
-            // 連線控制
-            portSelect: document.getElementById('portSelect'),
-            baudrateSelect: document.getElementById('baudrateSelect'),
-            stationId: document.getElementById('stationId'),
-            scanBtn: document.getElementById('scanBtn'),
-            connectBtn: document.getElementById('connectBtn'),
-            initializeBtn: document.getElementById('initializeBtn'),
-            connectionStatus: document.getElementById('connectionStatus'),
-            
-            // 外部控制模式
-            externalControlToggle: document.getElementById('externalControlToggle'),
-            externalControlCard: document.getElementById('externalControlCard'),
-            manualControlCard: document.getElementById('manualControlCard'),
-            controlModeInfo: document.getElementById('controlModeInfo'),
-            
-            // 握手機制控制
-            handshakePosition: document.getElementById('handshakePosition'),
-            handshakeMoveBtn: document.getElementById('handshakeMoveBtn'),
-            handshakeHomeBtn: document.getElementById('handshakeHomeBtn'),
-            handshakeClearBtn: document.getElementById('handshakeClearBtn'),
-            handshakeInitBtn: document.getElementById('handshakeInitBtn'),
-            
-            // 手動控制
-            relativeMove: document.getElementById('relativeMove'),
-            relativeMoveBtn: document.getElementById('relativeMoveBtn'),
-            absoluteMove: document.getElementById('absoluteMove'),
-            absoluteMoveBtn: document.getElementById('absoluteMoveBtn'),
-            manualHomeBtn: document.getElementById('manualHomeBtn'),
-            manualClearBtn: document.getElementById('manualClearBtn'),
-            servoOnBtn: document.getElementById('servoOnBtn'),
-            servoOffBtn: document.getElementById('servoOffBtn'),
-            emergencyStopBtn: document.getElementById('emergencyStopBtn'),
-            
-            // 快速移動
-            moveToZeroBtn: document.getElementById('moveToZeroBtn'),
-            moveTo10Btn: document.getElementById('moveTo10Btn'),
-            moveTo25Btn: document.getElementById('moveTo25Btn'),
-            moveTo50Btn: document.getElementById('moveTo50Btn'),
-            sequenceInput: document.getElementById('sequenceInput'),
-            executeSequenceBtn: document.getElementById('executeSequenceBtn'),
-            
-            // 狀態顯示
-            readyStatus: document.getElementById('readyStatus'),
-            readyValue: document.getElementById('readyValue'),
-            runningStatus: document.getElementById('runningStatus'),
-            runningValue: document.getElementById('runningValue'),
-            alarmStatus: document.getElementById('alarmStatus'),
-            alarmValue: document.getElementById('alarmValue'),
-            initStatus: document.getElementById('initStatus'),
-            initValue: document.getElementById('initValue'),
-            positionValue: document.getElementById('positionValue'),
-            servoValue: document.getElementById('servoValue'),
-            
-            // 統計
-            commandsSent: document.getElementById('commandsSent'),
-            successfulCommands: document.getElementById('successfulCommands'),
-            connectionErrors: document.getElementById('connectionErrors'),
-            uptime: document.getElementById('uptime'),
-            
-            // 通知
-            notification: document.getElementById('notification')
-        };
+        let isConnected = false;
+        let updateInterval;
+        let autoScroll = true;
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            scanPorts();
-            setupEventListeners();
-            startStatusUpdates();
+            addLog('Web界面已載入 - 分離版本 v2.0');
+            connect();
         });
         
-        // 設定事件監聽器
-        function setupEventListeners() {
-            elements.scanBtn.addEventListener('click', scanPorts);
-            elements.connectBtn.addEventListener('click', toggleConnection);
-            elements.initializeBtn.addEventListener('click', initializeDevice);
-            elements.externalControlToggle.addEventListener('change', toggleExternalControl);
-            
-            // 握手機制控制
-            elements.handshakeMoveBtn.addEventListener('click', handshakeMove);
-            elements.handshakeHomeBtn.addEventListener('click', handshakeHome);
-            elements.handshakeClearBtn.addEventListener('click', handshakeClear);
-            elements.handshakeInitBtn.addEventListener('click', handshakeInitialize);
-            
-            // 手動控制
-            elements.relativeMoveBtn.addEventListener('click', () => manualMove('relative'));
-            elements.absoluteMoveBtn.addEventListener('click', () => manualMove('absolute'));
-            elements.manualHomeBtn.addEventListener('click', manualHome);
-            elements.manualClearBtn.addEventListener('click', manualClear);
-            elements.servoOnBtn.addEventListener('click', () => servoControl('on'));
-            elements.servoOffBtn.addEventListener('click', () => servoControl('off'));
-            elements.emergencyStopBtn.addEventListener('click', emergencyStop);
-            
-            // 快速移動
-            elements.moveToZeroBtn.addEventListener('click', () => quickMove(0));
-            elements.moveTo10Btn.addEventListener('click', () => quickMove(10));
-            elements.moveTo25Btn.addEventListener('click', () => quickMove(25));
-            elements.moveTo50Btn.addEventListener('click', () => quickMove(50));
-            elements.executeSequenceBtn.addEventListener('click', executeSequence);
-        }
-        
-        // 掃描COM口
-        async function scanPorts() {
-            try {
-                const response = await fetch('/api/scan_ports');
-                const data = await response.json();
-                
-                elements.portSelect.innerHTML = '';
-                if (data.ports.length === 0) {
-                    elements.portSelect.innerHTML = '<option value="">未找到可用的COM口</option>';
-                } else {
-                    data.ports.forEach(port => {
-                        const option = document.createElement('option');
-                        option.value = port.device;
-                        option.textContent = `${port.device} - ${port.description}`;
-                        elements.portSelect.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('掃描COM口失敗:', error);
-                showNotification('掃描COM口失敗', 'error');
-            }
-        }
-        
-        // 切換連線
-        async function toggleConnection() {
-            if (connected) {
-                await disconnect();
-            } else {
-                await connect();
-            }
-        }
-        
         // 連線
-        async function connect() {
-            const port = elements.portSelect.value;
-            const baudrate = elements.baudrateSelect.value;
-            const stationId = elements.stationId.value;
-            
-            if (!port) {
-                showNotification('請選擇有效的COM口', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/connect', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ port, baudrate, station_id: stationId })
+        function connect() {
+            fetch('/api/connect', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        isConnected = true;
+                        document.getElementById('connectionStatus').textContent = '已連線';
+                        document.getElementById('connectionStatus').className = 'value connected';
+                        addLog('✅ 已連線到XCModule');
+                        startStatusUpdate();
+                    } else {
+                        addLog('❌ 連線失敗: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    addLog('❌ 連線錯誤: ' + error);
                 });
-                
-                const data = await response.json();
-                if (data.success) {
-                    connected = true;
-                    updateConnectionUI();
-                    showNotification(data.message, 'success');
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            } catch (error) {
-                console.error('連線失敗:', error);
-                showNotification('連線失敗', 'error');
-            }
         }
         
         // 斷線
-        async function disconnect() {
-            try {
-                await fetch('/api/disconnect', { method: 'POST' });
-                connected = false;
-                updateConnectionUI();
-                showNotification('已斷開連線', 'warning');
-            } catch (error) {
-                console.error('斷線失敗:', error);
-            }
-        }
-        
-        // 初始化設備
-        async function initializeDevice() {
-            try {
-                const response = await fetch('/api/initialize', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('初始化失敗:', error);
-                showNotification('初始化失敗', 'error');
-            }
-        }
-        
-        // 更新連線UI
-        function updateConnectionUI() {
-            if (connected) {
-                elements.connectBtn.textContent = '🔌 斷開連線';
-                elements.connectBtn.className = 'btn btn-danger';
-                elements.connectionStatus.className = 'connection-status connected';
-                elements.connectionStatus.innerHTML = '<span class="status-dot"></span>已連線';
-            } else {
-                elements.connectBtn.textContent = '🔗 連線';
-                elements.connectBtn.className = 'btn btn-primary';
-                elements.connectionStatus.className = 'connection-status disconnected';
-                elements.connectionStatus.innerHTML = '<span class="status-dot"></span>未連線';
-            }
-        }
-        
-        // 切換外部控制模式
-        async function toggleExternalControl() {
-            externalControlMode = elements.externalControlToggle.checked;
-            
-            try {
-                const response = await fetch('/api/external_control', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: externalControlMode })
+        function disconnect() {
+            fetch('/api/disconnect', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    isConnected = false;
+                    document.getElementById('connectionStatus').textContent = '未連線';
+                    document.getElementById('connectionStatus').className = 'value disconnected';
+                    addLog('🔌 已斷開連線');
+                    stopStatusUpdate();
                 });
-                
-                const data = await response.json();
+        }
+        
+        // 發送指令
+        function sendCommand(command, param1 = 0, param2 = 0) {
+            if (!isConnected) {
+                addLog('⚠️ 請先連線到XCModule');
+                return;
+            }
+            
+            const commandNames = {
+                1: 'Servo ON', 2: 'Servo OFF', 3: '原點復歸',
+                4: '絕對移動', 6: '緊急停止', 7: '錯誤重置'
+            };
+            
+            fetch('/api/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command, param1, param2 })
+            })
+            .then(response => response.json())
+            .then(data => {
                 if (data.success) {
-                    updateControlModeUI();
-                    showNotification(data.message, 'success');
+                    addLog(`✅ 指令發送成功: ${commandNames[command] || command}`);
+                } else {
+                    addLog(`❌ 指令發送失敗: ${data.message}`);
                 }
-            } catch (error) {
-                console.error('切換控制模式失敗:', error);
-                showNotification('切換控制模式失敗', 'error');
-            }
+            })
+            .catch(error => {
+                addLog('❌ 發送指令錯誤: ' + error);
+            });
         }
         
-        // 更新控制模式UI
-        function updateControlModeUI() {
-            if (externalControlMode) {
-                elements.externalControlCard.style.display = 'block';
-                elements.manualControlCard.style.opacity = '0.6';
-                elements.controlModeInfo.innerHTML = '<p><strong>外部控制模式：</strong>透過握手機制進行自動化控制</p>';
-            } else {
-                elements.externalControlCard.style.display = 'none';
-                elements.manualControlCard.style.opacity = '1';
-                elements.controlModeInfo.innerHTML = '<p><strong>手動控制模式：</strong>可直接操作所有控制功能</p>';
-            }
-        }
-        
-        // === 握手機制控制函數 ===
-        
-        async function handshakeMove() {
-            const position = parseFloat(elements.handshakePosition.value);
+        // 更新位置
+        function updatePosition(type) {
+            const inputId = 'position' + type;
+            const position = parseInt(document.getElementById(inputId).value);
+            
             if (isNaN(position)) {
-                showNotification('請輸入有效的位置數值', 'error');
+                addLog('⚠️ 請輸入有效的位置數值');
                 return;
             }
             
-            try {
-                const response = await fetch('/api/handshake/move', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ position })
-                });
-                
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('握手移動失敗:', error);
-                showNotification('握手移動失敗', 'error');
-            }
-        }
-        
-        async function handshakeHome() {
-            try {
-                const response = await fetch('/api/handshake/home', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('握手原點賦歸失敗:', error);
-                showNotification('握手原點賦歸失敗', 'error');
-            }
-        }
-        
-        async function handshakeClear() {
-            try {
-                const response = await fetch('/api/handshake/clear', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('握手清除失敗:', error);
-                showNotification('握手清除失敗', 'error');
-            }
-        }
-        
-        async function handshakeInitialize() {
-            try {
-                const response = await fetch('/api/handshake/initialize', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('握手初始化失敗:', error);
-                showNotification('握手初始化失敗', 'error');
-            }
-        }
-        
-        // === 手動控制函數 ===
-        
-        async function manualMove(type) {
-            if (externalControlMode) {
-                showNotification('外部控制情況下無法手動控制', 'warning');
-                return;
-            }
-            
-            const input = type === 'relative' ? elements.relativeMove : elements.absoluteMove;
-            const value = parseFloat(input.value);
-            
-            if (isNaN(value)) {
-                showNotification('請輸入有效的數值', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/manual/move', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, value })
-                });
-                
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('手動移動失敗:', error);
-                showNotification('手動移動失敗', 'error');
-            }
-        }
-        
-        async function manualHome() {
-            if (externalControlMode) {
-                showNotification('外部控制情況下無法手動控制', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/manual/home', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('手動原點賦歸失敗:', error);
-                showNotification('手動原點賦歸失敗', 'error');
-            }
-        }
-        
-        async function manualClear() {
-            if (externalControlMode) {
-                showNotification('外部控制情況下無法手動控制', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/manual/clear', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('手動清除失敗:', error);
-                showNotification('手動清除失敗', 'error');
-            }
-        }
-        
-        async function servoControl(state) {
-            try {
-                const response = await fetch('/api/servo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ state })
-                });
-                
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('伺服控制失敗:', error);
-                showNotification('伺服控制失敗', 'error');
-            }
-        }
-        
-        async function emergencyStop() {
-            try {
-                const response = await fetch('/api/emergency_stop', { method: 'POST' });
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('緊急停止失敗:', error);
-                showNotification('緊急停止失敗', 'error');
-            }
-        }
-        
-        // === 快速移動函數 ===
-        
-        async function quickMove(position) {
-            if (externalControlMode) {
-                // 使用握手機制
-                elements.handshakePosition.value = position;
-                await handshakeMove();
-            } else {
-                // 使用手動控制
-                elements.absoluteMove.value = position;
-                await manualMove('absolute');
-            }
-        }
-        
-        async function executeSequence() {
-            const sequenceText = elements.sequenceInput.value.trim();
-            if (!sequenceText) {
-                showNotification('請輸入移動序列', 'error');
-                return;
-            }
-            
-            try {
-                const positions = sequenceText.split(',').map(pos => parseFloat(pos.trim()));
-                
-                // 檢查所有位置是否有效
-                if (positions.some(pos => isNaN(pos))) {
-                    showNotification('序列中包含無效的數值', 'error');
-                    return;
+            fetch('/api/position', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, position })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog(`✅ ${type}點位置已更新為: ${position}`);
+                } else {
+                    addLog(`❌ 位置更新失敗: ${data.message}`);
                 }
-                
-                const response = await fetch('/api/move_sequence', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ positions, wait_each: true })
-                });
-                
-                const data = await response.json();
-                showNotification(data.message, data.success ? 'success' : 'error');
-            } catch (error) {
-                console.error('執行序列失敗:', error);
-                showNotification('執行序列失敗', 'error');
+            })
+            .catch(error => {
+                addLog('❌ 更新位置錯誤: ' + error);
+            });
+        }
+        
+        // 移動到指定位置
+        function moveToPosition(type) {
+            const inputId = 'position' + type;
+            const position = parseInt(document.getElementById(inputId).value);
+            
+            if (isNaN(position)) {
+                addLog('⚠️ 請輸入有效的位置數值');
+                return;
             }
+            
+            const param1 = position & 0xFFFF;
+            const param2 = (position >> 16) & 0xFFFF;
+            
+            sendCommand(4, param1, param2);
+            addLog(`🎯 開始移動到${type}點: ${position}`);
+        }
+        
+        // 移動到自定義位置
+        function moveToCustomPosition() {
+            const position = parseInt(document.getElementById('customPosition').value);
+            
+            if (isNaN(position)) {
+                addLog('⚠️ 請輸入有效的位置數值');
+                return;
+            }
+            
+            const param1 = position & 0xFFFF;
+            const param2 = (position >> 16) & 0xFFFF;
+            
+            sendCommand(4, param1, param2);
+            addLog(`🎯 開始移動到自定義位置: ${position}`);
+        }
+        
+        // 重置統計
+        function resetStatistics() {
+            fetch('/api/reset_stats', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addLog('📊 統計信息已重置');
+                    }
+                });
         }
         
         // 開始狀態更新
-        function startStatusUpdates() {
-            statusUpdateInterval = setInterval(updateStatus, 1000);
+        function startStatusUpdate() {
+            updateInterval = setInterval(updateStatus, 2000); // 配合慢速模式
+        }
+        
+        // 停止狀態更新
+        function stopStatusUpdate() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
         }
         
         // 更新狀態
-        async function updateStatus() {
-            try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-                
-                connected = data.connected;
-                externalControlMode = data.external_control;
-                
-                updateConnectionUI();
-                updateStatusDisplay(data.device_status, data.handshake_status);
-                updateStatsDisplay(data.stats);
-                
-                // 同步外部控制開關
-                if (elements.externalControlToggle.checked !== externalControlMode) {
-                    elements.externalControlToggle.checked = externalControlMode;
-                    updateControlModeUI();
-                }
-                
-            } catch (error) {
-                console.error('獲取狀態失敗:', error);
-            }
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const status = data.data;
+                        const stats = data.statistics;
+                        
+                        // 更新設備狀態
+                        document.getElementById('deviceState').textContent = status.state;
+                        document.getElementById('servoStatus').textContent = status.servo_status ? 'ON' : 'OFF';
+                        document.getElementById('currentPosition').textContent = status.current_position;
+                        document.getElementById('targetPosition').textContent = status.target_position;
+                        document.getElementById('errorCode').textContent = status.error_code;
+                        document.getElementById('errorDescription').textContent = status.error_description || '正常';
+                        document.getElementById('commandStatus').textContent = status.command_executing ? '執行中' : '閒置';
+                        document.getElementById('updateTime').textContent = status.last_update;
+                        
+                        // 更新XCModule狀態
+                        const moduleStatusElement = document.getElementById('moduleStatus');
+                        if (status.module_connected) {
+                            moduleStatusElement.textContent = '已連線';
+                            moduleStatusElement.className = 'value connected';
+                        } else {
+                            moduleStatusElement.textContent = '未連線';
+                            moduleStatusElement.className = 'value disconnected';
+                        }
+                        
+                        // 更新通訊健康度
+                        const healthPercent = status.communication_health || 0;
+                        document.getElementById('healthStatus').textContent = healthPercent + '%';
+                        document.getElementById('healthBar').style.width = healthPercent + '%';
+                        
+                        // 更新統計信息
+                        document.getElementById('uptime').textContent = stats.uptime;
+                        document.getElementById('successRate').textContent = stats.success_rate;
+                        document.getElementById('totalCommands').textContent = stats.total_commands;
+                        document.getElementById('commErrors').textContent = stats.communication_errors;
+                        
+                        // 更新位置輸入框
+                        document.getElementById('positionA').value = status.position_A;
+                        document.getElementById('positionB').value = status.position_B;
+                        
+                        // 更新按鈕狀態
+                        const buttons = document.querySelectorAll('.btn');
+                        const isExecuting = status.command_executing;
+                        buttons.forEach(btn => {
+                            if (btn.textContent.includes('連線') || btn.textContent.includes('斷線')) {
+                                return; // 連線按鈕不禁用
+                            }
+                            btn.disabled = isExecuting;
+                        });
+                        
+                        // 如果有錯誤，添加脈衝效果
+                        const errorElement = document.getElementById('errorCode');
+                        if (status.error_code !== 0) {
+                            errorElement.classList.add('pulse', 'error');
+                        } else {
+                            errorElement.classList.remove('pulse', 'error');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('狀態更新錯誤:', error);
+                });
         }
         
-        // 更新狀態顯示
-        function updateStatusDisplay(deviceStatus, handshakeStatus) {
-            // 更新握手狀態
-            if (handshakeStatus) {
-                updateStatusItem(elements.readyStatus, elements.readyValue, handshakeStatus.ready, 'ready');
-                updateStatusItem(elements.runningStatus, elements.runningValue, handshakeStatus.running, 'running');
-                updateStatusItem(elements.alarmStatus, elements.alarmValue, handshakeStatus.alarm, 'alarm');
-                updateStatusItem(elements.initStatus, elements.initValue, handshakeStatus.initialized, 'initialized');
-            }
+        // 添加日誌
+        function addLog(message) {
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}<br>`;
             
-            // 更新設備狀態
-            if (deviceStatus) {
-                elements.positionValue.textContent = `${deviceStatus.current_position?.toFixed(2) || 0.00} mm`;
-                elements.servoValue.textContent = deviceStatus.servo_status ? 'ON' : 'OFF';
+            if (autoScroll) {
+                logContent.scrollTop = logContent.scrollHeight;
             }
         }
         
-        // 更新統計顯示
-        function updateStatsDisplay(stats) {
-            if (stats) {
-                elements.commandsSent.textContent = stats.commands_sent || 0;
-                elements.successfulCommands.textContent = stats.successful_commands || 0;
-                elements.connectionErrors.textContent = stats.connection_errors || 0;
-                elements.uptime.textContent = stats.uptime_formatted || '00:00:00';
-            }
+        // 清除日誌
+        function clearLog() {
+            document.getElementById('logContent').innerHTML = '日誌已清除<br>';
         }
         
-        // 更新單個狀態項目
-        function updateStatusItem(element, valueElement, value, type) {
-            const statusText = value ? 'ON' : 'OFF';
-            const statusClass = value ? type : '';
-            
-            valueElement.textContent = statusText;
-            element.className = `status-item ${statusClass}`;
-        }
-        
-        // 顯示通知
-        function showNotification(message, type = 'success') {
-            elements.notification.textContent = message;
-            elements.notification.className = `notification ${type}`;
-            elements.notification.classList.add('show');
-            
-            setTimeout(() => {
-                elements.notification.classList.remove('show');
-            }, 3000);
+        // 切換自動滾動
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const text = document.getElementById('autoScrollText');
+            text.textContent = autoScroll ? '停止滾動' : '自動滾動';
         }
     </script>
 </body>
