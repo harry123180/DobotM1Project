@@ -138,7 +138,7 @@ class MotorControlApp:
         # 主窗口
         self.root = ctk.CTk()
         self.root.title("Modbus RTU 步進馬達控制工具")
-        self.root.geometry("600x600")
+        self.root.geometry("600x650")
         
         # Modbus 實例
         self.modbus = ModbusRTU()
@@ -199,23 +199,32 @@ class MotorControlApp:
         self.position_entry = ctk.CTkEntry(pos_frame, placeholder_text="輸入位置值")
         self.position_entry.pack(side="left", padx=5, fill="x", expand=True)
         
-        # 控制按鈕
-        btn_frame = ctk.CTkFrame(control_frame)
-        btn_frame.pack(pady=10, padx=10, fill="x")
+        # 控制按鈕 - 第一排
+        btn_frame1 = ctk.CTkFrame(control_frame)
+        btn_frame1.pack(pady=5, padx=10, fill="x")
         
-        self.move_btn = ctk.CTkButton(btn_frame, text="移動到位置", command=self.move_to_position, state="disabled")
+        self.move_btn = ctk.CTkButton(btn_frame1, text="移動到位置", command=self.move_to_position, state="disabled")
         self.move_btn.pack(side="left", padx=5)
         
-        self.prepare_btn = ctk.CTkButton(btn_frame, text="準備", command=self.prepare_motor, state="disabled", 
+        self.home_btn = ctk.CTkButton(btn_frame1, text="回原點", command=self.go_home, state="disabled")
+        self.home_btn.pack(side="left", padx=5)
+        
+        self.stop_btn = ctk.CTkButton(btn_frame1, text="緊急停止", command=self.emergency_stop, 
+                                     fg_color="red", hover_color="darkred", state="disabled")
+        self.stop_btn.pack(side="right", padx=5)
+        
+        # 控制按鈕 - 第二排（準備和清除指令）
+        btn_frame2 = ctk.CTkFrame(control_frame)
+        btn_frame2.pack(pady=5, padx=10, fill="x")
+        
+        self.prepare_btn = ctk.CTkButton(btn_frame2, text="準備", command=self.prepare_motor, state="disabled", 
                                         fg_color="orange", hover_color="darkorange")
         self.prepare_btn.pack(side="left", padx=5)
         
-        self.home_btn = ctk.CTkButton(btn_frame, text="回原點", command=self.go_home, state="disabled")
-        self.home_btn.pack(side="left", padx=5)
-        
-        self.stop_btn = ctk.CTkButton(btn_frame, text="緊急停止", command=self.emergency_stop, 
-                                     fg_color="red", hover_color="darkred", state="disabled")
-        self.stop_btn.pack(side="right", padx=5)
+        # 新增的清除指令按鈕
+        self.clear_cmd_btn = ctk.CTkButton(btn_frame2, text="清除指令", command=self.manual_clear_command, 
+                                          state="disabled", fg_color="purple", hover_color="darkviolet")
+        self.clear_cmd_btn.pack(side="left", padx=5)
         
         # 狀態顯示區域
         status_frame = ctk.CTkFrame(self.root)
@@ -292,6 +301,7 @@ class MotorControlApp:
         self.prepare_btn.configure(state=state)
         self.home_btn.configure(state=state)
         self.stop_btn.configure(state=state)
+        self.clear_cmd_btn.configure(state=state)  # 新增的清除指令按鈕
     
     def send_init_params(self):
         """發送初始化參數"""
@@ -320,6 +330,7 @@ class MotorControlApp:
             
             if success:
                 messagebox.showinfo("成功", "初始化參數已發送")
+                self.log_message("初始化參數已發送完成")
             else:
                 messagebox.showerror("錯誤", "發送初始化參數失敗")
                 
@@ -380,6 +391,28 @@ class MotorControlApp:
         except Exception as e:
             messagebox.showerror("錯誤", f"準備失敗: {e}")
     
+    def manual_clear_command(self):
+        """手動清除指令 - 新增的獨立功能"""
+        if not self.is_connected:
+            messagebox.showerror("錯誤", "請先連接串口")
+            return
+        
+        try:
+            # 向寄存器 125 寫入 0 清除指令
+            success = self.modbus.write_single_register(self.slave_id, 125, 0)
+            
+            if success:
+                self.need_clear_command = False  # 清除自動清除標記
+                messagebox.showinfo("成功", "指令已清除")
+                self.log_message("手動執行清除指令操作完成")
+            else:
+                messagebox.showerror("錯誤", "清除指令失敗")
+                self.log_message("手動清除指令操作失敗")
+                
+        except Exception as e:
+            messagebox.showerror("錯誤", f"清除指令失敗: {e}")
+            self.log_message(f"清除指令操作異常: {e}")
+    
     def go_home(self):
         """回原點"""
         if not self.is_connected:
@@ -417,6 +450,7 @@ class MotorControlApp:
             
             if success:
                 messagebox.showinfo("成功", "已發送緊急停止指令")
+                self.log_message("緊急停止指令已發送")
             else:
                 messagebox.showerror("錯誤", "發送緊急停止指令失敗")
                 
@@ -456,7 +490,7 @@ class MotorControlApp:
             print(f"讀取狀態失敗: {e}")
     
     def clear_command(self):
-        """清除指令狀態"""
+        """清除指令狀態（自動觸發）"""
         try:
             # 向寄存器 125 寫入 0 清除指令
             success = self.modbus.write_single_register(self.slave_id, 125, 0)
@@ -464,9 +498,9 @@ class MotorControlApp:
                 self.need_clear_command = False
                 self.log_message("運動完成，已自動清除指令狀態，為下一次運動做準備")
             else:
-                self.log_message("清除指令狀態失敗")
+                self.log_message("自動清除指令狀態失敗")
         except Exception as e:
-            self.log_message(f"清除指令失敗: {e}")
+            self.log_message(f"自動清除指令失敗: {e}")
     
     def log_message(self, message):
         """添加日志消息"""
