@@ -144,7 +144,7 @@ class GripperModule:
             
             if result and not result.isError():
                 self.gripper_states[gripper_type]['connected'] = True
-                print(f"{gripper_type}夾爪連接正常 (unit_id={unit_id})")
+                #print(f"{gripper_type}夾爪連接正常 (unit_id={unit_id})")
                 return True
             else:
                 self.gripper_states[gripper_type]['connected'] = False
@@ -170,17 +170,14 @@ class GripperModule:
                 # PGC狀態讀取 - 使用正確的PyModbus 3.x語法
                 init_status = self.rtu_client.read_holding_registers(address=0x0200, count=1, slave=unit_id)
                 if init_status.isError():
-                    print(f"PGC讀取0x0200失敗: {init_status}")
                     return None
                     
                 grip_status = self.rtu_client.read_holding_registers(address=0x0201, count=1, slave=unit_id) 
                 if grip_status.isError():
-                    print(f"PGC讀取0x0201失敗: {grip_status}")
                     return None
                     
                 position = self.rtu_client.read_holding_registers(address=0x0202, count=1, slave=unit_id)
                 if position.isError():
-                    print(f"PGC讀取0x0202失敗: {position}")
                     return None
                     
                 status_data = {
@@ -189,28 +186,23 @@ class GripperModule:
                     'position': position.registers[0],
                     'connected': True
                 }
-                print(f"PGC狀態讀取成功: {status_data}")
                 
             elif gripper_type == 'PGHL':
                 # PGHL狀態讀取 - 使用正確的PyModbus 3.x語法
                 home_status = self.rtu_client.read_holding_registers(address=0x0200, count=1, slave=unit_id)
                 if home_status.isError():
-                    print(f"PGHL讀取0x0200失敗: {home_status}")
                     return None
                     
                 running_status = self.rtu_client.read_holding_registers(address=0x0201, count=1, slave=unit_id)
                 if running_status.isError():
-                    print(f"PGHL讀取0x0201失敗: {running_status}")
                     return None
                     
                 position = self.rtu_client.read_holding_registers(address=0x0202, count=1, slave=unit_id)
                 if position.isError():
-                    print(f"PGHL讀取0x0202失敗: {position}")
                     return None
                     
                 current = self.rtu_client.read_holding_registers(address=0x0204, count=1, slave=unit_id)
                 if current.isError():
-                    print(f"PGHL讀取0x0204失敗: {current}")
                     return None
                     
                 status_data = {
@@ -220,23 +212,19 @@ class GripperModule:
                     'current': current.registers[0],
                     'connected': True
                 }
-                print(f"PGHL狀態讀取成功: {status_data}")
                 
             elif gripper_type == 'PGE':
                 # PGE狀態讀取 - 使用正確的PyModbus 3.x語法
                 init_status = self.rtu_client.read_holding_registers(address=0x0200, count=1, slave=unit_id)
                 if init_status.isError():
-                    print(f"PGE讀取0x0200失敗: {init_status}")
                     return None
                     
                 grip_status = self.rtu_client.read_holding_registers(address=0x0201, count=1, slave=unit_id)
                 if grip_status.isError():
-                    print(f"PGE讀取0x0201失敗: {grip_status}")
                     return None
                     
                 position = self.rtu_client.read_holding_registers(address=0x0202, count=1, slave=unit_id)
                 if position.isError():
-                    print(f"PGE讀取0x0202失敗: {position}")
                     return None
                     
                 status_data = {
@@ -245,12 +233,10 @@ class GripperModule:
                     'position': position.registers[0],
                     'connected': True
                 }
-                print(f"PGE狀態讀取成功: {status_data}")
             
             return status_data
             
         except Exception as e:
-            print(f"讀取{gripper_type}狀態異常: {e}")
             self.gripper_states[gripper_type]['error_count'] += 1
             return None
 
@@ -369,46 +355,48 @@ class GripperModule:
                 # 讀取夾爪狀態
                 status_data = self.read_gripper_status(gripper_type)
                 
+                # 準備寄存器數據
+                registers = [0] * 20  # 20個狀態寄存器
+                
                 if status_data:
-                    # 更新狀態寄存器
-                    registers = [0] * 20  # 20個狀態寄存器
-                    
                     # 通用狀態
-                    registers[0] = 1 if status_data.get('connected', False) else 0  # 模組狀態
-                    registers[1] = 1 if status_data.get('connected', False) else 0  # 連接狀態
+                    registers[0] = 1  # 模組狀態 - 在線
+                    registers[1] = 1  # 連接狀態 - 已連接
                     registers[3] = self.gripper_states[gripper_type]['error_count']  # 錯誤計數
                     registers[14] = int(time.time()) & 0xFFFF  # 時間戳
                     
                     # 型號特定狀態
                     if gripper_type == 'PGC':
-                        registers[2] = status_data.get('init_status', 0)
-                        registers[4] = status_data.get('grip_status', 0)
-                        registers[5] = status_data.get('position', 0)
+                        registers[2] = status_data.get('init_status', 0)      # 初始化狀態
+                        registers[4] = status_data.get('grip_status', 0)      # 夾持狀態  
+                        registers[5] = status_data.get('position', 0)         # 位置
                     elif gripper_type == 'PGHL':
-                        registers[2] = status_data.get('home_status', 0)
-                        registers[4] = status_data.get('running_status', 0)
-                        registers[5] = status_data.get('position', 0)
-                        registers[6] = status_data.get('current', 0)
+                        registers[2] = status_data.get('home_status', 0)      # 回零狀態
+                        registers[4] = status_data.get('running_status', 0)   # 運行狀態
+                        registers[5] = status_data.get('position', 0)         # 位置
+                        registers[6] = status_data.get('current', 0)          # 電流
                     elif gripper_type == 'PGE':
-                        registers[2] = status_data.get('init_status', 0)
-                        registers[4] = status_data.get('grip_status', 0)
-                        registers[5] = status_data.get('position', 0)
+                        registers[2] = status_data.get('init_status', 0)      # 初始化狀態
+                        registers[4] = status_data.get('grip_status', 0)      # 夾持狀態
+                        registers[5] = status_data.get('position', 0)         # 位置
                     
-                    # 寫入主服務器
-                    self.main_server_client.write_registers(
-                        address=status_base,
-                        values=registers,
-                        slave=self.config["tcp_server"]["unit_id"]
-                    )
+                    #print(f"更新{gripper_type}狀態到地址{status_base}: 連接={registers[1]}, 狀態={registers[2]}, 位置={registers[5]}")
                 else:
                     # 設備離線狀態
-                    registers = [0] * 20
+                    registers[0] = 0  # 模組狀態 - 離線
+                    registers[1] = 0  # 連接狀態 - 斷開
                     registers[3] = self.gripper_states[gripper_type]['error_count']
-                    self.main_server_client.write_registers(
-                        address=status_base,
-                        values=registers,
-                        slave=self.config["tcp_server"]["unit_id"]
-                    )
+                    #print(f"更新{gripper_type}狀態到地址{status_base}: 離線")
+                
+                # 寫入主服務器
+                result = self.main_server_client.write_registers(
+                    address=status_base,
+                    values=registers,
+                    slave=self.config["tcp_server"]["unit_id"]
+                )
+                
+                if result.isError():
+                    print(f"寫入{gripper_type}狀態寄存器失敗: {result}")
                     
         except Exception as e:
             print(f"狀態寄存器更新錯誤: {e}")
@@ -443,8 +431,15 @@ class GripperModule:
                     param1 = result.registers[1]   # 參數1
                     param2 = result.registers[2]   # 參數2
                     
+                    print(f"收到{gripper_type}指令: 代碼={command}, 參數1={param1}, 參數2={param2}, ID={command_id}")
+                    
                     # 執行指令
                     success = self.execute_gripper_command(gripper_type, command, param1, param2)
+                    
+                    if success:
+                        print(f"{gripper_type}指令執行成功")
+                    else:
+                        print(f"{gripper_type}指令執行失敗")
                     
                     # 清除指令寄存器
                     clear_values = [0] * 10

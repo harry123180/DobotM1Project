@@ -1,0 +1,2 @@
+2025-06-10 01:19:16,758 - ERROR - RTU寫入失敗: ExceptionResponse(dev_id=2, function_code=134, exception_code=3)
+2025-06-10 01:19:26,996 - ERROR - RTU寫入失敗: ExceptionResponse(dev_id=2, function_code=134, exception_code=3)
