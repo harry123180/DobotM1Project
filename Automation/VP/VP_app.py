@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 VP_app.py - 震動盤Web UI控制應用
-作為Modbus TCP Client訪問VP_main模組的寄存器進行監控和控制
+作為純Modbus TCP Client連接主服務器，通過VP_main模組控制震動盤
 """
 
 from flask import Flask, render_template, request, jsonify
@@ -15,13 +15,13 @@ from pymodbus.client import ModbusTcpClient
 from typing import Dict, Any, Optional
 
 class VibrationPlateWebApp:
-    """震動盤Web控制應用 - Modbus TCP Client"""
+    """震動盤Web控制應用 - 純Modbus TCP Client"""
     
     def __init__(self):
         # 載入配置
         self.config = self.load_config()
         
-        # Modbus TCP Client
+        # Modbus TCP Client (連接主服務器)
         self.modbus_client: Optional[ModbusTcpClient] = None
         self.connected_to_server = False
         
@@ -29,12 +29,11 @@ class VibrationPlateWebApp:
         self.status_monitor_thread = None
         self.monitoring = False
         
-        # 寄存器映射 (與VP_main.py一致)
-        self.base_address = self.config['modbus_mapping']['base_address']  # 300
+        # 寄存器映射 (與VP_main.py一致 - 基地址300)
+        self.base_address = self.config['modbus_mapping']['base_address']
         self.init_register_mapping()
         
-        # 狀態快取
-        self.last_status = {}
+        # 狀態快取和指令計數
         self.command_id_counter = 1
         
         # 初始化Flask應用
@@ -85,7 +84,7 @@ class VibrationPlateWebApp:
     
     def init_register_mapping(self):
         """初始化寄存器映射 (與VP_main.py一致)"""
-        base = self.base_address
+        base = self.base_address  # 300
         
         # 狀態寄存器區 (只讀) base+0 ~ base+14
         self.status_registers = {
@@ -108,36 +107,37 @@ class VibrationPlateWebApp:
         
         # 指令寄存器區 (讀寫) base+20 ~ base+24
         self.command_registers = {
-            'command_code': base + 20,          # 指令代碼
-            'param1': base + 21,                # 參數1 (強度/亮度/動作碼)
-            'param2': base + 22,                # 參數2 (頻率)
+            'command_code': base + 20,          # 指令代碼 (320)
+            'param1': base + 21,                # 參數1
+            'param2': base + 22,                # 參數2
             'command_id': base + 23,            # 指令ID
             'reserved': base + 24               # 保留
         }
         
-        # 指令映射
+        # VP_main指令映射
         self.command_map = {
-            'nop': 0,
-            'enable_device': 1,      # 背光開啟
-            'disable_device': 2,     # 背光關閉
-            'stop_all': 3,           # 停止所有動作
+            'nop': 0,                # 無操作
+            'enable_device': 1,      # 設備啟用 (背光開啟)
+            'disable_device': 2,     # 設備停用 (背光關閉)
+            'stop_all': 3,           # 停止所有動作 ★
             'set_brightness': 4,     # 設定背光亮度
             'execute_action': 5,     # 執行動作
-            'emergency_stop': 6,     # 緊急停止
+            'emergency_stop': 6,     # 緊急停止 ★
             'reset_error': 7,        # 錯誤重置
-            'set_action_params': 11, # 設定動作參數 (VP專用)
-            'toggle_backlight': 12,  # 背光切換 (VP專用)
-            'execute_with_params': 13 # 執行動作並設定參數 (VP專用)
         }
         
-        # 動作映射
+        # 動作編碼映射 (用於execute_action指令的param1)
         self.action_map = {
             'stop': 0, 'up': 1, 'down': 2, 'left': 3, 'right': 4,
             'upleft': 5, 'downleft': 6, 'upright': 7, 'downright': 8,
             'horizontal': 9, 'vertical': 10, 'spread': 11
         }
         
-        print(f"震動盤Web UI寄存器映射 - 基地址: {base}")
+        print(f"震動盤Web UI寄存器映射初始化:")
+        print(f"  主服務器: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
+        print(f"  基地址: {base}")
+        print(f"  指令寄存器: {base + 20} ~ {base + 24}")
+        print(f"  停止指令: 指令代碼3寫入寄存器{base + 20}")
         
     def init_flask_app(self):
         """初始化Flask應用"""
@@ -147,30 +147,18 @@ class VibrationPlateWebApp:
         # 初始化SocketIO
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
         
-        # 添加錯誤處理
+        # 錯誤處理
         @self.app.errorhandler(404)
         def not_found_error(error):
-            return jsonify({
-                'success': False,
-                'message': '請求的路徑不存在',
-                'error': 'Not Found'
-            }), 404
+            return jsonify({'success': False, 'message': '路徑不存在'}), 404
         
         @self.app.errorhandler(500)
         def internal_error(error):
-            return jsonify({
-                'success': False,
-                'message': '內部服務器錯誤',
-                'error': 'Internal Server Error'
-            }), 500
+            return jsonify({'success': False, 'message': '內部服務器錯誤'}), 500
         
         @self.app.errorhandler(405)
         def method_not_allowed(error):
-            return jsonify({
-                'success': False,
-                'message': '請求方法不被允許',
-                'error': 'Method Not Allowed'
-            }), 405
+            return jsonify({'success': False, 'message': '請求方法不被允許'}), 405
         
         # 註冊路由
         self.register_routes()
@@ -191,11 +179,10 @@ class VibrationPlateWebApp:
         
         @self.app.route('/api/connect', methods=['POST'])
         def connect_server():
-            """連接到Modbus TCP服務器"""
+            """連接到主Modbus TCP服務器"""
             try:
                 data = request.get_json() or {}
                 
-                # 更新連接參數
                 if 'host' in data:
                     self.config['tcp_server']['host'] = data['host']
                 if 'port' in data:
@@ -225,14 +212,14 @@ class VibrationPlateWebApp:
                     'message': f'斷開連接時發生錯誤: {str(e)}'
                 })
         
-        @self.app.route('/api/execute_action', methods=['POST'])
+        @self.app.route('/api/action', methods=['POST'])
         def execute_action():
             """執行震動動作"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': 'Modbus服務器未連接'
+                        'message': '主服務器未連接'
                     })
                 
                 data = request.get_json()
@@ -244,7 +231,6 @@ class VibrationPlateWebApp:
                 
                 action = data.get('action')
                 strength = data.get('strength', 100)
-                frequency = data.get('frequency', 100)
                 
                 if not action or action not in self.action_map:
                     return jsonify({
@@ -252,7 +238,44 @@ class VibrationPlateWebApp:
                         'message': f'未知動作: {action}'
                     })
                 
-                # 執行動作指令
+                # 發送execute_action指令 (指令5)
+                action_code = self.action_map[action]
+                result = self.send_command('execute_action', action_code, strength)
+                
+                return jsonify(result)
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'message': f'執行動作時發生錯誤: {str(e)}'
+                })
+        
+        @self.app.route('/api/execute_action', methods=['POST'])
+        def execute_action_alt():
+            """執行震動動作 (備用路徑)"""
+            try:
+                if not self.connected_to_server:
+                    return jsonify({
+                        'success': False,
+                        'message': '主服務器未連接'
+                    })
+                
+                data = request.get_json()
+                if not data:
+                    return jsonify({
+                        'success': False,
+                        'message': '無效的請求數據'
+                    })
+                
+                action = data.get('action')
+                strength = data.get('strength', 100)
+                
+                if not action or action not in self.action_map:
+                    return jsonify({
+                        'success': False,
+                        'message': f'未知動作: {action}'
+                    })
+                
+                # 發送execute_action指令 (指令5)
                 action_code = self.action_map[action]
                 result = self.send_command('execute_action', action_code, strength)
                 
@@ -265,38 +288,27 @@ class VibrationPlateWebApp:
         
         @self.app.route('/api/stop', methods=['POST'])
         def stop_action():
-            """停止動作"""
+            """停止動作 - 發送停止指令到VP_main"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': 'Modbus服務器未連接'
+                        'message': '主服務器未連接'
                     })
                 
+                # 發送stop_all指令 (指令3) 到VP_main
                 result = self.send_command('stop_all')
+                
+                if result['success']:
+                    result['message'] = '停止指令發送成功'
+                else:
+                    result['message'] = '停止指令發送失敗'
+                
                 return jsonify(result)
             except Exception as e:
                 return jsonify({
                     'success': False,
                     'message': f'停止動作時發生錯誤: {str(e)}'
-                })
-        
-        @self.app.route('/api/stop_all_command', methods=['POST'])
-        def stop_all_command():
-            """停止所有动作 (备用方法)"""
-            try:
-                if not self.connected_to_server:
-                    return jsonify({
-                        'success': False,
-                        'message': 'Modbus服务器未连接'
-                    })
-                
-                result = self.send_command('stop_all')
-                return jsonify(result)
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'message': f'停止动作时发生错误: {str(e)}'
                 })
         
         @self.app.route('/api/emergency_stop', methods=['POST'])
@@ -306,10 +318,12 @@ class VibrationPlateWebApp:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': 'Modbus服務器未連接'
+                        'message': '主服務器未連接'
                     })
                 
+                # 發送emergency_stop指令 (指令6) 到VP_main
                 result = self.send_command('emergency_stop')
+                
                 return jsonify(result)
             except Exception as e:
                 return jsonify({
@@ -324,7 +338,7 @@ class VibrationPlateWebApp:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': 'Modbus服務器未連接'
+                        'message': '主服務器未連接'
                     })
                 
                 data = request.get_json()
@@ -337,7 +351,9 @@ class VibrationPlateWebApp:
                 brightness = data.get('brightness', 128)
                 brightness = max(0, min(255, int(brightness)))
                 
+                # 發送set_brightness指令 (指令4)
                 result = self.send_command('set_brightness', brightness)
+                
                 if result['success']:
                     self.config['defaults']['brightness'] = brightness
                 
@@ -355,7 +371,7 @@ class VibrationPlateWebApp:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': 'Modbus服務器未連接'
+                        'message': '主服務器未連接'
                     })
                 
                 data = request.get_json()
@@ -367,6 +383,7 @@ class VibrationPlateWebApp:
                 
                 state = data.get('state', True)
                 
+                # 發送背光控制指令
                 command = 'enable_device' if state else 'disable_device'
                 result = self.send_command(command)
                 
@@ -377,42 +394,23 @@ class VibrationPlateWebApp:
                     'message': f'設定背光時發生錯誤: {str(e)}'
                 })
         
-        @self.app.route('/api/set_action_params', methods=['POST'])
-        def set_action_params():
-            """設定動作參數"""
-            if not self.connected_to_server:
-                return jsonify({
-                    'success': False,
-                    'message': 'Modbus服務器未連接'
-                })
-            
-            data = request.get_json()
-            action = data.get('action')
-            strength = data.get('strength')
-            frequency = data.get('frequency')
-            
-            if action not in self.action_map:
-                return jsonify({
-                    'success': False,
-                    'message': f'未知動作: {action}'
-                })
-            
-            action_code = self.action_map[action]
-            result = self.send_command('set_action_params', action_code, strength)
-            
-            return jsonify(result)
-        
         @self.app.route('/api/reset_error', methods=['POST'])
         def reset_error():
             """重置錯誤"""
-            if not self.connected_to_server:
+            try:
+                if not self.connected_to_server:
+                    return jsonify({
+                        'success': False,
+                        'message': '主服務器未連接'
+                    })
+                
+                result = self.send_command('reset_error')
+                return jsonify(result)
+            except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': 'Modbus服務器未連接'
+                    'message': f'重置錯誤時發生錯誤: {str(e)}'
                 })
-            
-            result = self.send_command('reset_error')
-            return jsonify(result)
         
         @self.app.route('/api/get_register_values', methods=['GET'])
         def get_register_values():
@@ -420,7 +418,7 @@ class VibrationPlateWebApp:
             if not self.connected_to_server:
                 return jsonify({
                     'success': False,
-                    'message': 'Modbus服務器未連接'
+                    'message': '主服務器未連接'
                 })
             
             try:
@@ -448,30 +446,31 @@ class VibrationPlateWebApp:
                     'message': f'讀取寄存器失敗: {str(e)}'
                 })
         
-        @self.app.route('/api/execute_with_params', methods=['POST'])
-        def execute_with_params():
-            """執行動作並設定參數"""
-            if not self.connected_to_server:
+        @self.app.route('/api/debug', methods=['GET'])
+        def debug_info():
+            """調試資訊"""
+            try:
+                debug_data = {
+                    'success': True,
+                    'server_status': {
+                        'connected': self.connected_to_server,
+                        'server_config': self.config['tcp_server'],
+                        'base_address': self.base_address
+                    },
+                    'register_mapping': {
+                        'status_registers': self.status_registers,
+                        'command_registers': self.command_registers
+                    },
+                    'command_map': self.command_map,
+                    'action_map': self.action_map,
+                    'command_counter': self.command_id_counter
+                }
+                return jsonify(debug_data)
+            except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': 'Modbus服務器未連接'
+                    'message': f'獲取調試資訊失敗: {str(e)}'
                 })
-            
-            data = request.get_json()
-            action = data.get('action')
-            strength = data.get('strength', 100)
-            frequency = data.get('frequency', 100)
-            
-            if action not in self.action_map:
-                return jsonify({
-                    'success': False,
-                    'message': f'未知動作: {action}'
-                })
-            
-            action_code = self.action_map[action]
-            result = self.send_command('execute_with_params', action_code, strength)
-            
-            return jsonify(result)
         
         @self.app.route('/api/routes', methods=['GET'])
         def list_routes():
@@ -496,88 +495,6 @@ class VibrationPlateWebApp:
                     'success': False,
                     'message': f'獲取路由列表失敗: {str(e)}'
                 })
-        
-        @self.app.route('/api/debug', methods=['GET'])
-        def debug_info():
-            """調試資訊"""
-            try:
-                debug_data = {
-                    'success': True,
-                    'server_status': {
-                        'connected': self.connected_to_server,
-                        'server_config': self.config['tcp_server'],
-                        'base_address': self.base_address
-                    },
-                    'register_mapping': {
-                        'status_registers': self.status_registers,
-                        'command_registers': self.command_registers
-                    },
-                    'action_map': self.action_map,
-                    'command_map': self.command_map,
-                    'last_status': self.last_status,
-                    'command_counter': self.command_id_counter
-                }
-                return jsonify(debug_data)
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'message': f'獲取調試資訊失敗: {str(e)}'
-                })
-        
-        @self.app.route('/api/test', methods=['GET', 'POST'])
-        def test_endpoint():
-            """測試端點"""
-            try:
-                method = request.method
-                data = request.get_json() if request.method == 'POST' else None
-                
-                return jsonify({
-                    'success': True,
-                    'message': f'測試端點正常 - 方法: {method}',
-                    'received_data': data,
-                    'timestamp': datetime.now().isoformat()
-                })
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'message': f'測試端點錯誤: {str(e)}'
-                })
-            """批量執行指令"""
-            if not self.connected_to_server:
-                return jsonify({
-                    'success': False,
-                    'message': 'Modbus服務器未連接'
-                })
-            
-            data = request.get_json()
-            commands = data.get('commands', [])
-            
-            results = []
-            success_count = 0
-            
-            for cmd in commands:
-                action = cmd.get('action')
-                strength = cmd.get('strength', 100)
-                frequency = cmd.get('frequency', 100)
-                
-                if action in self.action_map:
-                    action_code = self.action_map[action]
-                    result = self.send_command('execute_with_params', action_code, strength)
-                    if result['success']:
-                        success_count += 1
-                    results.append(result)
-                else:
-                    results.append({
-                        'success': False,
-                        'message': f'未知動作: {action}'
-                    })
-            
-            return jsonify({
-                'success': success_count == len(commands),
-                'message': f'批量執行完成: {success_count}/{len(commands)}',
-                'results': results,
-                'success_count': success_count
-            })
     
     def register_socketio_events(self):
         """註冊SocketIO事件"""
@@ -597,26 +514,9 @@ class VibrationPlateWebApp:
         def handle_status_request():
             """狀態請求"""
             emit('status_update', self.get_current_status())
-        
-        @self.socketio.on('execute_command')
-        def handle_execute_command(data):
-            """執行指令"""
-            if not self.connected_to_server:
-                emit('command_result', {
-                    'success': False,
-                    'message': 'Modbus服務器未連接'
-                })
-                return
-            
-            command = data.get('command')
-            param1 = data.get('param1', 0)
-            param2 = data.get('param2', 0)
-            
-            result = self.send_command(command, param1, param2)
-            emit('command_result', result)
     
     def connect_modbus_server(self) -> Dict[str, Any]:
-        """連接到Modbus TCP服務器"""
+        """連接到主Modbus TCP服務器"""
         try:
             if self.modbus_client:
                 self.modbus_client.close()
@@ -630,23 +530,23 @@ class VibrationPlateWebApp:
             
             if self.modbus_client.connect():
                 self.connected_to_server = True
-                print(f"連接到Modbus服務器成功: {server_config['host']}:{server_config['port']}")
+                print(f"連接到主Modbus服務器成功: {server_config['host']}:{server_config['port']}")
                 
                 return {
                     'success': True,
-                    'message': 'Modbus服務器連接成功',
+                    'message': '主Modbus服務器連接成功',
                     'server_info': server_config
                 }
             else:
                 self.connected_to_server = False
                 return {
                     'success': False,
-                    'message': 'Modbus服務器連接失敗'
+                    'message': '主Modbus服務器連接失敗'
                 }
                 
         except Exception as e:
             self.connected_to_server = False
-            print(f"連接Modbus服務器失敗: {e}")
+            print(f"連接主Modbus服務器失敗: {e}")
             return {
                 'success': False,
                 'message': f'連接失敗: {str(e)}'
@@ -662,11 +562,11 @@ class VibrationPlateWebApp:
                 self.modbus_client = None
             
             self.connected_to_server = False
-            print("Modbus服務器連接已斷開")
+            print("主Modbus服務器連接已斷開")
             
             return {
                 'success': True,
-                'message': 'Modbus服務器連接已斷開'
+                'message': '主Modbus服務器連接已斷開'
             }
             
         except Exception as e:
@@ -689,11 +589,9 @@ class VibrationPlateWebApp:
             if not result.isError():
                 return result.registers[0]
             else:
-                print(f"讀取寄存器 {address} 失敗: {result}")
                 return None
                 
         except Exception as e:
-            print(f"讀取寄存器 {address} 異常: {e}")
             self.connected_to_server = False
             return None
     
@@ -707,14 +605,9 @@ class VibrationPlateWebApp:
                 address, value, slave=self.config['tcp_server']['unit_id']
             )
             
-            if not result.isError():
-                return True
-            else:
-                print(f"寫入寄存器 {address}={value} 失敗: {result}")
-                return False
+            return not result.isError()
                 
         except Exception as e:
-            print(f"寫入寄存器 {address}={value} 異常: {e}")
             self.connected_to_server = False
             return False
     
@@ -723,7 +616,7 @@ class VibrationPlateWebApp:
         if not self.connected_to_server:
             return {
                 'success': False,
-                'message': 'Modbus服務器未連接'
+                'message': '主服務器未連接'
             }
         
         if command not in self.command_map:
@@ -736,15 +629,7 @@ class VibrationPlateWebApp:
             command_code = self.command_map[command]
             self.command_id_counter += 1
             
-            # 檢查Modbus客戶端連接
-            if not self.modbus_client or not self.modbus_client.connected:
-                self.connected_to_server = False
-                return {
-                    'success': False,
-                    'message': 'Modbus連接已斷開'
-                }
-            
-            # 寫入指令寄存器
+            # 寫入指令寄存器 (狀態機交握)
             write_results = []
             write_results.append(self.write_register(self.command_registers['command_code'], command_code))
             write_results.append(self.write_register(self.command_registers['param1'], param1))
@@ -804,7 +689,7 @@ class VibrationPlateWebApp:
                     test_read = self.read_register(self.status_registers['module_status'])
                     if test_read is None:
                         self.connected_to_server = False
-                        print("Modbus服務器連接已斷開")
+                        print("主Modbus服務器連接已斷開")
                     
                     # 發送狀態更新
                     status = self.get_current_status()
@@ -871,16 +756,15 @@ class VibrationPlateWebApp:
         
         web_config = self.config['web_server']
         print(f"Web服務器啟動 - http://{web_config['host']}:{web_config['port']}")
-        print(f"Modbus服務器地址: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
-        print(f"震動盤模組基地址: {self.base_address}")
+        print(f"主Modbus服務器: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
+        print(f"VP模組基地址: {self.base_address}")
+        print("架構: VP_app → 主Modbus服務器 → VP_main → 震動盤(192.168.1.7:1000)")
         print("功能列表:")
         print("  - VP_main模組寄存器監控")
         print("  - 震動動作控制 (11種震動模式)")
+        print("  - 停止功能 (指令3→VP_main→震動盤寄存器4)")
         print("  - 背光控制 (亮度調節/開關)")
-        print("  - 動作參數設定")
-        print("  - 指令狀態追蹤")
         print("  - 錯誤重置")
-        print("  - 即時寄存器數值顯示")
         print("按 Ctrl+C 停止應用")
         
         try:
@@ -903,7 +787,7 @@ class VibrationPlateWebApp:
         if self.modbus_client:
             try:
                 self.modbus_client.close()
-                print("Modbus連接已安全斷開")
+                print("主Modbus連接已安全斷開")
             except:
                 pass
         print("資源清理完成")
@@ -921,7 +805,6 @@ def create_index_html():
     if not os.path.exists(index_path):
         print(f"注意: 未找到 {index_path}")
         print("請確保將 index.html 檔案放置在 templates/ 目錄中")
-        print("或者從提供的 HTML 模板創建該檔案")
         return False
     
     return True
@@ -930,7 +813,7 @@ def create_index_html():
 def main():
     """主函數"""
     print("=" * 60)
-    print("震動盤Web控制應用 (Modbus TCP Client)")
+    print("震動盤Web控制應用 (純Modbus TCP Client)")
     print("=" * 60)
     
     # 檢查HTML模板

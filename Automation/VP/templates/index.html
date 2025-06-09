@@ -330,7 +330,7 @@
                 <div class="panel-title">連接控制</div>
                 
                 <div class="control-group">
-                    <label for="serverHost">Modbus服務器地址:</label>
+                    <label for="serverHost">主服務器地址:</label>
                     <input type="text" id="serverHost" class="control-input" value="127.0.0.1">
                 </div>
                 
@@ -346,8 +346,6 @@
                 
                 <div class="control-group">
                     <button class="btn btn-primary" onclick="resetError()">重置錯誤</button>
-                    <button class="btn btn-primary" onclick="testAPI()">測試API</button>
-                    <button class="btn btn-primary" onclick="checkRoutes()">檢查路由</button>
                 </div>
             </div>
 
@@ -361,7 +359,7 @@
                     <button class="action-btn" onclick="executeAction('upright')">右上</button>
                     
                     <button class="action-btn" onclick="executeAction('left')">左</button>
-                    <button class="action-btn stop" onclick="stopAllActions()">停止</button>
+                    <button class="action-btn stop" onclick="stopAction()">停止</button>
                     <button class="action-btn" onclick="executeAction('right')">右</button>
                     
                     <button class="action-btn" onclick="executeAction('downleft')">左下</button>
@@ -380,7 +378,7 @@
                 </div>
                 
                 <div class="control-group">
-                    <button class="btn btn-danger" onclick="emergencyStopAction()">緊急停止</button>
+                    <button class="btn btn-danger" onclick="emergencyStop()">緊急停止</button>
                 </div>
             </div>
 
@@ -536,10 +534,10 @@
             
             if (connected) {
                 indicator.className = 'status-indicator connected';
-                status.textContent = 'Modbus服務器已連接';
+                status.textContent = '主服務器已連接';
             } else {
                 indicator.className = 'status-indicator disconnected';
-                status.textContent = 'Modbus服務器未連接';
+                status.textContent = '主服務器未連接';
             }
         }
 
@@ -600,16 +598,28 @@
         }
 
         // API調用函數
-        async function apiCall(endpoint, data = null) {
+        async function apiCall(endpoint, data = null, method = null) {
             try {
+                // 確定HTTP方法
+                let httpMethod;
+                if (method) {
+                    httpMethod = method;
+                } else if (data !== null) {
+                    httpMethod = 'POST';
+                } else {
+                    // 對於這些端點，強制使用POST
+                    const postEndpoints = ['stop', 'emergency_stop', 'reset_error', 'connect', 'disconnect'];
+                    httpMethod = postEndpoints.includes(endpoint) ? 'POST' : 'GET';
+                }
+                
                 const options = {
-                    method: data ? 'POST' : 'GET',
+                    method: httpMethod,
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 };
                 
-                if (data) {
+                if (data && httpMethod === 'POST') {
                     options.body = JSON.stringify(data);
                 }
                 
@@ -658,15 +668,15 @@
 
         async function executeAction(action) {
             const strength = parseInt(document.getElementById('strengthSlider').value);
-            await apiCall('execute_action', { action, strength });
+            await apiCall('action', { action, strength });
         }
 
-        async function stopAllActions() {
-            await apiCall('stop');
+        async function stopAction() {
+            await apiCall('stop', {});  // 傳入空對象確保使用POST方法
         }
 
-        async function emergencyStopAction() {
-            await apiCall('emergency_stop');
+        async function emergencyStop() {
+            await apiCall('emergency_stop', {});  // 傳入空對象確保使用POST方法
         }
 
         async function setBrightness() {
@@ -680,61 +690,6 @@
 
         async function resetError() {
             await apiCall('reset_error');
-        }
-
-        async function testAPI() {
-            try {
-                addLog('開始API測試...', 'info');
-                
-                // 測試GET請求
-                const testResult = await apiCall('test');
-                
-                // 測試POST請求
-                const response = await fetch('/api/test', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ test: 'data' })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    addLog(`POST測試成功: ${result.message}`, 'success');
-                } else {
-                    addLog(`POST測試失敗: ${response.status}`, 'error');
-                }
-                
-                // 獲取調試資訊
-                const debugResult = await apiCall('debug');
-                console.log('調試資訊:', debugResult);
-                
-            } catch (error) {
-                addLog(`API測試失敗: ${error.message}`, 'error');
-            }
-        }
-
-        async function checkRoutes() {
-            try {
-                const response = await fetch('/api/routes');
-                if (response.ok) {
-                    const result = await response.json();
-                    addLog(`路由檢查完成: 找到 ${result.routes.length} 個路由`, 'success');
-                    console.log('可用路由:', result.routes);
-                    
-                    // 檢查停止路由
-                    const stopRoute = result.routes.find(r => r.path === '/api/stop');
-                    if (stopRoute) {
-                        addLog(`停止路由找到: 支援方法 ${stopRoute.methods.join(', ')}`, 'success');
-                    } else {
-                        addLog('停止路由未找到!', 'error');
-                    }
-                } else {
-                    addLog(`路由檢查失敗: ${response.status}`, 'error');
-                }
-            } catch (error) {
-                addLog(`路由檢查異常: ${error.message}`, 'error');
-            }
         }
 
         async function refreshRegisters() {
