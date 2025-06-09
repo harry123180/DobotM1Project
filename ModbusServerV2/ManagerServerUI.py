@@ -1,6 +1,6 @@
 # ManagerServerUI.py
 # Modbus TCP Server 管理介面 - Flask UI 客戶端
-# 版本：1.0.0
+# 版本：1.1.0 - 增強連接穩定性
 
 import logging
 import os
@@ -9,7 +9,10 @@ import requests
 import time
 import json
 import traceback
+import threading
 from datetime import datetime
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
 # 設定日誌
@@ -59,11 +62,48 @@ class ModbusServerUIManager:
         # 設定路由
         self.setup_routes()
         
-        # 連接狀態
+        # 連接狀態和重試機制
         self.server_connected = False
         self.last_check_time = 0
+        self.connection_retry_count = 0
+        self.max_retry_attempts = 3
+        self.retry_delay = 1  # 秒
         
-        logging.info("Modbus Server UI Manager 初始化完成")
+        # 創建帶重試機制的session
+        self.session = self.create_retry_session()
+        
+        # 連接統計
+        self.connection_stats = {
+            'total_requests': 0,
+            'failed_requests': 0,
+            'connection_errors': 0,
+            'last_success_time': None,
+            'last_error_time': None
+        }
+        
+        logging.info("Modbus Server UI Manager 初始化完成 - 已啟用連接重試機制")
+    
+    def create_retry_session(self):
+        """創建帶重試機制的HTTP session"""
+        session = requests.Session()
+        
+        # 配置重試策略
+        retry_strategy = Retry(
+            total=3,  # 總重試次數
+            backoff_factor=0.5,  # 重試間隔倍數
+            status_forcelist=[429, 500, 502, 503, 504],  # 需要重試的狀態碼
+            allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "TRACE"]
+        )
+        
+        # 應用重試策略到HTTP和HTTPS
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        
+        # 設定連接和讀取超時
+        session.timeout = (3, 10)  # (連接超時, 讀取超時)
+        
+        return session
     
     def create_directories(self):
         """創建必要的目錄結構"""
