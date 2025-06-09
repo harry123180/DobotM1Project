@@ -537,7 +537,7 @@ def main():
     parser = argparse.ArgumentParser(description='XC100 Web控制應用')
     parser.add_argument('--config', type=str, default="xc_app_config.json", help='配置文件路徑')
     parser.add_argument('--port', type=int, help='Web服務器端口 (默認: 5000)')
-    parser.add_argument('--host', type=str, help='Web服務器主機 (默認: 0.0.0.0)')
+    parser.add_argument('--host', type=str, help='Web服務器主機 (默認: 127.0.0.1)')
     parser.add_argument('--modbus-host', type=str, help='XCModule主機地址 (默認: localhost)')
     parser.add_argument('--modbus-port', type=int, help='XCModule端口 (默認: 5020)')
     parser.add_argument('--debug', action='store_true', help='啟用調試模式')
