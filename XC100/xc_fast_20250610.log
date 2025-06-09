@@ -1,2 +1,6 @@
 2025-06-10 01:19:16,758 - ERROR - RTU寫入失敗: ExceptionResponse(dev_id=2, function_code=134, exception_code=3)
 2025-06-10 01:19:26,996 - ERROR - RTU寫入失敗: ExceptionResponse(dev_id=2, function_code=134, exception_code=3)
+2025-06-10 03:07:48,521 - ERROR - No response received after 3 retries, continue with next request
+2025-06-10 03:07:48,521 - ERROR - RTU寫入異常: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-10 03:08:01,881 - ERROR - No response received after 3 retries, continue with next request
+2025-06-10 03:08:01,881 - ERROR - RTU寫入異常: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
