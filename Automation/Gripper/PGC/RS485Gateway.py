@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class PGC_Gripper:
-    def __init__(self, port='COM4', baudrate=115200, parity='N', stopbits=1, unit_id=6):
+    def __init__(self, port='COM5', baudrate=115200, parity='N', stopbits=1, unit_id=6):
         self.port = port
         self.baudrate = baudrate
         self.client = ModbusSerialClient(
@@ -121,7 +121,7 @@ class PGC_Gripper:
             return {"success": False, "error": str(e)}
 
 class RS485Gateway:
-    def __init__(self, port='COM4', baudrate=115200, websocket_port=5005):
+    def __init__(self, port='COM5', baudrate=115200, websocket_port=5005):
         self.gripper = PGC_Gripper(port=port, baudrate=baudrate)
         self.websocket_port = websocket_port
         self.clients = set()
@@ -253,7 +253,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='RS485 Gateway for PGC Gripper')
-    parser.add_argument('--port', default='COM4', help='Serial port (default: COM4)')
+    parser.add_argument('--port', default='COM5', help='Serial port (default: COM5)')
     parser.add_argument('--baudrate', type=int, default=115200, help='Baudrate (default: 115200)')
     parser.add_argument('--websocket-port', type=int, default=5005, help='WebSocket port (default: 5005)')
     
