@@ -1,7 +1,7 @@
 {
   "module_id": "夾爪模組",
   "rtu_connection": {
-    "port": "COM5",
+    "port": "COM7",
     "baudrate": 115200,
     "parity": "N",
     "stopbits": 1,
