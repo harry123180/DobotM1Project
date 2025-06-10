@@ -57,6 +57,9 @@ class DobotM1Visualizer:
         # 載入內外參
         self.load_calibration()
         
+        # DI狀態更新定時器
+        self.di_update_timer = None
+        
     def create_ui(self):
         # 創建主框架
         self.main_frame = ctk.CTkFrame(self.root, fg_color=("gray90", "gray10"))
@@ -97,8 +100,7 @@ class DobotM1Visualizer:
         self.nav_buttons = {}
         nav_items = [
             ("連接", "🔗", self.show_connection_page),
-            ("監控", "📊", self.show_dashboard_page),
-            ("JOG控制", "🎮", self.show_jog_page),
+            ("控制/監控", "📊", self.show_control_dashboard_page),
             ("點位管理", "📍", self.show_points_page),
             ("夾爪控制", "🦾", self.show_gripper_page),
             ("視覺檢測", "👁", self.show_vision_page),
@@ -128,7 +130,7 @@ class DobotM1Visualizer:
             self.toggle_btn.configure(text="◀")
             # 顯示完整文字
             nav_items = [
-                ("連接", "🔗"), ("監控", "📊"), ("JOG控制", "🎮"),
+                ("連接", "🔗"), ("控制/監控", "📊"), 
                 ("點位管理", "📍"), ("夾爪控制", "🦾"), ("視覺檢測", "👁"), ("IO控制", "🔧")
             ]
             for (text, icon), btn in zip(nav_items, self.nav_buttons.values()):
@@ -215,12 +217,13 @@ class DobotM1Visualizer:
                                  command=self.check_modules_status)
         check_btn.pack(pady=15)
         
-    def show_dashboard_page(self):
+    def show_control_dashboard_page(self):
+        """合併JOG控制和監控頁面"""
         self.clear_content()
-        self.highlight_nav_button("監控")
+        self.highlight_nav_button("控制/監控")
         
         # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="Dashboard監控", 
+        title = ctk.CTkLabel(self.content_frame, text="機械臂控制與監控", 
                             font=ctk.CTkFont(size=28, weight="bold"))
         title.pack(pady=(30, 20))
         
@@ -229,88 +232,85 @@ class DobotM1Visualizer:
                         text_color="red", font=ctk.CTkFont(size=18)).pack(expand=True)
             return
             
-        # 創建監控面板
-        monitor_frame = ctk.CTkFrame(self.content_frame)
-        monitor_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # 主容器
+        main_container = ctk.CTkFrame(self.content_frame)
+        main_container.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # 上半部：監控面板
+        monitor_frame = ctk.CTkFrame(main_container)
+        monitor_frame.pack(fill="x", padx=10, pady=(10, 5))
+        
+        ctk.CTkLabel(monitor_frame, text="機械臂狀態監控", 
+                    font=ctk.CTkFont(size=20, weight="bold")).pack(pady=10)
+        
+        # 監控數據區域
+        monitor_data_frame = ctk.CTkFrame(monitor_frame)
+        monitor_data_frame.pack(fill="x", padx=20, pady=(0, 20))
         
         # 左側：關節座標
-        left_frame = ctk.CTkFrame(monitor_frame)
-        left_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
+        left_monitor = ctk.CTkFrame(monitor_data_frame)
+        left_monitor.pack(side="left", fill="both", expand=True, padx=(0, 10), pady=10)
         
-        ctk.CTkLabel(left_frame, text="關節座標 (度)", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
+        ctk.CTkLabel(left_monitor, text="關節座標 (度)", 
+                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
         
         self.joint_labels = []
         for i in range(4):
-            frame = ctk.CTkFrame(left_frame, fg_color="transparent")
-            frame.pack(fill="x", padx=20, pady=5)
+            frame = ctk.CTkFrame(left_monitor, fg_color="transparent")
+            frame.pack(fill="x", padx=20, pady=3)
             ctk.CTkLabel(frame, text=f"J{i+1}:", font=ctk.CTkFont(size=14)).pack(side="left")
             label = ctk.CTkLabel(frame, text="0.00°", font=ctk.CTkFont(size=14, weight="bold"))
             label.pack(side="right")
             self.joint_labels.append(label)
             
         # 右側：笛卡爾座標
-        right_frame = ctk.CTkFrame(monitor_frame)
-        right_frame.pack(side="right", fill="both", expand=True, padx=(10, 20), pady=20)
+        right_monitor = ctk.CTkFrame(monitor_data_frame)
+        right_monitor.pack(side="right", fill="both", expand=True, padx=(10, 0), pady=10)
         
-        ctk.CTkLabel(right_frame, text="笛卡爾座標 (mm, 度)", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
+        ctk.CTkLabel(right_monitor, text="笛卡爾座標 (mm, 度)", 
+                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
         
         self.cartesian_labels = []
         coords = ["X", "Y", "Z", "R"]
         units = ["mm", "mm", "mm", "°"]
         for i, (coord, unit) in enumerate(zip(coords, units)):
-            frame = ctk.CTkFrame(right_frame, fg_color="transparent")
-            frame.pack(fill="x", padx=20, pady=5)
+            frame = ctk.CTkFrame(right_monitor, fg_color="transparent")
+            frame.pack(fill="x", padx=20, pady=3)
             ctk.CTkLabel(frame, text=f"{coord}:", font=ctk.CTkFont(size=14)).pack(side="left")
             label = ctk.CTkLabel(frame, text=f"0.00{unit}", font=ctk.CTkFont(size=14, weight="bold"))
             label.pack(side="right")
             self.cartesian_labels.append(label)
-            
-        # 底部：機械臂狀態
-        status_frame = ctk.CTkFrame(monitor_frame)
-        status_frame.pack(side="bottom", fill="x", padx=20, pady=(0, 20))
         
-        ctk.CTkLabel(status_frame, text="機械臂狀態", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
+        # 機械臂狀態
+        robot_status_frame = ctk.CTkFrame(monitor_frame)
+        robot_status_frame.pack(fill="x", padx=20, pady=(0, 20))
         
-        self.robot_status_label = ctk.CTkLabel(status_frame, text="狀態: 未知", 
+        self.robot_status_label = ctk.CTkLabel(robot_status_frame, text="狀態: 未知", 
                                               font=ctk.CTkFont(size=14))
-        self.robot_status_label.pack(pady=5)
+        self.robot_status_label.pack(pady=10)
         
-        # 開始監控
-        if not self.monitoring:
-            self.start_monitoring()
-            
-    def show_jog_page(self):
-        self.clear_content()
-        self.highlight_nav_button("JOG控制")
+        # 下半部：JOG控制
+        control_frame = ctk.CTkFrame(main_container)
+        control_frame.pack(fill="both", expand=True, padx=10, pady=(5, 10))
         
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="JOG控制", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
+        ctk.CTkLabel(control_frame, text="JOG控制", 
+                    font=ctk.CTkFont(size=20, weight="bold")).pack(pady=(15, 10))
         
-        if not self.is_connected:
-            ctk.CTkLabel(self.content_frame, text="請先連接機械臂", 
-                        text_color="red", font=ctk.CTkFont(size=18)).pack(expand=True)
-            return
-            
-        # 主控制區域
-        control_frame = ctk.CTkFrame(self.content_frame)
-        control_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # JOG控制區域
+        jog_container = ctk.CTkFrame(control_frame)
+        jog_container.pack(fill="both", expand=True, padx=20, pady=(0, 20))
         
         # 左側：關節JOG
-        joint_frame = ctk.CTkFrame(control_frame)
-        joint_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
+        joint_jog_frame = ctk.CTkFrame(jog_container)
+        joint_jog_frame.pack(side="left", fill="both", expand=True, padx=(0, 10), pady=15)
         
-        ctk.CTkLabel(joint_frame, text="關節座標JOG", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
+        ctk.CTkLabel(joint_jog_frame, text="關節座標JOG", 
+                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
         
         # 關節控制按鈕
         for i in range(4):
-            joint_control = ctk.CTkFrame(joint_frame, fg_color="transparent")
-            joint_control.pack(fill="x", padx=20, pady=10)
+            joint_control = ctk.CTkFrame(joint_jog_frame, fg_color="transparent")
+            joint_control.pack(fill="x", padx=15, pady=8)
             
             ctk.CTkLabel(joint_control, text=f"J{i+1}:", font=ctk.CTkFont(size=14)).pack(side="left")
             
@@ -318,27 +318,27 @@ class DobotM1Visualizer:
             btn_frame.pack(side="right")
             
             # 負方向按鈕
-            neg_btn = ctk.CTkButton(btn_frame, text="-", width=40, height=30,
+            neg_btn = ctk.CTkButton(btn_frame, text="-", width=50, height=35,
                                    command=lambda j=i: self.jog_joint(j, False))
-            neg_btn.pack(side="left", padx=2)
+            neg_btn.pack(side="left", padx=3)
             
             # 正方向按鈕
-            pos_btn = ctk.CTkButton(btn_frame, text="+", width=40, height=30,
+            pos_btn = ctk.CTkButton(btn_frame, text="+", width=50, height=35,
                                    command=lambda j=i: self.jog_joint(j, True))
-            pos_btn.pack(side="left", padx=2)
+            pos_btn.pack(side="left", padx=3)
             
         # 右側：笛卡爾JOG
-        cart_frame = ctk.CTkFrame(control_frame)
-        cart_frame.pack(side="right", fill="both", expand=True, padx=(10, 20), pady=20)
+        cart_jog_frame = ctk.CTkFrame(jog_container)
+        cart_jog_frame.pack(side="right", fill="both", expand=True, padx=(10, 0), pady=15)
         
-        ctk.CTkLabel(cart_frame, text="笛卡爾座標JOG", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
+        ctk.CTkLabel(cart_jog_frame, text="笛卡爾座標JOG", 
+                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
         
         # 笛卡爾控制按鈕
         coords = ["X", "Y", "Z", "R"]
         for i, coord in enumerate(coords):
-            cart_control = ctk.CTkFrame(cart_frame, fg_color="transparent")
-            cart_control.pack(fill="x", padx=20, pady=10)
+            cart_control = ctk.CTkFrame(cart_jog_frame, fg_color="transparent")
+            cart_control.pack(fill="x", padx=15, pady=8)
             
             ctk.CTkLabel(cart_control, text=f"{coord}:", font=ctk.CTkFont(size=14)).pack(side="left")
             
@@ -346,22 +346,29 @@ class DobotM1Visualizer:
             btn_frame.pack(side="right")
             
             # 負方向按鈕
-            neg_btn = ctk.CTkButton(btn_frame, text="-", width=40, height=30,
+            neg_btn = ctk.CTkButton(btn_frame, text="-", width=50, height=35,
                                    command=lambda c=coord: self.jog_cartesian(c, False))
-            neg_btn.pack(side="left", padx=2)
+            neg_btn.pack(side="left", padx=3)
             
             # 正方向按鈕
-            pos_btn = ctk.CTkButton(btn_frame, text="+", width=40, height=30,
+            pos_btn = ctk.CTkButton(btn_frame, text="+", width=50, height=35,
                                    command=lambda c=coord: self.jog_cartesian(c, True))
-            pos_btn.pack(side="left", padx=2)
+            pos_btn.pack(side="left", padx=3)
             
         # 底部：停止按鈕
-        stop_btn = ctk.CTkButton(control_frame, text="停止", width=200, height=50,
+        stop_frame = ctk.CTkFrame(control_frame, fg_color="transparent")
+        stop_frame.pack(pady=10)
+        
+        stop_btn = ctk.CTkButton(stop_frame, text="停止", width=200, height=50,
                                 fg_color="red", hover_color="darkred",
                                 font=ctk.CTkFont(size=16, weight="bold"),
                                 command=self.stop_jog)
-        stop_btn.pack(side="bottom", pady=20)
+        stop_btn.pack()
         
+        # 開始監控
+        if not self.monitoring:
+            self.start_monitoring()
+            
     def show_points_page(self):
         self.clear_content()
         self.highlight_nav_button("點位管理")
@@ -500,6 +507,24 @@ class DobotM1Visualizer:
         ctk.CTkLabel(pos_frame, text="位置設定 (0-1000):", font=ctk.CTkFont(size=14)).pack(anchor="w")
         self.position_entry = ctk.CTkEntry(pos_frame, placeholder_text="輸入位置")
         self.position_entry.pack(fill="x", pady=5)
+        
+        # 開啟位置設定
+        open_pos_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
+        open_pos_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(open_pos_frame, text="開啟位置 (0-1000):", font=ctk.CTkFont(size=14)).pack(anchor="w")
+        self.open_position_entry = ctk.CTkEntry(open_pos_frame, placeholder_text="預設開啟位置")
+        self.open_position_entry.pack(fill="x", pady=5)
+        self.open_position_entry.insert(0, "1000")  # 預設開啟位置
+        
+        # 關閉位置設定
+        close_pos_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
+        close_pos_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(close_pos_frame, text="關閉位置 (0-1000):", font=ctk.CTkFont(size=14)).pack(anchor="w")
+        self.close_position_entry = ctk.CTkEntry(close_pos_frame, placeholder_text="預設關閉位置")
+        self.close_position_entry.pack(fill="x", pady=5)
+        self.close_position_entry.insert(0, "0")  # 預設關閉位置
         
         # 控制按鈕
         btn_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
@@ -651,6 +676,9 @@ class DobotM1Visualizer:
             status_label.pack(side="right")
             self.di_labels[i] = status_label
             
+        # 開始DI狀態更新
+        self.start_di_monitoring()
+            
     def highlight_nav_button(self, active_text):
         # 重置所有按鈕顏色
         for btn in self.nav_buttons.values():
@@ -702,6 +730,12 @@ class DobotM1Visualizer:
         self.monitoring = False
         self.status_label.configure(text="未連接", text_color="red")
         self.connect_btn.configure(text="連接")
+        
+        # 停止DI監控
+        if self.di_update_timer:
+            self.root.after_cancel(self.di_update_timer)
+            self.di_update_timer = None
+            
         messagebox.showinfo("提示", "已斷開連接")
         
     def cleanup_connections(self):
@@ -718,7 +752,9 @@ class DobotM1Visualizer:
     def connect_modbus(self):
         try:
             self.modbus_client = ModbusTcpClient('127.0.0.1', port=502)
-            self.modbus_client.connect()
+            connection_result = self.modbus_client.connect()
+            if not connection_result:
+                print("Modbus連接失敗")
         except Exception as e:
             print(f"Modbus連接失敗: {e}")
             
@@ -729,7 +765,7 @@ class DobotM1Visualizer:
         if self.modbus_client and self.modbus_client.connected:
             # 檢查Gripper模組 (基地址500)
             try:
-                result = self.modbus_client.read_holding_registers(500, 1)
+                result = self.modbus_client.read_holding_registers(500, 1, slave=1)
                 if result.isError():
                     self.gripper_status.configure(text="離線", text_color="red")
                 else:
@@ -738,12 +774,13 @@ class DobotM1Visualizer:
                         self.gripper_status.configure(text="在線", text_color="green")
                     else:
                         self.gripper_status.configure(text="異常", text_color="orange")
-            except:
+            except Exception as e:
+                print(f"檢查Gripper狀態錯誤: {e}")
                 self.gripper_status.configure(text="錯誤", text_color="red")
                 
             # 檢查CCD模組 (基地址200)
             try:
-                result = self.modbus_client.read_holding_registers(201, 1)
+                result = self.modbus_client.read_holding_registers(201, 1, slave=1)
                 if result.isError():
                     self.ccd_status.configure(text="離線", text_color="red")
                 else:
@@ -752,7 +789,8 @@ class DobotM1Visualizer:
                         self.ccd_status.configure(text="就緒", text_color="green")
                     else:
                         self.ccd_status.configure(text="未就緒", text_color="orange")
-            except:
+            except Exception as e:
+                print(f"檢查CCD狀態錯誤: {e}")
                 self.ccd_status.configure(text="錯誤", text_color="red")
         else:
             self.gripper_status.configure(text="Modbus未連接", text_color="red")
@@ -1066,35 +1104,49 @@ class DobotM1Visualizer:
         self.force_value_label.configure(text=f"{int(value)}")
         
     def gripper_initialize(self):
-        if not self.modbus_client:
+        if not self.modbus_client or not self.modbus_client.connected:
             messagebox.showerror("錯誤", "Modbus未連接")
             return
             
         try:
             # PGC夾爪初始化指令 (基地址520, 指令1)
-            self.modbus_client.write_registers(520, [1, 0, 0, int(time.time()) % 65536])
-            messagebox.showinfo("成功", "夾爪初始化指令已發送")
+            command_id = int(time.time()) % 65536
+            result = self.modbus_client.write_registers(520, [1, 0, 0, command_id], slave=1)
+            if not result.isError():
+                messagebox.showinfo("成功", "夾爪初始化指令已發送")
+            else:
+                messagebox.showerror("錯誤", "初始化指令發送失敗")
         except Exception as e:
             messagebox.showerror("錯誤", f"夾爪初始化失敗: {e}")
             
     def gripper_move_to_position(self):
-        if not self.modbus_client:
+        if not self.modbus_client or not self.modbus_client.connected:
             messagebox.showerror("錯誤", "Modbus未連接")
             return
             
         try:
-            position = int(self.position_entry.get())
+            position_str = self.position_entry.get().strip()
+            if not position_str:
+                messagebox.showerror("錯誤", "請輸入位置")
+                return
+                
+            position = int(position_str)
             if not 0 <= position <= 1000:
                 raise ValueError("位置必須在0-1000範圍內")
                 
             # 設定力道
             force = int(self.force_slider.get())
-            self.modbus_client.write_registers(521, [5, force, 0, 0])  # 設定力道指令
+            force_command_id = int(time.time()) % 65536
+            self.modbus_client.write_registers(520, [5, force, 0, force_command_id], slave=1)
             time.sleep(0.1)
             
             # 移動到位置指令 (指令3)
-            self.modbus_client.write_registers(520, [3, position, 0, int(time.time()) % 65536])
-            messagebox.showinfo("成功", f"夾爪移動到位置 {position} 指令已發送")
+            move_command_id = int(time.time()) % 65536
+            result = self.modbus_client.write_registers(520, [3, position, 0, move_command_id], slave=1)
+            if not result.isError():
+                messagebox.showinfo("成功", f"夾爪移動到位置 {position} 指令已發送")
+            else:
+                messagebox.showerror("錯誤", "移動指令發送失敗")
             
         except ValueError as e:
             messagebox.showerror("錯誤", f"輸入錯誤: {e}")
@@ -1102,31 +1154,66 @@ class DobotM1Visualizer:
             messagebox.showerror("錯誤", f"夾爪移動失敗: {e}")
             
     def gripper_open(self):
-        if not self.modbus_client:
+        if not self.modbus_client or not self.modbus_client.connected:
             messagebox.showerror("錯誤", "Modbus未連接")
             return
             
         try:
-            # 快速開啟指令 (指令7)
-            self.modbus_client.write_registers(520, [7, 0, 0, int(time.time()) % 65536])
-            messagebox.showinfo("成功", "夾爪開啟指令已發送")
+            # 獲取開啟位置
+            open_pos_str = self.open_position_entry.get().strip()
+            if not open_pos_str:
+                open_position = 1000  # 預設開啟位置
+            else:
+                open_position = int(open_pos_str)
+                if not 0 <= open_position <= 1000:
+                    messagebox.showerror("錯誤", "開啟位置必須在0-1000範圍內")
+                    return
+            
+            # 設定力道
+            force = int(self.force_slider.get())
+            force_command_id = int(time.time()) % 65536
+            self.modbus_client.write_registers(520, [5, force, 0, force_command_id], slave=1)
+            time.sleep(0.1)
+            
+            # 移動到開啟位置
+            move_command_id = int(time.time()) % 65536
+            result = self.modbus_client.write_registers(520, [3, open_position, 0, move_command_id], slave=1)
+            if not result.isError():
+                messagebox.showinfo("成功", f"夾爪開啟到位置 {open_position} 指令已發送")
+            else:
+                messagebox.showerror("錯誤", "開啟指令發送失敗")
         except Exception as e:
             messagebox.showerror("錯誤", f"夾爪開啟失敗: {e}")
             
     def gripper_close(self):
-        if not self.modbus_client:
+        if not self.modbus_client or not self.modbus_client.connected:
             messagebox.showerror("錯誤", "Modbus未連接")
             return
             
         try:
+            # 獲取關閉位置
+            close_pos_str = self.close_position_entry.get().strip()
+            if not close_pos_str:
+                close_position = 0  # 預設關閉位置
+            else:
+                close_position = int(close_pos_str)
+                if not 0 <= close_position <= 1000:
+                    messagebox.showerror("錯誤", "關閉位置必須在0-1000範圍內")
+                    return
+            
             # 設定力道
             force = int(self.force_slider.get())
-            self.modbus_client.write_registers(521, [5, force, 0, 0])  # 設定力道指令
+            force_command_id = int(time.time()) % 65536
+            self.modbus_client.write_registers(520, [5, force, 0, force_command_id], slave=1)
             time.sleep(0.1)
             
-            # 快速關閉指令 (指令8)
-            self.modbus_client.write_registers(520, [8, 0, 0, int(time.time()) % 65536])
-            messagebox.showinfo("成功", "夾爪關閉指令已發送")
+            # 移動到關閉位置
+            move_command_id = int(time.time()) % 65536
+            result = self.modbus_client.write_registers(520, [3, close_position, 0, move_command_id], slave=1)
+            if not result.isError():
+                messagebox.showinfo("成功", f"夾爪關閉到位置 {close_position} 指令已發送")
+            else:
+                messagebox.showerror("錯誤", "關閉指令發送失敗")
         except Exception as e:
             messagebox.showerror("錯誤", f"夾爪關閉失敗: {e}")
             
@@ -1171,24 +1258,26 @@ class DobotM1Visualizer:
                 messagebox.showerror("錯誤", f"載入內外參失敗: {e}")
                 
     def start_vision_detection(self):
-        if not self.modbus_client:
+        if not self.modbus_client or not self.modbus_client.connected:
             messagebox.showerror("錯誤", "Modbus未連接")
             return
             
         try:
             # 發送視覺檢測指令 (基地址200, 指令16)
-            self.modbus_client.write_registers(200, [16])
-            
-            # 清除結果顯示
-            for widget in self.result_scrollable.winfo_children():
-                widget.destroy()
+            result = self.modbus_client.write_register(200, 16, slave=1)
+            if not result.isError():
+                # 清除結果顯示
+                for widget in self.result_scrollable.winfo_children():
+                    widget.destroy()
+                    
+                # 顯示檢測中
+                ctk.CTkLabel(self.result_scrollable, text="正在檢測中...", 
+                            text_color="blue", font=ctk.CTkFont(size=14)).pack(pady=20)
                 
-            # 顯示檢測中
-            ctk.CTkLabel(self.result_scrollable, text="正在檢測中...", 
-                        text_color="blue", font=ctk.CTkFont(size=14)).pack(pady=20)
-            
-            # 等待檢測結果
-            threading.Thread(target=self.wait_vision_result, daemon=True).start()
+                # 等待檢測結果
+                threading.Thread(target=self.wait_vision_result, daemon=True).start()
+            else:
+                messagebox.showerror("錯誤", "視覺檢測指令發送失敗")
             
         except Exception as e:
             messagebox.showerror("錯誤", f"視覺檢測失敗: {e}")
@@ -1201,14 +1290,14 @@ class DobotM1Visualizer:
                 time.sleep(0.1)
                 
                 # 檢查狀態寄存器
-                result = self.modbus_client.read_holding_registers(201, 1)
+                result = self.modbus_client.read_holding_registers(201, 1, slave=1)
                 if not result.isError():
                     status = result.registers[0]
                     if not (status & 0x2):  # Running bit為0表示完成
                         break
             
             # 讀取檢測結果
-            result = self.modbus_client.read_holding_registers(240, 16)  # 240-255
+            result = self.modbus_client.read_holding_registers(240, 16, slave=1)  # 240-255
             if not result.isError():
                 registers = result.registers
                 circle_count = registers[0]
@@ -1294,17 +1383,22 @@ class DobotM1Visualizer:
             return
             
         try:
-            response = self.dashboard.DOExecute(index, 1 if state else 0)
+            response = self.dashboard.DO(index, 1 if state else 0)
             if response and "ErrorID,0" in response:
                 print(f"DO{index} 設置為 {'ON' if state else 'OFF'}")
             else:
-                messagebox.showerror("錯誤", f"DO{index} 設置失敗")
+                messagebox.showerror("錯誤", f"DO{index} 設置失敗: {response}")
         except Exception as e:
             messagebox.showerror("錯誤", f"DO{index} 設置失敗: {e}")
             
+    def start_di_monitoring(self):
+        """開始DI狀態監控"""
+        if self.is_connected and self.dashboard:
+            self.update_di_status()
+            
     def update_di_status(self):
         """更新DI狀態顯示"""
-        if not self.dashboard:
+        if not self.dashboard or not self.is_connected:
             return
             
         try:
@@ -1320,8 +1414,15 @@ class DobotM1Visualizer:
                                 self.di_labels[i].configure(text="HIGH", text_color="green")
                             else:
                                 self.di_labels[i].configure(text="LOW", text_color="gray")
+                else:
+                    if i in self.di_labels:
+                        self.di_labels[i].configure(text="ERROR", text_color="red")
         except Exception as e:
             print(f"DI狀態更新失敗: {e}")
+            
+        # 每2秒更新一次DI狀態
+        if self.is_connected:
+            self.di_update_timer = self.root.after(2000, self.update_di_status)
             
     def run(self):
         """啟動應用程式"""
@@ -1332,10 +1433,6 @@ class DobotM1Visualizer:
                 pos_text += f"笛卡爾: {[f'{c:.1f}' for c in self.current_cartesian[:3]]}mm, {self.current_cartesian[3]:.1f}°"
                 self.current_pos_label.configure(text=pos_text)
             
-            # 更新DI狀態
-            if hasattr(self, 'di_labels'):
-                self.update_di_status()
-                
             # 1秒後再次更新
             self.root.after(1000, update_current_position)
             
@@ -1348,6 +1445,8 @@ class DobotM1Visualizer:
     def __del__(self):
         """清理資源"""
         self.monitoring = False
+        if self.di_update_timer:
+            self.root.after_cancel(self.di_update_timer)
         self.cleanup_connections()
 
 

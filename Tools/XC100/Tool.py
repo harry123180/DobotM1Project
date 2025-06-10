@@ -20,7 +20,7 @@ class XC100ControlTool:
         # MODBUS連線參數
         self.selected_port = tk.StringVar()
         self.baudrate = 115200
-        self.unit_id = 2
+        self.unit_id = 1
         self.client = None
         self.is_connected = False
         
