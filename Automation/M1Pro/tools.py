@@ -1,1470 +1,1479 @@
-import customtkinter as ctk
-import tkinter as tk
-from tkinter import messagebox, filedialog
-import json
-import os
 import sys
-import threading
+import os
+import json
 import time
+import threading
 from datetime import datetime
+from threading import Thread
 import numpy as np
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from dobot_api import DobotApiDashboard, DobotApi, DobotApiMove, MyType
 from pymodbus.client import ModbusTcpClient
 
-# 添加專案路徑
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from dobot_api import DobotApiDashboard, DobotApiMove
+# 機械臂模式定義
+LABEL_ROBOT_MODE = {
+    1: "ROBOT_MODE_INIT",
+    2: "ROBOT_MODE_BRAKE_OPEN", 
+    3: "",
+    4: "ROBOT_MODE_DISABLED",
+    5: "ROBOT_MODE_ENABLE",
+    6: "ROBOT_MODE_BACKDRIVE",
+    7: "ROBOT_MODE_RUNNING",
+    8: "ROBOT_MODE_RECORDING",
+    9: "ROBOT_MODE_ERROR",
+    10: "ROBOT_MODE_PAUSE",
+    11: "ROBOT_MODE_JOG"
+}
 
-class DobotM1Visualizer:
+class StatusUpdateSignal(QObject):
+    """狀態更新信號"""
+    feedback_update = pyqtSignal(dict)
+    log_update = pyqtSignal(str)
+    error_update = pyqtSignal(str)
+
+class PointEditDialog(QDialog):
+    """點位編輯對話框"""
+    def __init__(self, point_data=None, parent=None):
+        super().__init__(parent)
+        self.point_data = point_data or {}
+        self.setupUI()
+        self.load_data()
+        
+    def setupUI(self):
+        self.setWindowTitle("編輯點位")
+        self.setFixedSize(400, 350)
+        layout = QVBoxLayout()
+        
+        # 名稱輸入
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(QLabel("點位名稱:"))
+        self.name_edit = QLineEdit()
+        name_layout.addWidget(self.name_edit)
+        layout.addLayout(name_layout)
+        
+        # 笛卡爾座標
+        cart_group = QGroupBox("笛卡爾座標 (mm/度)")
+        cart_layout = QGridLayout()
+        self.x_spin = QDoubleSpinBox()
+        self.x_spin.setRange(-1000, 1000)
+        self.x_spin.setDecimals(2)
+        self.y_spin = QDoubleSpinBox()
+        self.y_spin.setRange(-1000, 1000)
+        self.y_spin.setDecimals(2)
+        self.z_spin = QDoubleSpinBox()
+        self.z_spin.setRange(-100, 800)
+        self.z_spin.setDecimals(2)
+        self.r_spin = QDoubleSpinBox()
+        self.r_spin.setRange(-180, 180)
+        self.r_spin.setDecimals(2)
+        
+        cart_layout.addWidget(QLabel("X:"), 0, 0)
+        cart_layout.addWidget(self.x_spin, 0, 1)
+        cart_layout.addWidget(QLabel("Y:"), 0, 2)
+        cart_layout.addWidget(self.y_spin, 0, 3)
+        cart_layout.addWidget(QLabel("Z:"), 1, 0)
+        cart_layout.addWidget(self.z_spin, 1, 1)
+        cart_layout.addWidget(QLabel("R:"), 1, 2)
+        cart_layout.addWidget(self.r_spin, 1, 3)
+        cart_group.setLayout(cart_layout)
+        layout.addWidget(cart_group)
+        
+        # 關節座標
+        joint_group = QGroupBox("關節座標 (度)")
+        joint_layout = QGridLayout()
+        self.j1_spin = QDoubleSpinBox()
+        self.j1_spin.setRange(-180, 180)
+        self.j1_spin.setDecimals(2)
+        self.j2_spin = QDoubleSpinBox()
+        self.j2_spin.setRange(-135, 135)
+        self.j2_spin.setDecimals(2)
+        self.j3_spin = QDoubleSpinBox()
+        self.j3_spin.setRange(-135, 135)
+        self.j3_spin.setDecimals(2)
+        self.j4_spin = QDoubleSpinBox()
+        self.j4_spin.setRange(-180, 180)
+        self.j4_spin.setDecimals(2)
+        
+        joint_layout.addWidget(QLabel("J1:"), 0, 0)
+        joint_layout.addWidget(self.j1_spin, 0, 1)
+        joint_layout.addWidget(QLabel("J2:"), 0, 2)
+        joint_layout.addWidget(self.j2_spin, 0, 3)
+        joint_layout.addWidget(QLabel("J3:"), 1, 0)
+        joint_layout.addWidget(self.j3_spin, 1, 1)
+        joint_layout.addWidget(QLabel("J4:"), 1, 2)
+        joint_layout.addWidget(self.j4_spin, 1, 3)
+        joint_group.setLayout(joint_layout)
+        layout.addWidget(joint_group)
+        
+        # 按鈕
+        button_layout = QHBoxLayout()
+        self.ok_btn = QPushButton("確定")
+        self.cancel_btn = QPushButton("取消")
+        self.ok_btn.clicked.connect(self.accept)
+        self.cancel_btn.clicked.connect(self.reject)
+        button_layout.addWidget(self.ok_btn)
+        button_layout.addWidget(self.cancel_btn)
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
+    def load_data(self):
+        """載入點位數據"""
+        if self.point_data:
+            self.name_edit.setText(self.point_data.get('name', ''))
+            cartesian = self.point_data.get('cartesian', {})
+            self.x_spin.setValue(cartesian.get('x', 0))
+            self.y_spin.setValue(cartesian.get('y', 0))
+            self.z_spin.setValue(cartesian.get('z', 0))
+            self.r_spin.setValue(cartesian.get('r', 0))
+            
+            joint = self.point_data.get('joint', {})
+            self.j1_spin.setValue(joint.get('j1', 0))
+            self.j2_spin.setValue(joint.get('j2', 0))
+            self.j3_spin.setValue(joint.get('j3', 0))
+            self.j4_spin.setValue(joint.get('j4', 0))
+    
+    def get_data(self):
+        """獲取編輯後的數據"""
+        return {
+            'name': self.name_edit.text(),
+            'cartesian': {
+                'x': self.x_spin.value(),
+                'y': self.y_spin.value(),
+                'z': self.z_spin.value(),
+                'r': self.r_spin.value()
+            },
+            'joint': {
+                'j1': self.j1_spin.value(),
+                'j2': self.j2_spin.value(),
+                'j3': self.j3_spin.value(),
+                'j4': self.j4_spin.value()
+            },
+            'created_time': self.point_data.get('created_time', datetime.now().isoformat()),
+            'modified_time': datetime.now().isoformat()
+        }
+    
+    def validate_position_change(self, original, new):
+        """驗證位置變化是否安全"""
+        if not original:
+            return True
+            
+        orig_cart = original.get('cartesian', {})
+        new_cart = new.get('cartesian', {})
+        
+        # 檢查變化幅度 (10cm = 100mm)
+        max_change = 100.0
+        for key in ['x', 'y', 'z']:
+            old_val = orig_cart.get(key, 0)
+            new_val = new_cart.get(key, 0)
+            if abs(new_val - old_val) > max_change:
+                return False
+                
+        # 檢查是否正負相反
+        for key in ['x', 'y', 'z']:
+            old_val = orig_cart.get(key, 0)
+            new_val = new_cart.get(key, 0)
+            if old_val != 0 and new_val != 0:
+                if (old_val > 0) != (new_val > 0):  # 正負號不同
+                    return False
+        return True
+
+class RobotUI(QMainWindow):
     def __init__(self):
-        # 設置CTK主題
-        ctk.set_appearance_mode("light")
-        ctk.set_default_color_theme("blue")
+        super().__init__()
+        self.setWindowTitle("MG400/M1Pro Python Demo - PyQt版")
+        self.setFixedSize(1400, 1000)
         
-        # 創建主窗口
-        self.root = ctk.CTk()
-        self.root.title("DobotM1 可視化控制工具")
-        self.root.geometry("1400x900")
-        self.root.minsize(1200, 800)
+        # 狀態變量
+        self.global_state = {
+            'connect': False,
+            'enable': False
+        }
         
-        # 初始化變數
-        self.dashboard = None
-        self.move = None
-        self.modbus_client = None
-        self.is_connected = False
-        self.monitoring = False
-        self.sidebar_expanded = True
+        # 連接客戶端
+        self.client_dash = None
+        self.client_move = None
+        self.client_feed = None
+        self.modbus_client = None  # PGC夾爪控制
         
-        # 當前位置變數
-        self.current_joint = [0, 0, 0, 0]
-        self.current_cartesian = [0, 0, 0, 0]
+        # 信號槽
+        self.signals = StatusUpdateSignal()
+        self.signals.feedback_update.connect(self.update_feedback_display)
+        self.signals.log_update.connect(self.append_log)
+        self.signals.error_update.connect(self.append_error)
         
-        # 設置資料夾路徑
-        self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.points_dir = os.path.join(self.base_dir, "saved_points")
-        self.calibration_dir = os.path.join(self.base_dir, "calibration")
+        # 實際機械臂位置數據 (從反饋獲取)
+        self.current_position = {
+            'cartesian': {'x': 0.0, 'y': 0.0, 'z': 0.0, 'r': 0.0},
+            'joint': {'j1': 0.0, 'j2': 0.0, 'j3': 0.0, 'j4': 0.0}
+        }
         
-        # 創建資料夾
-        os.makedirs(self.points_dir, exist_ok=True)
-        os.makedirs(self.calibration_dir, exist_ok=True)
-        
-        # 點位列表
+        # 點位數據
         self.saved_points = []
+        self.points_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                                       'saved_points', 'robot_points.json')
+        
+        # 確保資料夾存在
+        os.makedirs(os.path.dirname(self.points_file), exist_ok=True)
+        
+        self.setupUI()
         self.load_points()
         
-        # 創建UI
-        self.create_ui()
-        
-        # 載入內外參
-        self.load_calibration()
-        
-        # DI狀態更新定時器
-        self.di_update_timer = None
-        
-    def create_ui(self):
-        # 創建主框架
-        self.main_frame = ctk.CTkFrame(self.root, fg_color=("gray90", "gray10"))
-        self.main_frame.pack(fill="both", expand=True, padx=5, pady=5)
-        
-        # 創建側邊欄
-        self.create_sidebar()
-        
-        # 創建內容區域
-        self.create_content_area()
-        
-        # 默認顯示連接頁面
-        self.show_connection_page()
-        
-    def create_sidebar(self):
-        # 側邊欄框架
-        self.sidebar = ctk.CTkFrame(self.main_frame, width=250, corner_radius=15)
-        self.sidebar.pack(side="left", fill="y", padx=(0, 10), pady=0)
-        self.sidebar.pack_propagate(False)
-        
-        # 標題區域
-        title_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        title_frame.pack(fill="x", padx=20, pady=(20, 10))
-        
-        self.title_label = ctk.CTkLabel(title_frame, text="DobotM1", 
-                                       font=ctk.CTkFont(size=24, weight="bold"))
-        self.title_label.pack(side="left")
-        
-        # 收縮按鈕
-        self.toggle_btn = ctk.CTkButton(title_frame, text="◀", width=30, height=30,
-                                       command=self.toggle_sidebar)
-        self.toggle_btn.pack(side="right")
-        
-        # 導航按鈕
-        self.nav_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        self.nav_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        self.nav_buttons = {}
-        nav_items = [
-            ("連接", "🔗", self.show_connection_page),
-            ("控制/監控", "📊", self.show_control_dashboard_page),
-            ("點位管理", "📍", self.show_points_page),
-            ("夾爪控制", "🦾", self.show_gripper_page),
-            ("視覺檢測", "👁", self.show_vision_page),
-            ("IO控制", "🔧", self.show_io_page)
-        ]
-        
-        for i, (text, icon, command) in enumerate(nav_items):
-            btn = ctk.CTkButton(self.nav_frame, text=f"{icon} {text}", 
-                               height=45, anchor="w", 
-                               command=command,
-                               fg_color=("gray75", "gray25"),
-                               hover_color=("gray65", "gray35"))
-            btn.pack(fill="x", pady=5)
-            self.nav_buttons[text] = btn
-            
-    def toggle_sidebar(self):
-        if self.sidebar_expanded:
-            self.sidebar.configure(width=80)
-            self.toggle_btn.configure(text="▶")
-            # 隱藏文字，只顯示圖標
-            for text, btn in self.nav_buttons.items():
-                icon = btn.cget("text").split()[0]
-                btn.configure(text=icon)
-            self.title_label.configure(text="DM1")
-        else:
-            self.sidebar.configure(width=250)
-            self.toggle_btn.configure(text="◀")
-            # 顯示完整文字
-            nav_items = [
-                ("連接", "🔗"), ("控制/監控", "📊"), 
-                ("點位管理", "📍"), ("夾爪控制", "🦾"), ("視覺檢測", "👁"), ("IO控制", "🔧")
-            ]
-            for (text, icon), btn in zip(nav_items, self.nav_buttons.values()):
-                btn.configure(text=f"{icon} {text}")
-            self.title_label.configure(text="DobotM1")
-        
-        self.sidebar_expanded = not self.sidebar_expanded
-        
-    def create_content_area(self):
-        self.content_frame = ctk.CTkFrame(self.main_frame, corner_radius=15)
-        self.content_frame.pack(side="right", fill="both", expand=True)
-        
-    def clear_content(self):
-        for widget in self.content_frame.winfo_children():
-            widget.destroy()
-            
-    def show_connection_page(self):
-        self.clear_content()
-        self.highlight_nav_button("連接")
-        
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="機械臂連接", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
-        
-        # 連接設定框架
-        settings_frame = ctk.CTkFrame(self.content_frame)
-        settings_frame.pack(pady=20, padx=40, fill="x")
-        
-        # IP設定
-        ip_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
-        ip_frame.pack(fill="x", padx=20, pady=15)
-        
-        ctk.CTkLabel(ip_frame, text="IP地址:", font=ctk.CTkFont(size=16)).pack(side="left")
-        self.ip_entry = ctk.CTkEntry(ip_frame, placeholder_text="192.168.1.6", width=200)
-        self.ip_entry.pack(side="right")
-        self.ip_entry.insert(0, "192.168.1.6")
-        
-        # 連接狀態
-        status_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
-        status_frame.pack(fill="x", padx=20, pady=15)
-        
-        ctk.CTkLabel(status_frame, text="連接狀態:", font=ctk.CTkFont(size=16)).pack(side="left")
-        self.status_label = ctk.CTkLabel(status_frame, text="未連接", 
-                                        text_color="red", font=ctk.CTkFont(size=16))
-        self.status_label.pack(side="right")
-        
-        # 連接按鈕
-        btn_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
-        btn_frame.pack(pady=30)
-        
-        self.connect_btn = ctk.CTkButton(btn_frame, text="連接", width=120, height=40,
-                                        font=ctk.CTkFont(size=16),
-                                        command=self.toggle_connection)
-        self.connect_btn.pack(side="left", padx=10)
-        
-        # Modbus連接檢查
-        modbus_frame = ctk.CTkFrame(self.content_frame)
-        modbus_frame.pack(pady=20, padx=40, fill="x")
-        
-        ctk.CTkLabel(modbus_frame, text="模組狀態檢查", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
-        
-        # Gripper狀態
-        gripper_frame = ctk.CTkFrame(modbus_frame, fg_color="transparent")
-        gripper_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(gripper_frame, text="Gripper模組:", font=ctk.CTkFont(size=14)).pack(side="left")
-        self.gripper_status = ctk.CTkLabel(gripper_frame, text="未檢查", 
-                                          text_color="orange", font=ctk.CTkFont(size=14))
-        self.gripper_status.pack(side="right")
-        
-        # CCD狀態
-        ccd_frame = ctk.CTkFrame(modbus_frame, fg_color="transparent")
-        ccd_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(ccd_frame, text="CCD視覺模組:", font=ctk.CTkFont(size=14)).pack(side="left")
-        self.ccd_status = ctk.CTkLabel(ccd_frame, text="未檢查", 
-                                      text_color="orange", font=ctk.CTkFont(size=14))
-        self.ccd_status.pack(side="right")
-        
-        # 檢查模組按鈕
-        check_btn = ctk.CTkButton(modbus_frame, text="檢查模組狀態", 
-                                 command=self.check_modules_status)
-        check_btn.pack(pady=15)
-        
-    def show_control_dashboard_page(self):
-        """合併JOG控制和監控頁面"""
-        self.clear_content()
-        self.highlight_nav_button("控制/監控")
-        
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="機械臂控制與監控", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
-        
-        if not self.is_connected:
-            ctk.CTkLabel(self.content_frame, text="請先連接機械臂", 
-                        text_color="red", font=ctk.CTkFont(size=18)).pack(expand=True)
-            return
-            
-        # 主容器
-        main_container = ctk.CTkFrame(self.content_frame)
-        main_container.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # 上半部：監控面板
-        monitor_frame = ctk.CTkFrame(main_container)
-        monitor_frame.pack(fill="x", padx=10, pady=(10, 5))
-        
-        ctk.CTkLabel(monitor_frame, text="機械臂狀態監控", 
-                    font=ctk.CTkFont(size=20, weight="bold")).pack(pady=10)
-        
-        # 監控數據區域
-        monitor_data_frame = ctk.CTkFrame(monitor_frame)
-        monitor_data_frame.pack(fill="x", padx=20, pady=(0, 20))
-        
-        # 左側：關節座標
-        left_monitor = ctk.CTkFrame(monitor_data_frame)
-        left_monitor.pack(side="left", fill="both", expand=True, padx=(0, 10), pady=10)
-        
-        ctk.CTkLabel(left_monitor, text="關節座標 (度)", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
-        
-        self.joint_labels = []
-        for i in range(4):
-            frame = ctk.CTkFrame(left_monitor, fg_color="transparent")
-            frame.pack(fill="x", padx=20, pady=3)
-            ctk.CTkLabel(frame, text=f"J{i+1}:", font=ctk.CTkFont(size=14)).pack(side="left")
-            label = ctk.CTkLabel(frame, text="0.00°", font=ctk.CTkFont(size=14, weight="bold"))
-            label.pack(side="right")
-            self.joint_labels.append(label)
-            
-        # 右側：笛卡爾座標
-        right_monitor = ctk.CTkFrame(monitor_data_frame)
-        right_monitor.pack(side="right", fill="both", expand=True, padx=(10, 0), pady=10)
-        
-        ctk.CTkLabel(right_monitor, text="笛卡爾座標 (mm, 度)", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
-        
-        self.cartesian_labels = []
-        coords = ["X", "Y", "Z", "R"]
-        units = ["mm", "mm", "mm", "°"]
-        for i, (coord, unit) in enumerate(zip(coords, units)):
-            frame = ctk.CTkFrame(right_monitor, fg_color="transparent")
-            frame.pack(fill="x", padx=20, pady=3)
-            ctk.CTkLabel(frame, text=f"{coord}:", font=ctk.CTkFont(size=14)).pack(side="left")
-            label = ctk.CTkLabel(frame, text=f"0.00{unit}", font=ctk.CTkFont(size=14, weight="bold"))
-            label.pack(side="right")
-            self.cartesian_labels.append(label)
-        
-        # 機械臂狀態
-        robot_status_frame = ctk.CTkFrame(monitor_frame)
-        robot_status_frame.pack(fill="x", padx=20, pady=(0, 20))
-        
-        self.robot_status_label = ctk.CTkLabel(robot_status_frame, text="狀態: 未知", 
-                                              font=ctk.CTkFont(size=14))
-        self.robot_status_label.pack(pady=10)
-        
-        # 下半部：JOG控制
-        control_frame = ctk.CTkFrame(main_container)
-        control_frame.pack(fill="both", expand=True, padx=10, pady=(5, 10))
-        
-        ctk.CTkLabel(control_frame, text="JOG控制", 
-                    font=ctk.CTkFont(size=20, weight="bold")).pack(pady=(15, 10))
-        
-        # JOG控制區域
-        jog_container = ctk.CTkFrame(control_frame)
-        jog_container.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-        
-        # 左側：關節JOG
-        joint_jog_frame = ctk.CTkFrame(jog_container)
-        joint_jog_frame.pack(side="left", fill="both", expand=True, padx=(0, 10), pady=15)
-        
-        ctk.CTkLabel(joint_jog_frame, text="關節座標JOG", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
-        
-        # 關節控制按鈕
-        for i in range(4):
-            joint_control = ctk.CTkFrame(joint_jog_frame, fg_color="transparent")
-            joint_control.pack(fill="x", padx=15, pady=8)
-            
-            ctk.CTkLabel(joint_control, text=f"J{i+1}:", font=ctk.CTkFont(size=14)).pack(side="left")
-            
-            btn_frame = ctk.CTkFrame(joint_control, fg_color="transparent")
-            btn_frame.pack(side="right")
-            
-            # 負方向按鈕
-            neg_btn = ctk.CTkButton(btn_frame, text="-", width=50, height=35,
-                                   command=lambda j=i: self.jog_joint(j, False))
-            neg_btn.pack(side="left", padx=3)
-            
-            # 正方向按鈕
-            pos_btn = ctk.CTkButton(btn_frame, text="+", width=50, height=35,
-                                   command=lambda j=i: self.jog_joint(j, True))
-            pos_btn.pack(side="left", padx=3)
-            
-        # 右側：笛卡爾JOG
-        cart_jog_frame = ctk.CTkFrame(jog_container)
-        cart_jog_frame.pack(side="right", fill="both", expand=True, padx=(10, 0), pady=15)
-        
-        ctk.CTkLabel(cart_jog_frame, text="笛卡爾座標JOG", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
-        
-        # 笛卡爾控制按鈕
-        coords = ["X", "Y", "Z", "R"]
-        for i, coord in enumerate(coords):
-            cart_control = ctk.CTkFrame(cart_jog_frame, fg_color="transparent")
-            cart_control.pack(fill="x", padx=15, pady=8)
-            
-            ctk.CTkLabel(cart_control, text=f"{coord}:", font=ctk.CTkFont(size=14)).pack(side="left")
-            
-            btn_frame = ctk.CTkFrame(cart_control, fg_color="transparent")
-            btn_frame.pack(side="right")
-            
-            # 負方向按鈕
-            neg_btn = ctk.CTkButton(btn_frame, text="-", width=50, height=35,
-                                   command=lambda c=coord: self.jog_cartesian(c, False))
-            neg_btn.pack(side="left", padx=3)
-            
-            # 正方向按鈕
-            pos_btn = ctk.CTkButton(btn_frame, text="+", width=50, height=35,
-                                   command=lambda c=coord: self.jog_cartesian(c, True))
-            pos_btn.pack(side="left", padx=3)
-            
-        # 底部：停止按鈕
-        stop_frame = ctk.CTkFrame(control_frame, fg_color="transparent")
-        stop_frame.pack(pady=10)
-        
-        stop_btn = ctk.CTkButton(stop_frame, text="停止", width=200, height=50,
-                                fg_color="red", hover_color="darkred",
-                                font=ctk.CTkFont(size=16, weight="bold"),
-                                command=self.stop_jog)
-        stop_btn.pack()
-        
-        # 開始監控
-        if not self.monitoring:
-            self.start_monitoring()
-            
-    def show_points_page(self):
-        self.clear_content()
-        self.highlight_nav_button("點位管理")
-        
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="點位管理", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
-        
-        # 主框架
-        main_frame = ctk.CTkFrame(self.content_frame)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # 左側：點位列表
-        left_frame = ctk.CTkFrame(main_frame)
-        left_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
-        
-        ctk.CTkLabel(left_frame, text="已保存點位", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
-        
-        # 點位列表框架
-        list_frame = ctk.CTkFrame(left_frame)
-        list_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # 滾動框架
-        self.points_scrollable = ctk.CTkScrollableFrame(list_frame)
-        self.points_scrollable.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        self.refresh_points_list()
-        
-        # 右側：點位操作
-        right_frame = ctk.CTkFrame(main_frame)
-        right_frame.pack(side="right", fill="y", padx=(10, 20), pady=20)
-        right_frame.configure(width=300)
-        right_frame.pack_propagate(False)
-        
-        ctk.CTkLabel(right_frame, text="點位操作", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
-        
-        # 當前位置顯示
-        current_frame = ctk.CTkFrame(right_frame)
-        current_frame.pack(fill="x", padx=15, pady=10)
-        
-        ctk.CTkLabel(current_frame, text="當前位置", 
-                    font=ctk.CTkFont(size=14, weight="bold")).pack(pady=5)
-        
-        self.current_pos_label = ctk.CTkLabel(current_frame, text="未連接", 
-                                             font=ctk.CTkFont(size=12))
-        self.current_pos_label.pack(pady=5)
-        
-        # 點位名稱輸入
-        name_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
-        name_frame.pack(fill="x", padx=15, pady=10)
-        
-        ctk.CTkLabel(name_frame, text="點位名稱:", font=ctk.CTkFont(size=14)).pack(anchor="w")
-        self.point_name_entry = ctk.CTkEntry(name_frame, placeholder_text="輸入點位名稱")
-        self.point_name_entry.pack(fill="x", pady=5)
-        
-        # 保存當前點位按鈕
-        save_btn = ctk.CTkButton(right_frame, text="保存當前點位", 
-                                command=self.save_current_point)
-        save_btn.pack(fill="x", padx=15, pady=10)
-        
-        # 導入點位按鈕
-        import_btn = ctk.CTkButton(right_frame, text="導入點位檔案", 
-                                  command=self.import_points)
-        import_btn.pack(fill="x", padx=15, pady=10)
-        
-        # 導出點位按鈕
-        export_btn = ctk.CTkButton(right_frame, text="導出點位檔案", 
-                                  command=self.export_points)
-        export_btn.pack(fill="x", padx=15, pady=10)
-        
-    def show_gripper_page(self):
-        self.clear_content()
-        self.highlight_nav_button("夾爪控制")
-        
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="PGC夾爪控制", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
-        
-        # 主控制框架
-        control_frame = ctk.CTkFrame(self.content_frame)
-        control_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # 左側：狀態顯示
-        status_frame = ctk.CTkFrame(control_frame)
-        status_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
-        
-        ctk.CTkLabel(status_frame, text="夾爪狀態", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
-        
-        # 連接狀態
-        conn_frame = ctk.CTkFrame(status_frame, fg_color="transparent")
-        conn_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(conn_frame, text="連接狀態:", font=ctk.CTkFont(size=14)).pack(side="left")
-        self.gripper_conn_label = ctk.CTkLabel(conn_frame, text="未知", 
-                                              font=ctk.CTkFont(size=14))
-        self.gripper_conn_label.pack(side="right")
-        
-        # 當前位置
-        pos_frame = ctk.CTkFrame(status_frame, fg_color="transparent")
-        pos_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(pos_frame, text="當前位置:", font=ctk.CTkFont(size=14)).pack(side="left")
-        self.gripper_pos_label = ctk.CTkLabel(pos_frame, text="0", 
-                                             font=ctk.CTkFont(size=14))
-        self.gripper_pos_label.pack(side="right")
-        
-        # 右側：控制面板
-        ctrl_frame = ctk.CTkFrame(control_frame)
-        ctrl_frame.pack(side="right", fill="both", expand=True, padx=(10, 20), pady=20)
-        
-        ctk.CTkLabel(ctrl_frame, text="夾爪控制", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
-        
-        # 力道設定
-        force_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
-        force_frame.pack(fill="x", padx=20, pady=15)
-        
-        ctk.CTkLabel(force_frame, text="力道設定 (20-100):", font=ctk.CTkFont(size=14)).pack(anchor="w")
-        self.force_slider = ctk.CTkSlider(force_frame, from_=20, to=100, number_of_steps=80)
-        self.force_slider.pack(fill="x", pady=5)
-        self.force_slider.set(50)
-        
-        self.force_value_label = ctk.CTkLabel(force_frame, text="50", font=ctk.CTkFont(size=14))
-        self.force_value_label.pack()
-        self.force_slider.configure(command=self.update_force_label)
-        
-        # 位置設定
-        pos_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
-        pos_frame.pack(fill="x", padx=20, pady=15)
-        
-        ctk.CTkLabel(pos_frame, text="位置設定 (0-1000):", font=ctk.CTkFont(size=14)).pack(anchor="w")
-        self.position_entry = ctk.CTkEntry(pos_frame, placeholder_text="輸入位置")
-        self.position_entry.pack(fill="x", pady=5)
-        
-        # 開啟位置設定
-        open_pos_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
-        open_pos_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(open_pos_frame, text="開啟位置 (0-1000):", font=ctk.CTkFont(size=14)).pack(anchor="w")
-        self.open_position_entry = ctk.CTkEntry(open_pos_frame, placeholder_text="預設開啟位置")
-        self.open_position_entry.pack(fill="x", pady=5)
-        self.open_position_entry.insert(0, "1000")  # 預設開啟位置
-        
-        # 關閉位置設定
-        close_pos_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
-        close_pos_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(close_pos_frame, text="關閉位置 (0-1000):", font=ctk.CTkFont(size=14)).pack(anchor="w")
-        self.close_position_entry = ctk.CTkEntry(close_pos_frame, placeholder_text="預設關閉位置")
-        self.close_position_entry.pack(fill="x", pady=5)
-        self.close_position_entry.insert(0, "0")  # 預設關閉位置
+    def setupUI(self):
+        """建立UI界面"""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # 設定窗口圖標和標題
+        self.setWindowTitle("MG400/M1Pro Python Demo - PyQt版 (ESC=緊急停止)")
+        
+        # 主布局
+        main_layout = QVBoxLayout()
+        
+        # 連接設定區域
+        main_layout.addWidget(self.create_connection_group())
+        
+        # 中間區域 - 左右分割
+        middle_layout = QHBoxLayout()
+        
+        # 左側區域
+        left_layout = QVBoxLayout()
+        left_layout.addWidget(self.create_dashboard_group())
+        left_layout.addWidget(self.create_move_group())
+        left_layout.addWidget(self.create_gripper_group())  # PGC夾爪控制
+        
+        # 右側區域 - 點位管理
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(self.create_points_group())
+        
+        # 設定左右比例
+        left_widget = QWidget()
+        left_widget.setLayout(left_layout)
+        right_widget = QWidget()
+        right_widget.setLayout(right_layout)
+        
+        middle_layout.addWidget(left_widget, 2)  # 左側佔2/3
+        middle_layout.addWidget(right_widget, 1)  # 右側佔1/3
+        
+        main_layout.addLayout(middle_layout)
+        
+        # 底部狀態顯示區域
+        bottom_layout = QHBoxLayout()
+        bottom_layout.addWidget(self.create_feedback_group(), 2)
+        bottom_layout.addWidget(self.create_log_group(), 1)
+        
+        main_layout.addLayout(bottom_layout)
+        
+        central_widget.setLayout(main_layout)
+        
+        # 設定焦點策略，確保能接收鍵盤事件
+        self.setFocusPolicy(Qt.StrongFocus)
+        
+    def create_connection_group(self):
+        """建立連接設定群組"""
+        group = QGroupBox("機械臂連接設定")
+        layout = QHBoxLayout()
+        
+        layout.addWidget(QLabel("IP:"))
+        self.ip_edit = QLineEdit("192.168.1.6")
+        self.ip_edit.setFixedWidth(120)
+        layout.addWidget(self.ip_edit)
+        
+        layout.addWidget(QLabel("Dashboard:"))
+        self.dash_edit = QLineEdit("29999")
+        self.dash_edit.setFixedWidth(60)
+        layout.addWidget(self.dash_edit)
+        
+        layout.addWidget(QLabel("Move:"))
+        self.move_edit = QLineEdit("30003")
+        self.move_edit.setFixedWidth(60)
+        layout.addWidget(self.move_edit)
+        
+        layout.addWidget(QLabel("Feed:"))
+        self.feed_edit = QLineEdit("30004")
+        self.feed_edit.setFixedWidth(60)
+        layout.addWidget(self.feed_edit)
+        
+        self.connect_btn = QPushButton("連接")
+        self.connect_btn.clicked.connect(self.toggle_connection)
+        layout.addWidget(self.connect_btn)
+        
+        layout.addStretch()
+        group.setLayout(layout)
+        return group
+        
+    def create_dashboard_group(self):
+        """建立控制面板群組"""
+        group = QGroupBox("機械臂控制")
+        layout = QGridLayout()
+        
+        # 緊急停止按鈕 - 顯眼的紅色大按鈕
+        self.emergency_stop_btn = QPushButton("緊急停止")
+        self.emergency_stop_btn.setFixedSize(120, 60)
+        self.emergency_stop_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF4444;
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+                border: 3px solid #CC0000;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #FF6666;
+            }
+            QPushButton:pressed {
+                background-color: #CC0000;
+            }
+        """)
+        self.emergency_stop_btn.clicked.connect(self.emergency_stop)
+        layout.addWidget(self.emergency_stop_btn, 0, 0, 2, 1)  # 跨兩行顯示
+        
+        # 使能/下使能
+        self.enable_btn = QPushButton("使能")
+        self.enable_btn.clicked.connect(self.toggle_enable)
+        self.enable_btn.setEnabled(False)
+        layout.addWidget(self.enable_btn, 0, 1)
+        
+        # 重置機械臂
+        reset_btn = QPushButton("重置機械臂")
+        reset_btn.clicked.connect(self.reset_robot)
+        reset_btn.setEnabled(False)
+        layout.addWidget(reset_btn, 0, 2)
+        
+        # 清除錯誤
+        clear_btn = QPushButton("清除錯誤")
+        clear_btn.clicked.connect(self.clear_error)
+        clear_btn.setEnabled(False)
+        layout.addWidget(clear_btn, 0, 3)
+        
+        # 速度設定
+        layout.addWidget(QLabel("速度比例:"), 1, 1)
+        self.speed_spin = QSpinBox()
+        self.speed_spin.setRange(1, 100)
+        self.speed_spin.setValue(50)
+        self.speed_spin.setSuffix("%")
+        layout.addWidget(self.speed_spin, 1, 2)
+        
+        speed_confirm_btn = QPushButton("確認速度")
+        speed_confirm_btn.clicked.connect(self.confirm_speed)
+        speed_confirm_btn.setEnabled(False)
+        layout.addWidget(speed_confirm_btn, 1, 3)
+        
+        # DO控制
+        layout.addWidget(QLabel("DO索引:"), 2, 0)
+        self.do_index_spin = QSpinBox()
+        self.do_index_spin.setRange(1, 24)
+        layout.addWidget(self.do_index_spin, 2, 1)
+        
+        self.do_status_combo = QComboBox()
+        self.do_status_combo.addItems(["高電平", "低電平"])
+        layout.addWidget(self.do_status_combo, 2, 2)
+        
+        do_confirm_btn = QPushButton("設定DO")
+        do_confirm_btn.clicked.connect(self.confirm_do)
+        do_confirm_btn.setEnabled(False)
+        layout.addWidget(do_confirm_btn, 2, 3)
+        
+        # 保存按鈕引用以便後續啟用/禁用 (不包含緊急停止按鈕)
+        self.control_buttons = [reset_btn, clear_btn, speed_confirm_btn, do_confirm_btn]
+        
+        group.setLayout(layout)
+        return group
+        
+    def create_move_group(self):
+        """建立運動控制群組"""
+        group = QGroupBox("運動控制")
+        layout = QGridLayout()
+        
+        # 笛卡爾座標輸入
+        layout.addWidget(QLabel("X:"), 0, 0)
+        self.x_spin = QDoubleSpinBox()
+        self.x_spin.setRange(-1000, 1000)
+        self.x_spin.setValue(600)
+        self.x_spin.setDecimals(2)
+        layout.addWidget(self.x_spin, 0, 1)
+        
+        layout.addWidget(QLabel("Y:"), 0, 2)
+        self.y_spin = QDoubleSpinBox()
+        self.y_spin.setRange(-1000, 1000)
+        self.y_spin.setValue(-260)
+        self.y_spin.setDecimals(2)
+        layout.addWidget(self.y_spin, 0, 3)
+        
+        layout.addWidget(QLabel("Z:"), 0, 4)
+        self.z_spin = QDoubleSpinBox()
+        self.z_spin.setRange(-100, 800)
+        self.z_spin.setValue(380)
+        self.z_spin.setDecimals(2)
+        layout.addWidget(self.z_spin, 0, 5)
+        
+        layout.addWidget(QLabel("R:"), 0, 6)
+        self.r_spin = QDoubleSpinBox()
+        self.r_spin.setRange(-180, 180)
+        self.r_spin.setValue(170)
+        self.r_spin.setDecimals(2)
+        layout.addWidget(self.r_spin, 0, 7)
+        
+        # 運動按鈕
+        movj_btn = QPushButton("MovJ")
+        movj_btn.clicked.connect(self.movj)
+        movj_btn.setEnabled(False)
+        layout.addWidget(movj_btn, 1, 0)
+        
+        movl_btn = QPushButton("MovL")
+        movl_btn.clicked.connect(self.movl)
+        movl_btn.setEnabled(False)
+        layout.addWidget(movl_btn, 1, 1)
+        
+        # 速度控制
+        layout.addWidget(QLabel("MovL速度:"), 1, 2)
+        self.movl_speed_slider = QSlider(Qt.Horizontal)
+        self.movl_speed_slider.setRange(1, 100)
+        self.movl_speed_slider.setValue(50)
+        layout.addWidget(self.movl_speed_slider, 1, 3, 1, 2)
+        
+        self.speed_label = QLabel("50%")
+        self.movl_speed_slider.valueChanged.connect(
+            lambda v: self.speed_label.setText(f"{v}%"))
+        layout.addWidget(self.speed_label, 1, 5)
+        
+        # 關節座標輸入
+        layout.addWidget(QLabel("J1:"), 2, 0)
+        self.j1_spin = QDoubleSpinBox()
+        self.j1_spin.setRange(-180, 180)
+        self.j1_spin.setValue(0)
+        self.j1_spin.setDecimals(2)
+        layout.addWidget(self.j1_spin, 2, 1)
+        
+        layout.addWidget(QLabel("J2:"), 2, 2)
+        self.j2_spin = QDoubleSpinBox()
+        self.j2_spin.setRange(-135, 135)
+        self.j2_spin.setValue(-20)
+        self.j2_spin.setDecimals(2)
+        layout.addWidget(self.j2_spin, 2, 3)
+        
+        layout.addWidget(QLabel("J3:"), 2, 4)
+        self.j3_spin = QDoubleSpinBox()
+        self.j3_spin.setRange(-135, 135)
+        self.j3_spin.setValue(-80)
+        self.j3_spin.setDecimals(2)
+        layout.addWidget(self.j3_spin, 2, 5)
+        
+        layout.addWidget(QLabel("J4:"), 2, 6)
+        self.j4_spin = QDoubleSpinBox()
+        self.j4_spin.setRange(-180, 180)
+        self.j4_spin.setValue(30)
+        self.j4_spin.setDecimals(2)
+        layout.addWidget(self.j4_spin, 2, 7)
+        
+        joint_movj_btn = QPushButton("JointMovJ")
+        joint_movj_btn.clicked.connect(self.joint_movj)
+        joint_movj_btn.setEnabled(False)
+        layout.addWidget(joint_movj_btn, 3, 0)
+        
+        # 點動控制按鈕群組
+        jog_group = QGroupBox("點動控制")
+        jog_layout = QGridLayout()
+        jog_layout.setSpacing(8)  # 增加按鈕間距
+        
+        # 關節點動
+        self.create_jog_buttons(jog_layout, 0, ["J1-", "J1+"], ["j1-", "j1+"])
+        self.create_jog_buttons(jog_layout, 1, ["J2-", "J2+"], ["j2-", "j2+"])
+        self.create_jog_buttons(jog_layout, 2, ["J3-", "J3+"], ["j3-", "j3+"])
+        self.create_jog_buttons(jog_layout, 3, ["J4-", "J4+"], ["j4-", "j4+"])
+        
+        # 笛卡爾點動
+        self.create_jog_buttons(jog_layout, 0, ["X-", "X+"], ["x-", "x+"], col_offset=3)
+        self.create_jog_buttons(jog_layout, 1, ["Y-", "Y+"], ["y-", "y+"], col_offset=3)
+        self.create_jog_buttons(jog_layout, 2, ["Z-", "Z+"], ["z-", "z+"], col_offset=3)
+        self.create_jog_buttons(jog_layout, 3, ["R-", "R+"], ["r-", "r+"], col_offset=3)
+        
+        jog_group.setLayout(jog_layout)
+        layout.addWidget(jog_group, 4, 0, 1, 8)
+        
+        # 保存運動按鈕引用
+        self.move_buttons = [movj_btn, movl_btn, joint_movj_btn]
+        
+        group.setLayout(layout)
+        return group
+        
+    def create_jog_buttons(self, layout, row, labels, commands, col_offset=0):
+        """建立點動按鈕"""
+        for i, (label, cmd) in enumerate(zip(labels, commands)):
+            btn = QPushButton(label)
+            btn.setMinimumSize(60, 40)  # 設定最小尺寸
+            btn.setEnabled(False)
+            btn.pressed.connect(lambda c=cmd: self.start_jog(c))
+            btn.released.connect(self.stop_jog)
+            layout.addWidget(btn, row, i + col_offset)
+            if not hasattr(self, 'jog_buttons'):
+                self.jog_buttons = []
+            self.jog_buttons.append(btn)
+    
+    def create_gripper_group(self):
+        """建立PGC夾爪控制群組"""
+        group = QGroupBox("PGC夾爪控制")
+        layout = QGridLayout()
+        
+        # 連接狀態顯示
+        layout.addWidget(QLabel("連接狀態:"), 0, 0)
+        self.gripper_status_label = QLabel("未連接")
+        self.gripper_status_label.setStyleSheet("color: red")
+        layout.addWidget(self.gripper_status_label, 0, 1)
+        
+        # 夾爪狀態顯示
+        layout.addWidget(QLabel("夾持狀態:"), 0, 2)
+        self.gripper_hold_label = QLabel("未知")
+        layout.addWidget(self.gripper_hold_label, 0, 3)
+        
+        # 位置顯示
+        layout.addWidget(QLabel("當前位置:"), 0, 4)
+        self.gripper_pos_label = QLabel("0")
+        layout.addWidget(self.gripper_pos_label, 0, 5)
         
         # 控制按鈕
-        btn_frame = ctk.CTkFrame(ctrl_frame, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=20, pady=20)
+        init_btn = QPushButton("初始化")
+        init_btn.clicked.connect(self.gripper_initialize)
+        init_btn.setEnabled(False)
+        layout.addWidget(init_btn, 1, 0)
         
-        # 初始化按鈕
-        init_btn = ctk.CTkButton(btn_frame, text="初始化", 
-                                command=self.gripper_initialize)
-        init_btn.pack(fill="x", pady=5)
+        open_btn = QPushButton("快速開啟")
+        open_btn.clicked.connect(self.gripper_open)
+        open_btn.setEnabled(False)
+        layout.addWidget(open_btn, 1, 1)
         
-        # 移動到位置按鈕
-        move_btn = ctk.CTkButton(btn_frame, text="移動到位置", 
-                                command=self.gripper_move_to_position)
-        move_btn.pack(fill="x", pady=5)
+        close_btn = QPushButton("快速關閉")
+        close_btn.clicked.connect(self.gripper_close)
+        close_btn.setEnabled(False)
+        layout.addWidget(close_btn, 1, 2)
         
-        # 快速控制按鈕
-        quick_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
-        quick_frame.pack(fill="x", pady=10)
+        stop_btn = QPushButton("停止")
+        stop_btn.clicked.connect(self.gripper_stop)
+        stop_btn.setEnabled(False)
+        layout.addWidget(stop_btn, 1, 3)
         
-        open_btn = ctk.CTkButton(quick_frame, text="開啟", 
-                                command=self.gripper_open)
-        open_btn.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        # 位置控制
+        layout.addWidget(QLabel("目標位置:"), 2, 0)
+        self.gripper_pos_spin = QSpinBox()
+        self.gripper_pos_spin.setRange(0, 1000)
+        self.gripper_pos_spin.setValue(500)
+        layout.addWidget(self.gripper_pos_spin, 2, 1)
         
-        close_btn = ctk.CTkButton(quick_frame, text="關閉", 
-                                 command=self.gripper_close)
-        close_btn.pack(side="right", fill="x", expand=True, padx=(5, 0))
+        pos_btn = QPushButton("移動到位置")
+        pos_btn.clicked.connect(self.gripper_move_to_pos)
+        pos_btn.setEnabled(False)
+        layout.addWidget(pos_btn, 2, 2)
         
-    def show_vision_page(self):
-        self.clear_content()
-        self.highlight_nav_button("視覺檢測")
+        # 力道控制
+        layout.addWidget(QLabel("夾持力道:"), 2, 3)
+        self.gripper_force_spin = QSpinBox()
+        self.gripper_force_spin.setRange(20, 100)
+        self.gripper_force_spin.setValue(50)
+        layout.addWidget(self.gripper_force_spin, 2, 4)
         
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="視覺檢測", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
+        force_btn = QPushButton("設定力道")
+        force_btn.clicked.connect(self.gripper_set_force)
+        force_btn.setEnabled(False)
+        layout.addWidget(force_btn, 2, 5)
         
-        # 主框架
-        main_frame = ctk.CTkFrame(self.content_frame)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # 保存夾爪按鈕引用
+        self.gripper_buttons = [init_btn, open_btn, close_btn, stop_btn, pos_btn, force_btn]
         
-        # 上方：控制區域
-        control_frame = ctk.CTkFrame(main_frame)
-        control_frame.pack(fill="x", padx=20, pady=(20, 10))
+        group.setLayout(layout)
+        return group
+    
+    def create_points_group(self):
+        """建立點位管理群組"""
+        group = QGroupBox("點位管理")
+        layout = QVBoxLayout()
         
-        # 內外參狀態
-        calib_frame = ctk.CTkFrame(control_frame, fg_color="transparent")
-        calib_frame.pack(fill="x", padx=20, pady=15)
+        # 操作按鈕
+        btn_layout = QHBoxLayout()
         
-        ctk.CTkLabel(calib_frame, text="內外參狀態:", font=ctk.CTkFont(size=14)).pack(side="left")
-        self.calib_status_label = ctk.CTkLabel(calib_frame, text="未載入", 
-                                              text_color="orange", font=ctk.CTkFont(size=14))
-        self.calib_status_label.pack(side="right")
+        save_btn = QPushButton("保存當前點位")
+        save_btn.clicked.connect(self.save_current_point)
+        save_btn.setEnabled(False)
+        save_btn.setToolTip("保存機械臂當前實際位置為點位")
+        btn_layout.addWidget(save_btn)
         
-        # 按鈕區域
-        btn_frame = ctk.CTkFrame(control_frame, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=20, pady=15)
+        sync_btn = QPushButton("同步到輸入框")
+        sync_btn.clicked.connect(self.sync_current_position)
+        sync_btn.setEnabled(False)
+        sync_btn.setToolTip("將機械臂當前位置同步到移動控制輸入框")
+        btn_layout.addWidget(sync_btn)
         
-        load_calib_btn = ctk.CTkButton(btn_frame, text="載入內外參", 
-                                      command=self.load_calibration_file)
-        load_calib_btn.pack(side="left", padx=10)
+        edit_btn = QPushButton("編輯點位")
+        edit_btn.clicked.connect(self.edit_selected_point)
+        btn_layout.addWidget(edit_btn)
         
-        detect_btn = ctk.CTkButton(btn_frame, text="開始視覺檢測", 
-                                  command=self.start_vision_detection)
-        detect_btn.pack(side="right", padx=10)
+        delete_btn = QPushButton("刪除點位")
+        delete_btn.clicked.connect(self.delete_selected_point)
+        btn_layout.addWidget(delete_btn)
         
-        # 下方：結果顯示
-        result_frame = ctk.CTkFrame(main_frame)
-        result_frame.pack(fill="both", expand=True, padx=20, pady=(10, 20))
+        layout.addLayout(btn_layout)
         
-        ctk.CTkLabel(result_frame, text="檢測結果", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
+        # 點位列表
+        self.points_list = QListWidget()
+        self.points_list.itemDoubleClicked.connect(self.move_to_selected_point_with_dialog)
+        layout.addWidget(self.points_list)
         
-        # 結果列表
-        self.result_scrollable = ctk.CTkScrollableFrame(result_frame)
-        self.result_scrollable.pack(fill="both", expand=True, padx=20, pady=20)
+        # 移動控制區域
+        move_control_group = QGroupBox("移動控制")
+        move_control_layout = QVBoxLayout()
         
-        # 初始提示
-        ctk.CTkLabel(self.result_scrollable, text="尚未進行檢測", 
-                    text_color="gray", font=ctk.CTkFont(size=14)).pack(pady=50)
+        # 運動類型選擇
+        motion_type_layout = QHBoxLayout()
+        motion_type_layout.addWidget(QLabel("運動類型:"))
         
-    def show_io_page(self):
-        self.clear_content()
-        self.highlight_nav_button("IO控制")
+        self.motion_type_combo = QComboBox()
+        self.motion_type_combo.addItems([
+            "直線運動(MovL) - 可能遇到手勢切換問題",
+            "關節運動(MovJ) - 避免手勢切換問題", 
+            "關節座標運動(JointMovJ) - 使用儲存關節角度"
+        ])
+        self.motion_type_combo.setCurrentIndex(1)  # 預設選擇MovJ
+        motion_type_layout.addWidget(self.motion_type_combo)
         
-        # 頁面標題
-        title = ctk.CTkLabel(self.content_frame, text="IO控制", 
-                            font=ctk.CTkFont(size=28, weight="bold"))
-        title.pack(pady=(30, 20))
+        move_control_layout.addLayout(motion_type_layout)
         
-        if not self.is_connected:
-            ctk.CTkLabel(self.content_frame, text="請先連接機械臂", 
-                        text_color="red", font=ctk.CTkFont(size=18)).pack(expand=True)
-            return
+        # 速度控制
+        speed_layout = QHBoxLayout()
+        speed_layout.addWidget(QLabel("移動速度:"))
         
-        # 主框架
-        main_frame = ctk.CTkFrame(self.content_frame)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.point_speed_slider = QSlider(Qt.Horizontal)
+        self.point_speed_slider.setRange(1, 100)
+        self.point_speed_slider.setValue(30)
+        speed_layout.addWidget(self.point_speed_slider)
         
-        # 左側：DO控制
-        do_frame = ctk.CTkFrame(main_frame)
-        do_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
+        self.point_speed_label = QLabel("30%")
+        self.point_speed_slider.valueChanged.connect(
+            lambda v: self.point_speed_label.setText(f"{v}%"))
+        speed_layout.addWidget(self.point_speed_label)
         
-        ctk.CTkLabel(do_frame, text="數位輸出 (DO)", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
+        move_control_layout.addLayout(speed_layout)
         
-        # DO控制按鈕 (1-24)
-        do_scroll = ctk.CTkScrollableFrame(do_frame)
-        do_scroll.pack(fill="both", expand=True, padx=15, pady=15)
+        # 移動按鈕
+        move_btn_layout = QHBoxLayout()
         
-        self.do_buttons = {}
-        for i in range(1, 25):  # DO1-DO24
-            do_item = ctk.CTkFrame(do_scroll, fg_color="transparent")
-            do_item.pack(fill="x", pady=2)
-            
-            ctk.CTkLabel(do_item, text=f"DO{i}:", font=ctk.CTkFont(size=12)).pack(side="left")
-            
-            btn_frame = ctk.CTkFrame(do_item, fg_color="transparent")
-            btn_frame.pack(side="right")
-            
-            on_btn = ctk.CTkButton(btn_frame, text="ON", width=40, height=25,
-                                  command=lambda idx=i: self.set_do(idx, True))
-            on_btn.pack(side="left", padx=2)
-            
-            off_btn = ctk.CTkButton(btn_frame, text="OFF", width=40, height=25,
-                                   fg_color="gray", hover_color="darkgray",
-                                   command=lambda idx=i: self.set_do(idx, False))
-            off_btn.pack(side="left", padx=2)
+        move_btn = QPushButton("移動到選中點位")
+        move_btn.clicked.connect(self.move_to_selected_point)
+        move_btn.setEnabled(False)
+        move_btn_layout.addWidget(move_btn)
         
-        # 右側：DI狀態
-        di_frame = ctk.CTkFrame(main_frame)
-        di_frame.pack(side="right", fill="both", expand=True, padx=(10, 20), pady=20)
+        quick_move_btn = QPushButton("快速移動(使用預設類型)")
+        quick_move_btn.clicked.connect(lambda: self.move_to_selected_point(use_preset=True))
+        quick_move_btn.setEnabled(False)
+        move_btn_layout.addWidget(quick_move_btn)
         
-        ctk.CTkLabel(di_frame, text="數位輸入 (DI)", 
-                    font=ctk.CTkFont(size=18, weight="bold")).pack(pady=15)
+        move_control_layout.addLayout(move_btn_layout)
         
-        # DI狀態顯示
-        di_scroll = ctk.CTkScrollableFrame(di_frame)
-        di_scroll.pack(fill="both", expand=True, padx=15, pady=15)
+        move_control_group.setLayout(move_control_layout)
+        layout.addWidget(move_control_group)
         
-        self.di_labels = {}
-        for i in range(1, 25):  # DI1-DI24
-            di_item = ctk.CTkFrame(di_scroll, fg_color="transparent")
-            di_item.pack(fill="x", pady=2)
-            
-            ctk.CTkLabel(di_item, text=f"DI{i}:", font=ctk.CTkFont(size=12)).pack(side="left")
-            
-            status_label = ctk.CTkLabel(di_item, text="LOW", font=ctk.CTkFont(size=12),
-                                       text_color="gray")
-            status_label.pack(side="right")
-            self.di_labels[i] = status_label
-            
-        # 開始DI狀態更新
-        self.start_di_monitoring()
-            
-    def highlight_nav_button(self, active_text):
-        # 重置所有按鈕顏色
-        for btn in self.nav_buttons.values():
-            btn.configure(fg_color=("gray75", "gray25"))
+        # 保存點位按鈕引用
+        self.point_buttons = [save_btn, sync_btn, move_btn, quick_move_btn]
         
-        # 高亮當前按鈕
-        if active_text in self.nav_buttons:
-            self.nav_buttons[active_text].configure(fg_color=("blue", "blue"))
+        group.setLayout(layout)
+        return group
+        
+    def create_feedback_group(self):
+        """建立狀態反饋群組"""
+        group = QGroupBox("狀態反饋")
+        layout = QGridLayout()
+        
+        # 速度比例
+        layout.addWidget(QLabel("當前速度比例:"), 0, 0)
+        self.current_speed_label = QLabel("0%")
+        layout.addWidget(self.current_speed_label, 0, 1)
+        
+        # 機械臂模式
+        layout.addWidget(QLabel("機械臂模式:"), 0, 2)
+        self.robot_mode_label = QLabel("未知")
+        layout.addWidget(self.robot_mode_label, 0, 3)
+        
+        # 位置反饋
+        layout.addWidget(QLabel("當前位置(X,Y,Z,R):"), 1, 0)
+        self.position_label = QLabel("0.00, 0.00, 0.00, 0.00")
+        layout.addWidget(self.position_label, 1, 1, 1, 3)
+        
+        # 關節角度反饋
+        layout.addWidget(QLabel("關節角度(J1,J2,J3,J4):"), 2, 0)
+        self.joint_label = QLabel("0.00, 0.00, 0.00, 0.00")
+        layout.addWidget(self.joint_label, 2, 1, 1, 3)
+        
+        # 數位IO
+        layout.addWidget(QLabel("數位輸入:"), 3, 0)
+        self.di_label = QLabel("")
+        layout.addWidget(self.di_label, 3, 1, 1, 3)
+        
+        layout.addWidget(QLabel("數位輸出:"), 4, 0)
+        self.do_label = QLabel("")
+        layout.addWidget(self.do_label, 4, 1, 1, 3)
+        
+        group.setLayout(layout)
+        return group
+        
+    def create_log_group(self):
+        """建立日誌群組"""
+        group = QGroupBox("系統日誌")
+        layout = QVBoxLayout()
+        
+        # 日誌顯示區域
+        self.log_text = QTextEdit()
+        self.log_text.setMaximumHeight(200)
+        self.log_text.setReadOnly(True)
+        layout.addWidget(self.log_text)
+        
+        # 錯誤顯示區域
+        error_group = QGroupBox("錯誤信息")
+        error_layout = QVBoxLayout()
+        self.error_text = QTextEdit()
+        self.error_text.setMaximumHeight(100)
+        self.error_text.setReadOnly(True)
+        error_layout.addWidget(self.error_text)
+        
+        clear_error_btn = QPushButton("清除錯誤信息")
+        clear_error_btn.clicked.connect(self.clear_error_info)
+        error_layout.addWidget(clear_error_btn)
+        
+        error_group.setLayout(error_layout)
+        layout.addWidget(error_group)
+        
+        group.setLayout(layout)
+        return group
     
     def toggle_connection(self):
-        if not self.is_connected:
-            self.connect_robot()
-        else:
+        """切換連接狀態"""
+        if self.global_state['connect']:
             self.disconnect_robot()
+        else:
+            self.connect_robot()
             
     def connect_robot(self):
-        ip = self.ip_entry.get().strip()
-        if not ip:
-            messagebox.showerror("錯誤", "請輸入IP地址")
-            return
-            
+        """連接機械臂"""
         try:
-            # 連接Dashboard
-            self.dashboard = DobotApiDashboard(ip, 29999)
-            # 連接Move
-            self.move = DobotApiMove(ip, 30003)
+            ip = self.ip_edit.text()
+            dash_port = int(self.dash_edit.text())
+            move_port = int(self.move_edit.text())
+            feed_port = int(self.feed_edit.text())
             
-            # 測試連接
-            response = self.dashboard.RobotMode()
-            if response and "ErrorID,0" in response:
-                self.is_connected = True
-                self.status_label.configure(text="已連接", text_color="green")
-                self.connect_btn.configure(text="斷開連接")
-                
-                # 連接Modbus
-                self.connect_modbus()
-                
-                messagebox.showinfo("成功", "機械臂連接成功")
+            self.append_log("正在連接機械臂...")
+            
+            self.client_dash = DobotApiDashboard(ip, dash_port)
+            self.client_move = DobotApiMove(ip, move_port)
+            self.client_feed = DobotApi(ip, feed_port)
+            
+            # 連接Modbus TCP用於PGC夾爪控制 - 使用PyModbus 3.x語法
+            self.modbus_client = ModbusTcpClient(host='127.0.0.1', port=502)
+            if self.modbus_client.connect():
+                self.append_log("Modbus TCP連接成功")
+                # 測試讀取PGC狀態寄存器
+                result = self.modbus_client.read_holding_registers(address=500, count=1, slave=1)
+                if not result.isError():
+                    self.append_log("PGC夾爪寄存器讀取成功")
+                else:
+                    self.append_log(f"PGC夾爪寄存器讀取失敗: {result}")
             else:
-                raise Exception("連接測試失敗")
-                
+                self.append_log("Modbus TCP連接失敗")
+            
+            self.global_state['connect'] = True
+            self.connect_btn.setText("斷開")
+            
+            # 啟用控制按鈕
+            self.enable_controls(True)
+            
+            # 啟動反饋線程
+            self.start_feedback_thread()
+            
+            self.append_log("機械臂連接成功")
+            
         except Exception as e:
-            messagebox.showerror("連接失敗", f"無法連接到機械臂：{str(e)}")
-            self.cleanup_connections()
+            QMessageBox.critical(self, "連接錯誤", f"連接失敗: {str(e)}")
+            self.append_log(f"連接失敗: {str(e)}")
             
     def disconnect_robot(self):
-        self.cleanup_connections()
-        self.is_connected = False
-        self.monitoring = False
-        self.status_label.configure(text="未連接", text_color="red")
-        self.connect_btn.configure(text="連接")
-        
-        # 停止DI監控
-        if self.di_update_timer:
-            self.root.after_cancel(self.di_update_timer)
-            self.di_update_timer = None
-            
-        messagebox.showinfo("提示", "已斷開連接")
-        
-    def cleanup_connections(self):
-        if self.dashboard:
-            self.dashboard.close()
-            self.dashboard = None
-        if self.move:
-            self.move.close()
-            self.move = None
-        if self.modbus_client:
-            self.modbus_client.close()
-            self.modbus_client = None
-            
-    def connect_modbus(self):
+        """斷開機械臂連接"""
         try:
-            self.modbus_client = ModbusTcpClient('127.0.0.1', port=502)
-            connection_result = self.modbus_client.connect()
-            if not connection_result:
-                print("Modbus連接失敗")
-        except Exception as e:
-            print(f"Modbus連接失敗: {e}")
-            
-    def check_modules_status(self):
-        if not self.modbus_client:
-            self.connect_modbus()
-            
-        if self.modbus_client and self.modbus_client.connected:
-            # 檢查Gripper模組 (基地址500)
-            try:
-                result = self.modbus_client.read_holding_registers(500, 1, slave=1)
-                if result.isError():
-                    self.gripper_status.configure(text="離線", text_color="red")
-                else:
-                    status = result.registers[0]
-                    if status == 1:
-                        self.gripper_status.configure(text="在線", text_color="green")
-                    else:
-                        self.gripper_status.configure(text="異常", text_color="orange")
-            except Exception as e:
-                print(f"檢查Gripper狀態錯誤: {e}")
-                self.gripper_status.configure(text="錯誤", text_color="red")
+            if self.client_dash:
+                self.client_dash.close()
+            if self.client_move:
+                self.client_move.close()
+            if self.client_feed:
+                self.client_feed.close()
+            if self.modbus_client:
+                self.modbus_client.close()
                 
-            # 檢查CCD模組 (基地址200)
-            try:
-                result = self.modbus_client.read_holding_registers(201, 1, slave=1)
-                if result.isError():
-                    self.ccd_status.configure(text="離線", text_color="red")
-                else:
-                    status = result.registers[0]
-                    if status & 0x1:  # Ready bit
-                        self.ccd_status.configure(text="就緒", text_color="green")
-                    else:
-                        self.ccd_status.configure(text="未就緒", text_color="orange")
-            except Exception as e:
-                print(f"檢查CCD狀態錯誤: {e}")
-                self.ccd_status.configure(text="錯誤", text_color="red")
+            self.global_state['connect'] = False
+            self.connect_btn.setText("連接")
+            
+            # 禁用控制按鈕
+            self.enable_controls(False)
+            
+            self.append_log("機械臂連接已斷開")
+            
+        except Exception as e:
+            self.append_log(f"斷開連接錯誤: {str(e)}")
+            
+    def enable_controls(self, enabled):
+        """啟用/禁用控制按鈕"""
+        self.enable_btn.setEnabled(enabled)
+        # 緊急停止按鈕始終可用，不受連接狀態影響
+        for btn in self.control_buttons + self.move_buttons + self.jog_buttons + self.gripper_buttons + self.point_buttons:
+            btn.setEnabled(enabled)
+            
+    def emergency_stop(self):
+        """緊急停止功能"""
+        try:
+            if self.global_state['connect'] and self.client_dash:
+                # 發送緊急停止指令到機械臂
+                result = self.client_dash.EmergencyStop()
+                self.append_log(f"緊急停止指令已發送: {result}")
+                
+                # 停止所有點動操作
+                if self.client_move:
+                    self.client_move.MoveJog("")
+                
+                # 發送夾爪緊急停止指令
+                if self.modbus_client and self.modbus_client.connected:
+                    try:
+                        # PGC夾爪緊急停止 (指令2: 停止)
+                        command_id = int(time.time() * 1000) % 65535
+                        self.modbus_client.write_register(address=520, value=2, slave=1)
+                        self.modbus_client.write_register(address=523, value=command_id, slave=1)
+                        self.append_log("PGC夾爪緊急停止指令已發送")
+                    except Exception as e:
+                        self.append_log(f"PGC夾爪緊急停止失敗: {str(e)}")
+                
+                # 顯示緊急停止警告
+                QMessageBox.warning(self, "緊急停止", 
+                    "緊急停止已觸發！\n" +
+                    "機械臂已停止所有運動。\n" +
+                    "請檢查安全狀況後重新使能機械臂。")
+                
+                # 自動下使能機械臂
+                if self.global_state['enable']:
+                    self.global_state['enable'] = False
+                    self.enable_btn.setText("使能")
+                
+            else:
+                # 即使未連接也要顯示緊急停止被按下的提示
+                self.append_log("緊急停止按鈕被按下 (機械臂未連接)")
+                QMessageBox.information(self, "緊急停止", "緊急停止按鈕已被按下。")
+                
+        except Exception as e:
+            error_msg = f"緊急停止執行失敗: {str(e)}"
+            self.append_log(error_msg)
+            QMessageBox.critical(self, "緊急停止錯誤", error_msg)
+    
+    def keyPressEvent(self, event):
+        """鍵盤快捷鍵處理"""
+        # 按 ESC 鍵觸發緊急停止
+        if event.key() == Qt.Key_Escape:
+            self.emergency_stop()
+        # 按 Space 鍵停止所有點動
+        elif event.key() == Qt.Key_Space:
+            if self.global_state['connect'] and self.client_move:
+                self.client_move.MoveJog("")
+                self.append_log("空白鍵停止點動")
         else:
-            self.gripper_status.configure(text="Modbus未連接", text_color="red")
-            self.ccd_status.configure(text="Modbus未連接", text_color="red")
+            super().keyPressEvent(event)
             
-    def start_monitoring(self):
-        self.monitoring = True
-        threading.Thread(target=self.monitor_loop, daemon=True).start()
+    def reset_robot(self):
+        """重置機械臂"""
+        self.client_dash.ResetRobot()
+        self.append_log("機械臂重置")
         
-    def monitor_loop(self):
-        while self.monitoring and self.is_connected:
-            try:
-                # 獲取關節角度
-                angle_response = self.dashboard.GetAngle()
-                if angle_response and "ErrorID,0" in angle_response:
-                    # 解析角度數據
-                    parts = angle_response.strip().split(',')
-                    if len(parts) >= 5:
-                        angles = [float(parts[i]) for i in range(1, 5)]
-                        self.current_joint = angles
-                        
-                        # 更新UI
-                        self.root.after(0, self.update_joint_display, angles)
-                
-                # 獲取笛卡爾座標
-                pose_response = self.dashboard.GetPose()
-                if pose_response and "ErrorID,0" in pose_response:
-                    # 解析位置數據
-                    parts = pose_response.strip().split(',')
-                    if len(parts) >= 5:
-                        pose = [float(parts[i]) for i in range(1, 5)]
-                        self.current_cartesian = pose
-                        
-                        # 更新UI
-                        self.root.after(0, self.update_cartesian_display, pose)
-                
-                # 獲取機械臂狀態
-                mode_response = self.dashboard.RobotMode()
-                if mode_response:
-                    self.root.after(0, self.update_robot_status, mode_response)
-                    
-                time.sleep(0.1)  # 100ms更新間隔
-                
-            except Exception as e:
-                print(f"監控錯誤: {e}")
-                time.sleep(1)
-                
-    def update_joint_display(self, angles):
-        for i, angle in enumerate(angles):
-            if i < len(self.joint_labels):
-                self.joint_labels[i].configure(text=f"{angle:.2f}°")
-                
-    def update_cartesian_display(self, pose):
-        units = ["mm", "mm", "mm", "°"]
-        for i, (value, unit) in enumerate(zip(pose, units)):
-            if i < len(self.cartesian_labels):
-                self.cartesian_labels[i].configure(text=f"{value:.2f}{unit}")
-                
-    def update_robot_status(self, response):
-        # 解析機械臂狀態
-        status_map = {
-            1: "初始化", 2: "抱閘松開", 3: "未上電", 4: "未使能",
-            5: "使能且空閒", 6: "拖拽模式", 7: "運行狀態",
-            8: "軌跡錄製", 9: "有未清除報警", 10: "暫停狀態", 11: "點動中"
-        }
+    def clear_error(self):
+        """清除錯誤"""
+        self.client_dash.ClearError()
+        self.append_log("錯誤已清除")
         
-        try:
-            parts = response.strip().split(',')
-            if len(parts) >= 2:
-                mode = int(parts[1])
-                status_text = status_map.get(mode, f"未知狀態({mode})")
-                self.robot_status_label.configure(text=f"狀態: {status_text}")
-        except:
-            self.robot_status_label.configure(text="狀態: 解析錯誤")
-            
-    def jog_joint(self, joint_index, positive):
-        if not self.move:
-            return
-            
-        axis_map = [f"J{i+1}+" if positive else f"J{i+1}-" for i in range(4)]
-        axis = axis_map[joint_index]
+    def confirm_speed(self):
+        """確認速度設定"""
+        speed = self.speed_spin.value()
+        self.client_dash.SpeedFactor(speed)
+        self.append_log(f"速度比例設定為 {speed}%")
         
-        try:
-            self.move.MoveJog(axis)
-        except Exception as e:
-            messagebox.showerror("錯誤", f"關節JOG失敗: {e}")
-            
-    def jog_cartesian(self, coord, positive):
-        if not self.move:
-            return
-            
-        axis = f"{coord}+" if positive else f"{coord}-"
+    def confirm_do(self):
+        """確認DO設定"""
+        index = self.do_index_spin.value()
+        status = 1 if self.do_status_combo.currentText() == "高電平" else 0
+        self.client_dash.DO(index, status)
+        self.append_log(f"DO{index} 設定為 {'高電平' if status else '低電平'}")
         
-        try:
-            self.move.MoveJog(axis)
-        except Exception as e:
-            messagebox.showerror("錯誤", f"笛卡爾JOG失敗: {e}")
+    def movj(self):
+        """關節運動"""
+        x, y, z, r = self.get_cartesian_values()
+        self.client_move.MovJ(x, y, z, r)
+        self.append_log(f"MovJ to ({x}, {y}, {z}, {r})")
+        
+    def movl(self):
+        """直線運動"""
+        x, y, z, r = self.get_cartesian_values()
+        speed = self.movl_speed_slider.value()
+        speed_param = f"SpeedL={speed}"
+        self.client_move.MovL(x, y, z, r, speed_param)
+        self.append_log(f"MovL to ({x}, {y}, {z}, {r}) at {speed}% speed")
+        
+    def joint_movj(self):
+        """關節移動"""
+        j1, j2, j3, j4 = self.get_joint_values()
+        self.client_move.JointMovJ(j1, j2, j3, j4)
+        self.append_log(f"JointMovJ to ({j1}, {j2}, {j3}, {j4})")
+        
+    def get_cartesian_values(self):
+        """獲取笛卡爾座標值"""
+        return (self.x_spin.value(), self.y_spin.value(), 
+                self.z_spin.value(), self.r_spin.value())
+                
+    def get_joint_values(self):
+        """獲取關節角度值"""
+        return (self.j1_spin.value(), self.j2_spin.value(),
+                self.j3_spin.value(), self.j4_spin.value())
+                
+    def start_jog(self, command):
+        """開始點動"""
+        if self.global_state['connect']:
+            self.client_move.MoveJog(command)
             
     def stop_jog(self):
-        if not self.move:
+        """停止點動"""
+        if self.global_state['connect']:
+            self.client_move.MoveJog("")
+    
+    # PGC夾爪控制功能
+    def send_gripper_command(self, cmd, param1=0, param2=0):
+        """發送PGC夾爪指令"""
+        if not self.modbus_client or not self.modbus_client.connected:
+            self.append_log("Modbus連接未建立")
+            return False
+            
+        try:
+            # PGC夾爪指令寄存器基地址 520-529
+            command_id = int(time.time() * 1000) % 65535  # 生成指令ID
+            
+            # 使用PyModbus 3.x語法寫入指令寄存器
+            result = self.modbus_client.write_register(address=520, value=cmd, slave=1)
+            if result.isError():
+                self.append_log(f"寫入指令代碼失敗: {result}")
+                return False
+                
+            result = self.modbus_client.write_register(address=521, value=param1, slave=1)
+            if result.isError():
+                self.append_log(f"寫入參數1失敗: {result}")
+                return False
+                
+            result = self.modbus_client.write_register(address=522, value=param2, slave=1)
+            if result.isError():
+                self.append_log(f"寫入參數2失敗: {result}")
+                return False
+                
+            result = self.modbus_client.write_register(address=523, value=command_id, slave=1)
+            if result.isError():
+                self.append_log(f"寫入指令ID失敗: {result}")
+                return False
+            
+            self.append_log(f"PGC夾爪指令已發送: cmd={cmd}, param1={param1}, ID={command_id}")
+            return True
+            
+        except Exception as e:
+            self.append_log(f"PGC夾爪指令發送失敗: {str(e)}")
+            return False
+    
+    def gripper_initialize(self):
+        """PGC夾爪初始化"""
+        self.send_gripper_command(1)  # 指令1: 初始化
+        
+    def gripper_open(self):
+        """PGC夾爪快速開啟"""
+        self.send_gripper_command(7)  # 指令7: 快速開啟
+        
+    def gripper_close(self):
+        """PGC夾爪快速關閉"""
+        self.send_gripper_command(8)  # 指令8: 快速關閉
+        
+    def gripper_stop(self):
+        """PGC夾爪停止"""
+        self.send_gripper_command(2)  # 指令2: 停止
+        
+    def gripper_move_to_pos(self):
+        """PGC夾爪移動到指定位置"""
+        pos = self.gripper_pos_spin.value()
+        self.send_gripper_command(3, pos)  # 指令3: 絕對位置
+        
+    def gripper_set_force(self):
+        """PGC夾爪設定力道"""
+        force = self.gripper_force_spin.value()
+        self.send_gripper_command(5, force)  # 指令5: 設定力道
+    
+    def sync_current_position(self):
+        """將機械臂當前位置同步到輸入框"""
+        if not self.global_state['connect']:
+            QMessageBox.warning(self, "警告", "請先連接機械臂")
+            return
+            
+        # 檢查是否有有效的位置數據
+        if (self.current_position['cartesian']['x'] == 0 and 
+            self.current_position['cartesian']['y'] == 0 and 
+            self.current_position['cartesian']['z'] == 0):
+            QMessageBox.warning(self, "警告", "尚未獲取到機械臂位置反饋，請稍後再試")
+            return
+            
+        # 同步笛卡爾座標到輸入框
+        cart = self.current_position['cartesian']
+        self.x_spin.setValue(cart['x'])
+        self.y_spin.setValue(cart['y'])
+        self.z_spin.setValue(cart['z'])
+        self.r_spin.setValue(cart['r'])
+        
+        # 同步關節角度到輸入框
+        joint = self.current_position['joint']
+        self.j1_spin.setValue(joint['j1'])
+        self.j2_spin.setValue(joint['j2'])
+        self.j3_spin.setValue(joint['j3'])
+        self.j4_spin.setValue(joint['j4'])
+        
+    def update_gripper_status(self):
+        """更新PGC夾爪狀態顯示"""
+        if not self.modbus_client or not self.modbus_client.connected:
             return
             
         try:
-            self.move.MoveJog()  # 無參數表示停止
-        except Exception as e:
-            messagebox.showerror("錯誤", f"停止JOG失敗: {e}")
-            
-    def save_current_point(self):
-        if not self.is_connected:
-            messagebox.showerror("錯誤", "請先連接機械臂")
-            return
-            
-        name = self.point_name_entry.get().strip()
-        if not name:
-            messagebox.showerror("錯誤", "請輸入點位名稱")
-            return
-            
-        # 檢查名稱是否已存在
-        if any(point["name"] == name for point in self.saved_points):
-            if not messagebox.askyesno("確認", f"點位 '{name}' 已存在，是否覆蓋？"):
+            # 使用PyModbus 3.x語法讀取PGC夾爪狀態寄存器 500-519
+            result = self.modbus_client.read_holding_registers(address=500, count=20, slave=1)
+            if result.isError():
+                self.gripper_status_label.setText("讀取錯誤")
+                self.gripper_status_label.setStyleSheet("color: red")
                 return
-            # 移除舊點位
-            self.saved_points = [p for p in self.saved_points if p["name"] != name]
+                
+            registers = result.registers
             
-        # 創建點位數據
-        point_data = {
-            "name": name,
-            "joint": self.current_joint.copy(),
-            "cartesian": self.current_cartesian.copy()
+            # 解析狀態
+            module_status = registers[0]  # 模組狀態
+            connection_status = registers[1]  # 連接狀態
+            hold_status = registers[4]  # 夾持狀態
+            current_pos = registers[5]  # 當前位置
+            
+            # 更新顯示
+            if connection_status == 1:
+                self.gripper_status_label.setText("已連接")
+                self.gripper_status_label.setStyleSheet("color: green")
+            else:
+                self.gripper_status_label.setText("未連接")
+                self.gripper_status_label.setStyleSheet("color: red")
+                
+            # 夾持狀態映射
+            hold_status_map = {0: "運動中", 1: "到達", 2: "夾住", 3: "掉落"}
+            self.gripper_hold_label.setText(hold_status_map.get(hold_status, "未知"))
+            
+            self.gripper_pos_label.setText(str(current_pos))
+            
+        except Exception as e:
+            self.gripper_status_label.setText("通訊錯誤")
+            self.gripper_status_label.setStyleSheet("color: red")
+            # 不要在這裡記錄日誌，避免頻繁錯誤訊息
+    
+    # 點位管理功能
+    def save_current_point(self):
+        """保存當前點位"""
+        if not self.global_state['connect']:
+            QMessageBox.warning(self, "警告", "請先連接機械臂")
+            return
+            
+        # 檢查是否有有效的位置數據
+        if (self.current_position['cartesian']['x'] == 0 and 
+            self.current_position['cartesian']['y'] == 0 and 
+            self.current_position['cartesian']['z'] == 0):
+            QMessageBox.warning(self, "警告", "尚未獲取到機械臂位置反饋，請稍後再試")
+            return
+            
+        name, ok = QInputDialog.getText(self, "保存點位", "輸入點位名稱:")
+        if not ok or not name.strip():
+            return
+            
+        # 使用實際機械臂反饋的位置數據
+        cartesian = self.current_position['cartesian'].copy()
+        joint = self.current_position['joint'].copy()
+        
+        point = {
+            'id': len(self.saved_points),
+            'name': name.strip(),
+            'cartesian': cartesian,
+            'joint': joint,
+            'created_time': datetime.now().isoformat(),
+            'modified_time': datetime.now().isoformat()
         }
         
-        self.saved_points.append(point_data)
+        self.saved_points.append(point)
         self.save_points()
         self.refresh_points_list()
-        self.point_name_entry.delete(0, "end")
         
-        messagebox.showinfo("成功", f"點位 '{name}' 已保存")
+        # 更詳細的日誌信息
+        self.append_log(f"點位 '{name}' 已保存 - 位置: X:{cartesian['x']:.2f}, Y:{cartesian['y']:.2f}, Z:{cartesian['z']:.2f}, R:{cartesian['r']:.2f}")
+        self.append_log(f"關節角度: J1:{joint['j1']:.2f}, J2:{joint['j2']:.2f}, J3:{joint['j3']:.2f}, J4:{joint['j4']:.2f}")
         
-    def load_points(self):
-        points_file = os.path.join(self.points_dir, "saved_points.json")
+    def edit_selected_point(self):
+        """編輯選中的點位"""
+        current_row = self.points_list.currentRow()
+        if current_row < 0 or current_row >= len(self.saved_points):
+            QMessageBox.warning(self, "警告", "請先選擇要編輯的點位")
+            return
+            
+        point = self.saved_points[current_row]
+        dialog = PointEditDialog(point, self)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            new_data = dialog.get_data()
+            
+            # 驗證位置變化
+            if not dialog.validate_position_change(point, new_data):
+                reply = QMessageBox.question(self, "安全警告", 
+                    "檢測到大幅度位置變化或正負號改變，這可能導致機械臂碰撞。\n是否繼續保存？",
+                    QMessageBox.Yes | QMessageBox.No)
+                if reply == QMessageBox.No:
+                    return
+                    
+            self.saved_points[current_row] = new_data
+            self.save_points()
+            self.refresh_points_list()
+            self.append_log(f"點位 '{new_data['name']}' 已更新")
+            
+    def delete_selected_point(self):
+        """刪除選中的點位"""
+        current_row = self.points_list.currentRow()
+        if current_row < 0 or current_row >= len(self.saved_points):
+            QMessageBox.warning(self, "警告", "請先選擇要刪除的點位")
+            return
+            
+        point = self.saved_points[current_row]
+        reply = QMessageBox.question(self, "確認刪除", 
+            f"確定要刪除點位 '{point['name']}' 嗎？",
+            QMessageBox.Yes | QMessageBox.No)
+            
+        if reply == QMessageBox.Yes:
+            del self.saved_points[current_row]
+            # 重新分配ID
+            for i, p in enumerate(self.saved_points):
+                p['id'] = i
+            self.save_points()
+            self.refresh_points_list()
+            self.append_log(f"點位 '{point['name']}' 已刪除")
+            
+    def move_to_selected_point_with_dialog(self):
+        """雙擊點位列表時彈出運動類型選擇對話框"""
+        current_row = self.points_list.currentRow()
+        if current_row < 0 or current_row >= len(self.saved_points):
+            return
+        
+        # 彈出運動類型選擇對話框
+        motion_type, ok = QInputDialog.getItem(self, "選擇運動類型", 
+            "請選擇運動方式:", 
+            [
+                "直線運動(MovL) - 可能遇到手勢切換問題",
+                "關節運動(MovJ) - 避免手勢切換問題", 
+                "關節座標運動(JointMovJ) - 使用儲存關節角度"
+            ], 
+            1, False)  # 預設選擇MovJ
+        
+        if ok:
+            self.execute_point_movement(motion_type)
+    
+    def move_to_selected_point(self, use_preset=False):
+        """移動到選中的點位"""
+        current_row = self.points_list.currentRow()
+        if current_row < 0 or current_row >= len(self.saved_points):
+            QMessageBox.warning(self, "警告", "請先選擇要移動的點位")
+            return
+            
+        if not self.global_state['connect']:
+            QMessageBox.warning(self, "警告", "請先連接機械臂")
+            return
+            
+        if not self.global_state['enable']:
+            QMessageBox.warning(self, "警告", "請先使能機械臂")
+            return
+        
+        if use_preset:
+            # 使用下拉選單預設的運動類型
+            motion_type = self.motion_type_combo.currentText()
+            self.execute_point_movement(motion_type)
+        else:
+            # 彈出選擇對話框
+            motion_type, ok = QInputDialog.getItem(self, "選擇運動類型", 
+                "請選擇運動方式:", 
+                [
+                    "直線運動(MovL) - 可能遇到手勢切換問題",
+                    "關節運動(MovJ) - 避免手勢切換問題", 
+                    "關節座標運動(JointMovJ) - 使用儲存關節角度"
+                ], 
+                1, False)  # 預設選擇MovJ
+            
+            if ok:
+                self.execute_point_movement(motion_type)
+    
+    def execute_point_movement(self, motion_type):
+        """執行點位移動"""
+        current_row = self.points_list.currentRow()
+        point = self.saved_points[current_row]
+        cartesian = point['cartesian']
+        joint = point['joint']
+        speed = self.point_speed_slider.value()
+        
+        # 檢查點位數據完整性
+        required_keys = ['x', 'y', 'z', 'r']
+        for key in required_keys:
+            if key not in cartesian:
+                QMessageBox.critical(self, "錯誤", f"點位數據不完整，缺少{key}座標")
+                return
+        
+        # 安全範圍檢查
+        x, y, z, r = cartesian['x'], cartesian['y'], cartesian['z'], cartesian['r']
+        
+        # M1Pro安全工作範圍檢查
+        if not (-800 <= x <= 800):
+            QMessageBox.warning(self, "安全警告", f"X座標 {x} 可能超出安全範圍(-800~800)")
+        if not (-800 <= y <= 800):
+            QMessageBox.warning(self, "安全警告", f"Y座標 {y} 可能超出安全範圍(-800~800)")
+        if not (50 <= z <= 600):
+            reply = QMessageBox.question(self, "安全警告", 
+                f"Z座標 {z} 可能不安全(建議50~600)，是否繼續？",
+                QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
+        
         try:
-            if os.path.exists(points_file):
-                with open(points_file, 'r', encoding='utf-8') as f:
-                    self.saved_points = json.load(f)
-            else:
-                self.saved_points = []
+            # 記錄詳細信息用於除錯
+            self.append_log(f"準備移動到點位 '{point['name']}'")
+            
+            if "MovL" in motion_type:
+                self.append_log(f"使用MovL - 目標座標: X={x:.2f}, Y={y:.2f}, Z={z:.2f}, R={r:.2f}")
+                self.append_log(f"移動速度: {speed}%")
+                speed_param = f"SpeedL={speed}"
+                result = self.client_move.MovL(x, y, z, r, speed_param)
+                
+            elif "MovJ" in motion_type and "Joint" not in motion_type:
+                self.append_log(f"使用MovJ - 目標座標: X={x:.2f}, Y={y:.2f}, Z={z:.2f}, R={r:.2f}")
+                result = self.client_move.MovJ(x, y, z, r)
+                
+            elif "JointMovJ" in motion_type:
+                # 檢查關節數據完整性
+                required_joint_keys = ['j1', 'j2', 'j3', 'j4']
+                for key in required_joint_keys:
+                    if key not in joint:
+                        QMessageBox.critical(self, "錯誤", f"關節數據不完整，缺少{key}角度")
+                        return
+                
+                j1, j2, j3, j4 = joint['j1'], joint['j2'], joint['j3'], joint['j4']
+                self.append_log(f"使用JointMovJ - 關節角度: J1={j1:.2f}, J2={j2:.2f}, J3={j3:.2f}, J4={j4:.2f}")
+                result = self.client_move.JointMovJ(j1, j2, j3, j4)
+            
+            self.append_log(f"運動指令已發送，回應: {result}")
+            
         except Exception as e:
-            print(f"載入點位失敗: {e}")
+            error_msg = f"移動失敗: {str(e)}"
+            QMessageBox.critical(self, "移動錯誤", error_msg)
+            self.append_log(error_msg)
+            self.append_log(f"點位數據: {cartesian}")
+    def toggle_enable(self):
+        """切換使能狀態"""
+        if self.global_state['enable']:
+            self.client_dash.DisableRobot()
+            self.enable_btn.setText("使能")
+            self.global_state['enable'] = False
+            self.append_log("機械臂已下使能")
+        else:
+            self.client_dash.EnableRobot()
+            self.enable_btn.setText("下使能")
+            self.global_state['enable'] = True
+            self.append_log("機械臂已使能")
+            
+    def load_points(self):
+        """載入點位數據"""
+        try:
+            if os.path.exists(self.points_file):
+                with open(self.points_file, 'r', encoding='utf-8') as f:
+                    self.saved_points = json.load(f)
+                self.refresh_points_list()
+                self.append_log(f"載入 {len(self.saved_points)} 個點位")
+        except Exception as e:
+            self.append_log(f"載入點位失敗: {str(e)}")
             self.saved_points = []
             
     def save_points(self):
-        points_file = os.path.join(self.points_dir, "saved_points.json")
+        """保存點位數據"""
         try:
-            with open(points_file, 'w', encoding='utf-8') as f:
+            with open(self.points_file, 'w', encoding='utf-8') as f:
                 json.dump(self.saved_points, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            messagebox.showerror("錯誤", f"保存點位失敗: {e}")
+            self.append_log(f"保存點位失敗: {str(e)}")
             
     def refresh_points_list(self):
-        # 清除現有列表
-        for widget in self.points_scrollable.winfo_children():
-            widget.destroy()
-            
-        if not self.saved_points:
-            ctk.CTkLabel(self.points_scrollable, text="尚未保存任何點位", 
-                        text_color="gray").pack(pady=20)
+        """刷新點位列表顯示"""
+        self.points_list.clear()
+        for point in self.saved_points:
+            item_text = f"[{point['id']}] {point['name']} - " \
+                       f"X:{point['cartesian']['x']:.2f} " \
+                       f"Y:{point['cartesian']['y']:.2f} " \
+                       f"Z:{point['cartesian']['z']:.2f}"
+            self.points_list.addItem(item_text)
+    
+    def start_feedback_thread(self):
+        """啟動反饋線程"""
+        if not self.global_state['connect']:
+            self.append_log("錯誤：機械臂未連接，無法啟動反饋線程")
             return
-            
-        # 顯示點位列表
-        for i, point in enumerate(self.saved_points):
-            point_frame = ctk.CTkFrame(self.points_scrollable)
-            point_frame.pack(fill="x", padx=5, pady=2)
-            
-            # 點位資訊
-            info_frame = ctk.CTkFrame(point_frame, fg_color="transparent")
-            info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-            
-            # 點位名稱（可編輯）
-            name_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
-            name_frame.pack(fill="x")
-            
-            name_entry = ctk.CTkEntry(name_frame, width=150)
-            name_entry.insert(0, point["name"])
-            name_entry.pack(side="left")
-            
-            update_btn = ctk.CTkButton(name_frame, text="更新", width=60,
-                                      command=lambda idx=i, entry=name_entry: self.update_point_name(idx, entry))
-            update_btn.pack(side="left", padx=5)
-            
-            # 座標資訊
-            coord_text = f"關節: {[f'{j:.1f}' for j in point['joint']]}\n"
-            coord_text += f"笛卡爾: {[f'{c:.1f}' for c in point['cartesian']]}"
-            
-            coord_label = ctk.CTkLabel(info_frame, text=coord_text, 
-                                      font=ctk.CTkFont(size=11), anchor="w")
-            coord_label.pack(fill="x", pady=5)
-            
-            # 操作按鈕
-            btn_frame = ctk.CTkFrame(point_frame, fg_color="transparent")
-            btn_frame.pack(side="right", padx=10, pady=10)
-            
-            goto_btn = ctk.CTkButton(btn_frame, text="前往", width=60,
-                                    command=lambda idx=i: self.goto_point(idx))
-            goto_btn.pack(pady=2)
-            
-            delete_btn = ctk.CTkButton(btn_frame, text="刪除", width=60,
-                                      fg_color="red", hover_color="darkred",
-                                      command=lambda idx=i: self.delete_point(idx))
-            delete_btn.pack(pady=2)
-            
-    def update_point_name(self, index, entry):
-        new_name = entry.get().strip()
-        if not new_name:
-            messagebox.showerror("錯誤", "點位名稱不能為空")
-            return
-            
-        # 檢查名稱衝突
-        if any(i != index and point["name"] == new_name for i, point in enumerate(self.saved_points)):
-            messagebox.showerror("錯誤", "點位名稱已存在")
-            return
-            
-        self.saved_points[index]["name"] = new_name
-        self.save_points()
-        messagebox.showinfo("成功", "點位名稱已更新")
         
-    def goto_point(self, index):
-        if not self.move:
-            messagebox.showerror("錯誤", "請先連接機械臂")
-            return
-            
-        point = self.saved_points[index]
+        self.feedback_thread = Thread(target=self.feedback_loop, daemon=True)
+        self.feedback_thread.start()
+        self.append_log("狀態反饋線程已啟動")
         
-        try:
-            # 使用笛卡爾座標移動
-            x, y, z, r = point["cartesian"]
-            response = self.move.MovJ(x, y, z, r)
-            if response and "ErrorID,0" in response:
-                messagebox.showinfo("成功", f"正在前往點位 '{point['name']}'")
-            else:
-                messagebox.showerror("錯誤", "移動指令發送失敗")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"前往點位失敗: {e}")
-            
-    def delete_point(self, index):
-        point = self.saved_points[index]
-        if messagebox.askyesno("確認", f"確定要刪除點位 '{point['name']}' 嗎？"):
-            self.saved_points.pop(index)
-            self.save_points()
-            self.refresh_points_list()
-            
-    def import_points(self):
-        file_path = filedialog.askopenfilename(
-            title="選擇點位檔案",
-            filetypes=[("JSON檔案", "*.json"), ("所有檔案", "*.*")]
-        )
-        
-        if file_path:
+    def feedback_loop(self):
+        """反饋循環"""
+        hasRead = 0
+        while self.global_state['connect']:
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    imported_points = json.load(f)
+                data = bytes()
+                while hasRead < 1440:
+                    temp = self.client_feed.socket_dobot.recv(1440 - hasRead)
+                    if len(temp) > 0:
+                        hasRead += len(temp)
+                        data += temp
+                hasRead = 0
                 
-                # 驗證格式
-                for point in imported_points:
-                    if not all(key in point for key in ["name", "joint", "cartesian"]):
-                        raise ValueError("點位格式不正確")
-                
-                # 合併點位
-                existing_names = [p["name"] for p in self.saved_points]
-                new_points = []
-                updated_count = 0
-                
-                for point in imported_points:
-                    if point["name"] in existing_names:
-                        if messagebox.askyesno("確認", f"點位 '{point['name']}' 已存在，是否覆蓋？"):
-                            # 移除舊點位
-                            self.saved_points = [p for p in self.saved_points if p["name"] != point["name"]]
-                            new_points.append(point)
-                            updated_count += 1
-                    else:
-                        new_points.append(point)
-                
-                self.saved_points.extend(new_points)
-                self.save_points()
-                self.refresh_points_list()
-                
-                messagebox.showinfo("成功", f"已導入 {len(new_points)} 個點位（更新 {updated_count} 個）")
+                a = np.frombuffer(data, dtype=MyType)
+                if hex((a['test_value'][0])) == '0x123456789abcdef':
+                    feedback_data = {
+                        'speed_scaling': a["speed_scaling"][0],
+                        'robot_mode': a["robot_mode"][0],
+                        'digital_input_bits': a["digital_input_bits"][0],
+                        'digital_outputs': a["digital_outputs"][0],
+                        'q_actual': a["q_actual"][0],
+                        'tool_vector_actual': a["tool_vector_actual"][0]
+                    }
+                    self.signals.feedback_update.emit(feedback_data)
+                    
+                    # 檢查錯誤
+                    if a["robot_mode"] == 9:
+                        self.handle_robot_error()
+                        
+                # 更新PGC夾爪狀態
+                self.update_gripper_status()
+                        
+                time.sleep(0.1)  # 100ms更新間隔
                 
             except Exception as e:
-                messagebox.showerror("錯誤", f"導入點位失敗: {e}")
+                if self.global_state['connect']:
+                    self.signals.log_update.emit(f"反饋線程錯誤: {str(e)}")
+                break
                 
-    def export_points(self):
-        if not self.saved_points:
-            messagebox.showwarning("警告", "沒有點位可以導出")
-            return
+    def handle_robot_error(self):
+        """處理機械臂錯誤"""
+        try:
+            error_info = self.client_dash.GetErrorID()
+            # 解析錯誤代碼
+            self.parse_and_display_error(error_info)
+        except Exception as e:
+            self.signals.error_update.emit(f"獲取錯誤信息失敗: {str(e)}")
+    
+    def parse_and_display_error(self, error_response):
+        """解析並顯示錯誤信息"""
+        try:
+            # 解析錯誤回應格式
+            if "{" in error_response:
+                error_data = error_response.split("{")[1].split("}")[0]
+                error_list = json.loads("{" + error_data + "}")
+                
+                # 錯誤代碼映射
+                error_messages = {
+                    22: "手勢切換錯誤 - 請嘗試使用關節運動(JointMovJ)或調整目標點位",
+                    23: "直線運動過程中規劃點超出工作空間 - 重新選取運動點位",
+                    24: "圓弧運動過程中規劃點超出工作空間 - 重新選取運動點位",
+                    32: "運動過程逆解算奇異 - 重新選取運動點位",
+                    33: "運動過程逆解算無解 - 重新選取運動點位",
+                    34: "運動過程逆解算限位 - 重新選取運動點位"
+                }
+                
+                # 檢查控制器錯誤
+                if len(error_list) > 0 and error_list[0]:
+                    for error_id in error_list[0]:
+                        if error_id in error_messages:
+                            self.signals.error_update.emit(f"錯誤 {error_id}: {error_messages[error_id]}")
+                        else:
+                            self.signals.error_update.emit(f"未知錯誤 {error_id}")
+            else:
+                self.signals.error_update.emit(f"機械臂錯誤: {error_response}")
+                
+        except Exception as e:
+            self.signals.error_update.emit(f"錯誤解析失敗: {str(e)}")
+            self.signals.error_update.emit(f"原始錯誤: {error_response}")
             
-        file_path = filedialog.asksaveasfilename(
-            title="保存點位檔案",
-            defaultextension=".json",
-            filetypes=[("JSON檔案", "*.json"), ("所有檔案", "*.*")]
-        )
+    @pyqtSlot(dict)
+    def update_feedback_display(self, data):
+        """更新反饋顯示"""
+        # 更新速度比例
+        self.current_speed_label.setText(f"{data['speed_scaling']}%")
         
-        if file_path:
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(self.saved_points, f, ensure_ascii=False, indent=2)
-                messagebox.showinfo("成功", f"已導出 {len(self.saved_points)} 個點位")
-            except Exception as e:
-                messagebox.showerror("錯誤", f"導出點位失敗: {e}")
-                
-    def update_force_label(self, value):
-        self.force_value_label.configure(text=f"{int(value)}")
+        # 更新機械臂模式
+        mode_text = LABEL_ROBOT_MODE.get(data['robot_mode'], "未知")
+        self.robot_mode_label.setText(mode_text)
         
-    def gripper_initialize(self):
-        if not self.modbus_client or not self.modbus_client.connected:
-            messagebox.showerror("錯誤", "Modbus未連接")
-            return
-            
-        try:
-            # PGC夾爪初始化指令 (基地址520, 指令1)
-            command_id = int(time.time()) % 65536
-            result = self.modbus_client.write_registers(520, [1, 0, 0, command_id], slave=1)
-            if not result.isError():
-                messagebox.showinfo("成功", "夾爪初始化指令已發送")
-            else:
-                messagebox.showerror("錯誤", "初始化指令發送失敗")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"夾爪初始化失敗: {e}")
-            
-    def gripper_move_to_position(self):
-        if not self.modbus_client or not self.modbus_client.connected:
-            messagebox.showerror("錯誤", "Modbus未連接")
-            return
-            
-        try:
-            position_str = self.position_entry.get().strip()
-            if not position_str:
-                messagebox.showerror("錯誤", "請輸入位置")
-                return
-                
-            position = int(position_str)
-            if not 0 <= position <= 1000:
-                raise ValueError("位置必須在0-1000範圍內")
-                
-            # 設定力道
-            force = int(self.force_slider.get())
-            force_command_id = int(time.time()) % 65536
-            self.modbus_client.write_registers(520, [5, force, 0, force_command_id], slave=1)
-            time.sleep(0.1)
-            
-            # 移動到位置指令 (指令3)
-            move_command_id = int(time.time()) % 65536
-            result = self.modbus_client.write_registers(520, [3, position, 0, move_command_id], slave=1)
-            if not result.isError():
-                messagebox.showinfo("成功", f"夾爪移動到位置 {position} 指令已發送")
-            else:
-                messagebox.showerror("錯誤", "移動指令發送失敗")
-            
-        except ValueError as e:
-            messagebox.showerror("錯誤", f"輸入錯誤: {e}")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"夾爪移動失敗: {e}")
-            
-    def gripper_open(self):
-        if not self.modbus_client or not self.modbus_client.connected:
-            messagebox.showerror("錯誤", "Modbus未連接")
-            return
-            
-        try:
-            # 獲取開啟位置
-            open_pos_str = self.open_position_entry.get().strip()
-            if not open_pos_str:
-                open_position = 1000  # 預設開啟位置
-            else:
-                open_position = int(open_pos_str)
-                if not 0 <= open_position <= 1000:
-                    messagebox.showerror("錯誤", "開啟位置必須在0-1000範圍內")
-                    return
-            
-            # 設定力道
-            force = int(self.force_slider.get())
-            force_command_id = int(time.time()) % 65536
-            self.modbus_client.write_registers(520, [5, force, 0, force_command_id], slave=1)
-            time.sleep(0.1)
-            
-            # 移動到開啟位置
-            move_command_id = int(time.time()) % 65536
-            result = self.modbus_client.write_registers(520, [3, open_position, 0, move_command_id], slave=1)
-            if not result.isError():
-                messagebox.showinfo("成功", f"夾爪開啟到位置 {open_position} 指令已發送")
-            else:
-                messagebox.showerror("錯誤", "開啟指令發送失敗")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"夾爪開啟失敗: {e}")
-            
-    def gripper_close(self):
-        if not self.modbus_client or not self.modbus_client.connected:
-            messagebox.showerror("錯誤", "Modbus未連接")
-            return
-            
-        try:
-            # 獲取關閉位置
-            close_pos_str = self.close_position_entry.get().strip()
-            if not close_pos_str:
-                close_position = 0  # 預設關閉位置
-            else:
-                close_position = int(close_pos_str)
-                if not 0 <= close_position <= 1000:
-                    messagebox.showerror("錯誤", "關閉位置必須在0-1000範圍內")
-                    return
-            
-            # 設定力道
-            force = int(self.force_slider.get())
-            force_command_id = int(time.time()) % 65536
-            self.modbus_client.write_registers(520, [5, force, 0, force_command_id], slave=1)
-            time.sleep(0.1)
-            
-            # 移動到關閉位置
-            move_command_id = int(time.time()) % 65536
-            result = self.modbus_client.write_registers(520, [3, close_position, 0, move_command_id], slave=1)
-            if not result.isError():
-                messagebox.showinfo("成功", f"夾爪關閉到位置 {close_position} 指令已發送")
-            else:
-                messagebox.showerror("錯誤", "關閉指令發送失敗")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"夾爪關閉失敗: {e}")
-            
-    def load_calibration(self):
-        # 檢查內外參檔案
-        calib_files = ["camera_matrix.npy", "dist_coeffs.npy", "rvec.npy", "tvec.npy"]
-        missing_files = []
+        # 更新位置信息並保存到實際位置變量
+        pos = data['tool_vector_actual']
+        self.position_label.setText(f"{pos[0]:.2f}, {pos[1]:.2f}, {pos[2]:.2f}, {pos[3]:.2f}")
         
-        for file in calib_files:
-            if not os.path.exists(os.path.join(self.calibration_dir, file)):
-                missing_files.append(file)
-                
-        if missing_files:
-            print(f"缺少內外參檔案: {missing_files}")
-        else:
-            print("內外參檔案載入完成")
-            
-    def load_calibration_file(self):
-        dir_path = filedialog.askdirectory(title="選擇內外參資料夾")
-        if dir_path:
-            try:
-                # 複製檔案到calibration目錄
-                calib_files = ["camera_matrix.npy", "dist_coeffs.npy", "rvec.npy", "tvec.npy"]
-                copied_files = []
-                
-                for file in calib_files:
-                    src = os.path.join(dir_path, file)
-                    dst = os.path.join(self.calibration_dir, file)
-                    
-                    if os.path.exists(src):
-                        import shutil
-                        shutil.copy2(src, dst)
-                        copied_files.append(file)
-                
-                if copied_files:
-                    self.calib_status_label.configure(text="已載入", text_color="green")
-                    messagebox.showinfo("成功", f"已載入 {len(copied_files)} 個內外參檔案")
-                else:
-                    messagebox.showwarning("警告", "未找到任何內外參檔案")
-                    
-            except Exception as e:
-                messagebox.showerror("錯誤", f"載入內外參失敗: {e}")
-                
-    def start_vision_detection(self):
-        if not self.modbus_client or not self.modbus_client.connected:
-            messagebox.showerror("錯誤", "Modbus未連接")
-            return
-            
-        try:
-            # 發送視覺檢測指令 (基地址200, 指令16)
-            result = self.modbus_client.write_register(200, 16, slave=1)
-            if not result.isError():
-                # 清除結果顯示
-                for widget in self.result_scrollable.winfo_children():
-                    widget.destroy()
-                    
-                # 顯示檢測中
-                ctk.CTkLabel(self.result_scrollable, text="正在檢測中...", 
-                            text_color="blue", font=ctk.CTkFont(size=14)).pack(pady=20)
-                
-                # 等待檢測結果
-                threading.Thread(target=self.wait_vision_result, daemon=True).start()
-            else:
-                messagebox.showerror("錯誤", "視覺檢測指令發送失敗")
-            
-        except Exception as e:
-            messagebox.showerror("錯誤", f"視覺檢測失敗: {e}")
-            
-    def wait_vision_result(self):
-        """等待視覺檢測結果"""
-        try:
-            # 等待檢測完成 (最多等待10秒)
-            for _ in range(100):
-                time.sleep(0.1)
-                
-                # 檢查狀態寄存器
-                result = self.modbus_client.read_holding_registers(201, 1, slave=1)
-                if not result.isError():
-                    status = result.registers[0]
-                    if not (status & 0x2):  # Running bit為0表示完成
-                        break
-            
-            # 讀取檢測結果
-            result = self.modbus_client.read_holding_registers(240, 16, slave=1)  # 240-255
-            if not result.isError():
-                registers = result.registers
-                circle_count = registers[0]
-                
-                # 更新UI顯示結果
-                self.root.after(0, self.display_vision_results, circle_count, registers[1:])
-            else:
-                self.root.after(0, self.display_vision_error, "無法讀取檢測結果")
-                
-        except Exception as e:
-            self.root.after(0, self.display_vision_error, str(e))
-            
-    def display_vision_results(self, circle_count, data):
-        """顯示視覺檢測結果"""
-        # 清除檢測中提示
-        for widget in self.result_scrollable.winfo_children():
-            widget.destroy()
-            
-        if circle_count == 0:
-            ctk.CTkLabel(self.result_scrollable, text="未檢測到任何圓形", 
-                        text_color="orange", font=ctk.CTkFont(size=14)).pack(pady=20)
-            return
-            
-        # 顯示檢測到的圓形
-        ctk.CTkLabel(self.result_scrollable, text=f"檢測到 {circle_count} 個圓形", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
+        # 保存實際位置數據供點位記錄使用
+        self.current_position['cartesian'] = {
+            'x': float(pos[0]),
+            'y': float(pos[1]),
+            'z': float(pos[2]),
+            'r': float(pos[3])
+        }
         
-        for i in range(min(circle_count, 5)):
-            circle_frame = ctk.CTkFrame(self.result_scrollable)
-            circle_frame.pack(fill="x", padx=10, pady=5)
-            
-            # 獲取圓形數據 (每個圓形3個寄存器: X, Y, R)
-            idx = i * 3
-            pixel_x = data[idx] if idx < len(data) else 0
-            pixel_y = data[idx + 1] if idx + 1 < len(data) else 0
-            radius = data[idx + 2] if idx + 2 < len(data) else 0
-            
-            # 顯示像素座標
-            info_text = f"圓形 {i+1}: Pixel_X={pixel_x}, Pixel_Y={pixel_y}, Radius={radius}"
-            ctk.CTkLabel(circle_frame, text=info_text, 
-                        font=ctk.CTkFont(size=12)).pack(pady=5)
-            
-            # 如果有內外參，顯示世界座標
-            world_coords = self.pixel_to_world(pixel_x, pixel_y)
-            if world_coords:
-                world_text = f"世界座標: X={world_coords[0]:.2f}mm, Y={world_coords[1]:.2f}mm"
-                ctk.CTkLabel(circle_frame, text=world_text, 
-                            font=ctk.CTkFont(size=12), text_color="blue").pack()
-                
-    def display_vision_error(self, error_msg):
-        """顯示視覺檢測錯誤"""
-        for widget in self.result_scrollable.winfo_children():
-            widget.destroy()
-            
-        ctk.CTkLabel(self.result_scrollable, text=f"檢測失敗: {error_msg}", 
-                    text_color="red", font=ctk.CTkFont(size=14)).pack(pady=20)
-                    
-    def pixel_to_world(self, pixel_x, pixel_y):
-        """像素座標轉世界座標"""
-        try:
-            # 載入內外參
-            calib_dir = self.calibration_dir
-            camera_matrix = np.load(os.path.join(calib_dir, "camera_matrix.npy"))
-            dist_coeffs = np.load(os.path.join(calib_dir, "dist_coeffs.npy"))
-            rvec = np.load(os.path.join(calib_dir, "rvec.npy"))
-            tvec = np.load(os.path.join(calib_dir, "tvec.npy"))
-            
-            # 這裡應該進行實際的座標轉換
-            # 目前先返回示例數據
-            world_x = pixel_x * 0.1  # 示例轉換係數
-            world_y = pixel_y * 0.1
-            
-            return [world_x, world_y]
-            
-        except Exception as e:
-            print(f"座標轉換失敗: {e}")
-            return None
-            
-    def set_do(self, index, state):
-        """設置數位輸出"""
-        if not self.dashboard:
-            messagebox.showerror("錯誤", "請先連接機械臂")
-            return
-            
-        try:
-            response = self.dashboard.DO(index, 1 if state else 0)
-            if response and "ErrorID,0" in response:
-                print(f"DO{index} 設置為 {'ON' if state else 'OFF'}")
-            else:
-                messagebox.showerror("錯誤", f"DO{index} 設置失敗: {response}")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"DO{index} 設置失敗: {e}")
-            
-    def start_di_monitoring(self):
-        """開始DI狀態監控"""
-        if self.is_connected and self.dashboard:
-            self.update_di_status()
-            
-    def update_di_status(self):
-        """更新DI狀態顯示"""
-        if not self.dashboard or not self.is_connected:
-            return
-            
-        try:
-            for i in range(1, 25):
-                response = self.dashboard.DI(i)
-                if response and "ErrorID,0" in response:
-                    # 解析DI狀態
-                    parts = response.strip().split(',')
-                    if len(parts) >= 2:
-                        state = int(parts[1])
-                        if i in self.di_labels:
-                            if state:
-                                self.di_labels[i].configure(text="HIGH", text_color="green")
-                            else:
-                                self.di_labels[i].configure(text="LOW", text_color="gray")
-                else:
-                    if i in self.di_labels:
-                        self.di_labels[i].configure(text="ERROR", text_color="red")
-        except Exception as e:
-            print(f"DI狀態更新失敗: {e}")
-            
-        # 每2秒更新一次DI狀態
-        if self.is_connected:
-            self.di_update_timer = self.root.after(2000, self.update_di_status)
-            
-    def run(self):
-        """啟動應用程式"""
-        # 更新當前位置顯示
-        def update_current_position():
-            if hasattr(self, 'current_pos_label') and self.is_connected:
-                pos_text = f"關節: {[f'{j:.1f}°' for j in self.current_joint]}\n"
-                pos_text += f"笛卡爾: {[f'{c:.1f}' for c in self.current_cartesian[:3]]}mm, {self.current_cartesian[3]:.1f}°"
-                self.current_pos_label.configure(text=pos_text)
-            
-            # 1秒後再次更新
-            self.root.after(1000, update_current_position)
-            
-        # 開始更新循環
-        self.root.after(1000, update_current_position)
+        # 更新關節角度並保存到實際位置變量
+        joints = data['q_actual']
+        self.joint_label.setText(f"{joints[0]:.2f}, {joints[1]:.2f}, {joints[2]:.2f}, {joints[3]:.2f}")
         
-        # 啟動主循環
-        self.root.mainloop()
+        # 保存實際關節角度數據
+        self.current_position['joint'] = {
+            'j1': float(joints[0]),
+            'j2': float(joints[1]),
+            'j3': float(joints[2]),
+            'j4': float(joints[3])
+        }
         
-    def __del__(self):
-        """清理資源"""
-        self.monitoring = False
-        if self.di_update_timer:
-            self.root.after_cancel(self.di_update_timer)
-        self.cleanup_connections()
+        # 更新數位IO
+        di_bits = bin(data['digital_input_bits'])[2:].rjust(64, '0')
+        do_bits = bin(data['digital_outputs'])[2:].rjust(64, '0')
+        self.di_label.setText(di_bits)
+        self.do_label.setText(do_bits)
+        
+    @pyqtSlot(str)
+    def append_log(self, message):
+        """添加日誌"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.log_text.append(f"[{timestamp}] {message}")
+        
+    @pyqtSlot(str)
+    def append_error(self, message):
+        """添加錯誤信息"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.error_text.append(f"[{timestamp}] {message}")
+        
+    def clear_error_info(self):
+        """清除錯誤信息"""
+        self.error_text.clear()
+        
+    def closeEvent(self, event):
+        """關閉事件"""
+        if self.global_state['connect']:
+            self.disconnect_robot()
+        event.accept()
 
-
-def main():
-    """主函數"""
-    # 檢查依賴
-    try:
-        import customtkinter
-        import pymodbus
-    except ImportError as e:
-        print(f"缺少依賴模組: {e}")
-        print("請安裝: pip install customtkinter pymodbus")
-        return
-        
-    # 創建並運行應用
-    app = DobotM1Visualizer()
-    app.run()
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = RobotUI()
+    window.show()
+    sys.exit(app.exec_())
