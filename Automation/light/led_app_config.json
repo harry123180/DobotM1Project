@@ -7,7 +7,7 @@
     "timeout": 3.0
   },
   "modbus_mapping": {
-    "base_address": 500
+    "base_address": 600
   },
   "web_server": {
     "host": "0.0.0.0",

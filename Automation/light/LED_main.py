@@ -89,7 +89,7 @@ class LEDControllerModbusClient:
                 "timeout": 3.0
             },
             "modbus_mapping": {
-                "base_address": 500
+                "base_address": 600
             },
             "timing": {
                 "fast_loop_interval": 0.05,
