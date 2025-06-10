@@ -1472,8 +1472,30 @@ class RobotUI(QMainWindow):
             self.disconnect_robot()
         event.accept()
 
+<<<<<<< HEAD
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = RobotUI()
     window.show()
     sys.exit(app.exec_())
+=======
+
+def main():
+    """主函數"""
+    # 檢查依賴
+    try:
+        import customtkinter
+        import pymodbus
+    except ImportError as e:
+        print(f"缺少依賴模組: {e}")
+        print("請安裝: pip install customtkinter pymodbus")
+        return
+        
+    # 創建並運行應用
+    app = DobotM1Visualizer()
+    app.run()
+
+
+if __name__ == "__main__":
+    main()
+>>>>>>> a88a68be167a8a36cbaa4c083fac3ec5dad9dd1e
