@@ -59,3 +59,12 @@
 2025-06-10 03:41:59,288 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
 2025-06-10 03:42:00,303 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
 2025-06-10 03:42:01,305 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
+2025-06-10 15:57:04,421 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
+2025-06-10 16:09:37,170 - ERROR - No response received after 3 retries, continue with next request
+2025-06-10 16:09:37,170 - ERROR - RTU寫入異常: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-10 16:09:43,537 - ERROR - No response received after 3 retries, continue with next request
+2025-06-10 16:09:43,537 - ERROR - RTU寫入異常: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-10 16:09:48,734 - ERROR - No response received after 3 retries, continue with next request
+2025-06-10 16:09:48,734 - ERROR - RTU寫入異常: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-10 16:10:10,347 - ERROR - No response received after 3 retries, continue with next request
+2025-06-10 16:10:10,347 - ERROR - RTU寫入異常: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request

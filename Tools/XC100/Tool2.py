@@ -21,7 +21,7 @@ class ConfigManager:
         self.default_config = {
             "connection": {
                 "baudrate": 115200,
-                "unit_id": 2,
+                "unit_id": 3,
                 "timeout": 0.2,
                 "last_port": ""
             },

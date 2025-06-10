@@ -138,7 +138,7 @@ class MotorControlApp:
         # 主窗口
         self.root = ctk.CTk()
         self.root.title("Modbus RTU 步進馬達控制工具")
-        self.root.geometry("600x650")
+        self.root.geometry("600x750")
         
         # Modbus 實例
         self.modbus = ModbusRTU()
@@ -149,7 +149,7 @@ class MotorControlApp:
         # 狀態變量
         self.current_position = 0
         self.target_position = 0
-        self.motor_status = {"moving": False, "home": False, "ready": False}
+        self.motor_status = {"moving": False, "home": False, "ready": False, "alarm": False}
         self.previous_moving_status = False  # 追蹤上一次的運動狀態
         self.need_clear_command = False      # 標記是否需要清除指令
         
@@ -221,10 +221,25 @@ class MotorControlApp:
                                         fg_color="orange", hover_color="darkorange")
         self.prepare_btn.pack(side="left", padx=5)
         
-        # 新增的清除指令按鈕
+        # 清除指令按鈕
         self.clear_cmd_btn = ctk.CTkButton(btn_frame2, text="清除指令", command=self.manual_clear_command, 
                                           state="disabled", fg_color="purple", hover_color="darkviolet")
         self.clear_cmd_btn.pack(side="left", padx=5)
+        
+        # 警報重置按鈕 - 第三排
+        btn_frame3 = ctk.CTkFrame(control_frame)
+        btn_frame3.pack(pady=5, padx=10, fill="x")
+        
+        self.alarm_reset_btn = ctk.CTkButton(btn_frame3, text="清除警報 (ALM-RST)", 
+                                            command=self.reset_alarm, state="disabled", 
+                                            fg_color="#FF6B6B", hover_color="#E74C3C", 
+                                            width=150)
+        self.alarm_reset_btn.pack(side="left", padx=5)
+        
+        # 警報指示燈
+        self.alarm_indicator = ctk.CTkLabel(btn_frame3, text="● 警報狀態: 正常", 
+                                           text_color="green", font=("Arial", 12, "bold"))
+        self.alarm_indicator.pack(side="right", padx=5)
         
         # 狀態顯示區域
         status_frame = ctk.CTkFrame(self.root)
@@ -237,7 +252,8 @@ class MotorControlApp:
         
         # 狀態標籤
         self.status_labels = {}
-        status_items = [("連接狀態", "disconnected"), ("運動中", "停止"), ("在原點", "否"), ("準備就緒", "否")]
+        status_items = [("連接狀態", "disconnected"), ("運動中", "停止"), ("在原點", "否"), 
+                       ("準備就緒", "否"), ("警報狀態", "正常")]
         
         for i, (label, default) in enumerate(status_items):
             row = i // 2
@@ -254,7 +270,7 @@ class MotorControlApp:
         status_info_frame.grid_columnconfigure(0, weight=1)
         status_info_frame.grid_columnconfigure(1, weight=1)
         
-        # 添加操作日志區域
+        # 操作日志區域
         log_frame = ctk.CTkFrame(status_frame)
         log_frame.pack(pady=5, padx=10, fill="x")
         
@@ -301,7 +317,34 @@ class MotorControlApp:
         self.prepare_btn.configure(state=state)
         self.home_btn.configure(state=state)
         self.stop_btn.configure(state=state)
-        self.clear_cmd_btn.configure(state=state)  # 新增的清除指令按鈕
+        self.clear_cmd_btn.configure(state=state)
+        self.alarm_reset_btn.configure(state=state)
+    
+    def reset_alarm(self):
+        """重置警報 - ALM-RST 功能"""
+        if not self.is_connected:
+            messagebox.showerror("錯誤", "請先連接串口")
+            return
+        
+        try:
+            # 直接寫入 ALM-RST 指令 (bit7 = 1, 即值為 128)
+            success = self.modbus.write_single_register(self.slave_id, 125, 128)
+            
+            if success:
+                # 短暫延遲後清除指令
+                time.sleep(0.1)
+                # 清除指令寄存器
+                self.modbus.write_single_register(self.slave_id, 125, 0)
+                
+                messagebox.showinfo("成功", "警報重置信號已發送")
+                self.log_message("警報重置 (ALM-RST) 信號已發送")
+            else:
+                messagebox.showerror("錯誤", "發送警報重置信號失敗")
+                self.log_message("警報重置操作失敗")
+                
+        except Exception as e:
+            messagebox.showerror("錯誤", f"警報重置失敗: {e}")
+            self.log_message(f"警報重置操作異常: {e}")
     
     def send_init_params(self):
         """發送初始化參數"""
@@ -310,12 +353,12 @@ class MotorControlApp:
             return
         
         try:
-            # 按照你提供的參數設置
+            # 按照提供的參數設置
             init_values = [
                 0,      # 6144: 0
                 2,      # 6145: 2
                 0,      # 6146: 0
-                9000,   # 6147: 9000 (這邊會變)
+                9000,   # 6147: 9000
                 0,      # 6148: 0
                 5000,   # 6149: 5000
                 15,     # 6150: 15
@@ -351,7 +394,12 @@ class MotorControlApp:
                 messagebox.showwarning("警告", "馬達未準備就緒，請等待當前動作完成")
                 return
             
-            # 設置目標位置 (假設位置寄存器在 6147)
+            # 檢查是否有警報
+            if self.motor_status["alarm"]:
+                messagebox.showwarning("警告", "馬達處於警報狀態，請先清除警報")
+                return
+            
+            # 設置目標位置 (寄存器 6147)
             self.modbus.write_single_register(self.slave_id, 6147, position)
             time.sleep(0.1)
             
@@ -392,7 +440,7 @@ class MotorControlApp:
             messagebox.showerror("錯誤", f"準備失敗: {e}")
     
     def manual_clear_command(self):
-        """手動清除指令 - 新增的獨立功能"""
+        """手動清除指令"""
         if not self.is_connected:
             messagebox.showerror("錯誤", "請先連接串口")
             return
@@ -423,6 +471,11 @@ class MotorControlApp:
             # 檢查是否準備就緒
             if not self.motor_status["ready"]:
                 messagebox.showwarning("警告", "馬達未準備就緒，請等待當前動作完成")
+                return
+            
+            # 檢查是否有警報
+            if self.motor_status["alarm"]:
+                messagebox.showwarning("警告", "馬達處於警報狀態，請先清除警報")
                 return
             
             # 發送回原點指令 (寫入 16 到寄存器 125)
@@ -476,6 +529,7 @@ class MotorControlApp:
                 self.motor_status["moving"] = bool(status_word & (1 << 13))  # bit 13: 運動中
                 self.motor_status["home"] = bool(status_word & (1 << 4))     # bit 4: 在原點  
                 self.motor_status["ready"] = bool(status_word & (1 << 5))    # bit 5: 準備就緒
+                self.motor_status["alarm"] = bool(status_word & (1 << 7))    # bit 7: 警報狀態 (ALM-A)
                 
                 # 檢查是否從運動中變為停止狀態
                 if (self.previous_moving_status and not self.motor_status["moving"] 
@@ -535,6 +589,18 @@ class MotorControlApp:
             self.status_labels["準備就緒"].configure(text="是", text_color="green")
         else:
             self.status_labels["準備就緒"].configure(text="否", text_color="red")
+        
+        # 更新警報狀態
+        if self.motor_status["alarm"]:
+            self.status_labels["警報狀態"].configure(text="警報", text_color="red")
+            self.alarm_indicator.configure(text="● 警報狀態: 異常", text_color="red")
+            # 當有警報時，使警報重置按鈕更明顯
+            self.alarm_reset_btn.configure(fg_color="#DC143C", hover_color="#B22222")
+        else:
+            self.status_labels["警報狀態"].configure(text="正常", text_color="green")
+            self.alarm_indicator.configure(text="● 警報狀態: 正常", text_color="green")
+            # 正常時恢復按鈕原色
+            self.alarm_reset_btn.configure(fg_color="#FF6B6B", hover_color="#E74C3C")
     
     def status_monitoring_thread(self):
         """狀態監控線程"""
