@@ -1251,17 +1251,31 @@ class RobotUI(QMainWindow):
             QMessageBox.warning(self, "警告", "保存點位失敗")
     
     def edit_selected_point(self):
-        """編輯選中的點位"""
+        """編輯選中的點位 - 修正版本"""
         current_row = self.points_list.currentRow()
         if current_row < 0 or current_row >= len(self.robot_controller.saved_points):
             QMessageBox.warning(self, "警告", "請先選擇要編輯的點位")
             return
             
         point = self.robot_controller.saved_points[current_row]
+        
+        # 確保點位數據完整性
+        if 'id' not in point:
+            point['id'] = current_row
+        if 'name' not in point:
+            point['name'] = f"Point_{current_row}"
+        if 'cartesian' not in point:
+            point['cartesian'] = {'x': 0, 'y': 0, 'z': 0, 'r': 0}
+        if 'joint' not in point:
+            point['joint'] = {'j1': 0, 'j2': 0, 'j3': 0, 'j4': 0}
+        
         dialog = PointEditDialog(point, self)
         
         if dialog.exec_() == QDialog.Accepted:
             new_data = dialog.get_data()
+            
+            # 確保新數據包含ID
+            new_data['id'] = point['id']
             
             # 驗證位置變化
             if not PointDataValidator.validate_position_change(point, new_data):
@@ -1271,8 +1285,12 @@ class RobotUI(QMainWindow):
                 if reply == QMessageBox.No:
                     return
                     
-            self.robot_controller.update_point(current_row, new_data)
-            self.refresh_points_list()
+            # 更新點位
+            success = self.robot_controller.update_point(current_row, new_data)
+            if success:
+                self.refresh_points_list()
+            else:
+                QMessageBox.warning(self, "錯誤", "點位更新失敗")
     
     def delete_selected_point(self):
         """刪除選中的點位"""
@@ -1364,6 +1382,8 @@ class RobotUI(QMainWindow):
     def refresh_points_list(self):
         """刷新點位列表顯示 - 修正版本"""
         self.points_list.clear()
+        
+        # 修正所有點位數據的完整性
         for i, point in enumerate(self.robot_controller.saved_points):
             # 檢查並修正缺少的id欄位
             if 'id' not in point:
@@ -1377,6 +1397,29 @@ class RobotUI(QMainWindow):
             if 'cartesian' not in point:
                 point['cartesian'] = {'x': 0, 'y': 0, 'z': 0, 'r': 0}
             
+            # 確保cartesian字典包含所有必要的鍵
+            cartesian = point['cartesian']
+            required_keys = ['x', 'y', 'z', 'r']
+            for key in required_keys:
+                if key not in cartesian:
+                    cartesian[key] = 0.0
+            
+            # 檢查joint數據
+            if 'joint' not in point:
+                point['joint'] = {'j1': 0, 'j2': 0, 'j3': 0, 'j4': 0}
+            
+            # 確保joint字典包含所有必要的鍵
+            joint = point['joint']
+            required_joint_keys = ['j1', 'j2', 'j3', 'j4']
+            for key in required_joint_keys:
+                if key not in joint:
+                    joint[key] = 0.0
+        
+        # 保存修正後的數據
+        self.robot_controller.save_points()
+        
+        # 重新生成列表項目
+        for i, point in enumerate(self.robot_controller.saved_points):
             cartesian = point['cartesian']
             item_text = f"[{point['id']}] {point['name']} - " \
                        f"X:{cartesian.get('x', 0):.2f} " \

@@ -664,12 +664,74 @@ class RobotController(QObject):
             return False
     
     def load_points(self):
-        """載入點位數據"""
+        """載入點位數據 - 增強版本"""
         try:
             if os.path.exists(self.points_file):
                 with open(self.points_file, 'r', encoding='utf-8') as f:
-                    self.saved_points = json.load(f)
-                self.emit_log(f"載入 {len(self.saved_points)} 個點位")
+                    loaded_points = json.load(f)
+                
+                # 驗證和修正點位數據
+                self.saved_points = []
+                for i, point in enumerate(loaded_points):
+                    # 確保基本結構完整
+                    if not isinstance(point, dict):
+                        self.emit_log(f"跳過無效點位數據: {point}")
+                        continue
+                    
+                    # 修正基本欄位
+                    if 'id' not in point:
+                        point['id'] = i
+                    if 'name' not in point:
+                        point['name'] = f"Point_{i}"
+                    if 'created_time' not in point:
+                        point['created_time'] = datetime.now().isoformat()
+                    if 'modified_time' not in point:
+                        point['modified_time'] = datetime.now().isoformat()
+                    
+                    # 修正cartesian數據
+                    if 'cartesian' not in point:
+                        point['cartesian'] = {'x': 0, 'y': 0, 'z': 0, 'r': 0}
+                    else:
+                        cartesian = point['cartesian']
+                        required_keys = ['x', 'y', 'z', 'r']
+                        for key in required_keys:
+                            if key not in cartesian:
+                                cartesian[key] = 0.0
+                            # 確保數值類型正確
+                            try:
+                                cartesian[key] = float(cartesian[key])
+                            except (ValueError, TypeError):
+                                cartesian[key] = 0.0
+                    
+                    # 修正joint數據
+                    if 'joint' not in point:
+                        point['joint'] = {'j1': 0, 'j2': 0, 'j3': 0, 'j4': 0}
+                    else:
+                        joint = point['joint']
+                        required_joint_keys = ['j1', 'j2', 'j3', 'j4']
+                        for key in required_joint_keys:
+                            if key not in joint:
+                                joint[key] = 0.0
+                            # 確保數值類型正確
+                            try:
+                                joint[key] = float(joint[key])
+                            except (ValueError, TypeError):
+                                joint[key] = 0.0
+                    
+                    self.saved_points.append(point)
+                
+                # 重新分配ID確保連續性
+                for i, point in enumerate(self.saved_points):
+                    point['id'] = i
+                
+                # 保存修正後的數據
+                self.save_points()
+                
+                self.emit_log(f"載入並修正 {len(self.saved_points)} 個點位")
+            else:
+                self.saved_points = []
+                self.emit_log("點位檔案不存在，建立新的點位列表")
+                
         except Exception as e:
             self.emit_log(f"載入點位失敗: {str(e)}")
             self.saved_points = []
