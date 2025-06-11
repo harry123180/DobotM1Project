@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCD1 視覺檢測系統 - 運動控制握手版本 + 世界座標轉換</title>
+    <title>CCD1 視覺檢測系統 v4.0 - 運動控制握手版本 + 世界座標轉換</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         * {
@@ -283,6 +283,12 @@
             border-left: 3px solid #4fd1c7;
         }
 
+        .world-coord.disabled {
+            background: #f7fafc;
+            border-left: 3px solid #cbd5e0;
+            opacity: 0.6;
+        }
+
         .pixel-coord {
             background: #ebf8ff;
             border-left: 3px solid #4299e1;
@@ -457,7 +463,7 @@
             margin-bottom: 8px;
         }
 
-        /* 新增：標定相關樣式 */
+        /* 標定相關樣式 */
         .calibration-panel {
             grid-column: 1 / -1;
             background: linear-gradient(135deg, #fff5f5 0%, #f0fff4 100%);
@@ -496,6 +502,8 @@
             font-family: monospace;
             font-size: 12px;
             color: #666;
+            max-height: 100px;
+            overflow-y: auto;
         }
 
         .world-coord-indicator {
@@ -518,6 +526,16 @@
             background: #fef2f2;
             color: #742a2a;
             border: 1px solid #f56565;
+        }
+
+        .version-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
         }
 
         @media (max-width: 768px) {
@@ -551,7 +569,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌍 CCD1 視覺檢測系統</h1>
+            <h1>🌍 CCD1 視覺檢測系統 <span class="version-badge">v4.0</span></h1>
             <div class="subtitle">運動控制握手版本 + 世界座標轉換 - 工業自動化專用</div>
         </div>
 
@@ -588,22 +606,25 @@
             </div>
 
             <div class="handshake-info">
-                <h4>📋 內外參檔案要求說明</h4>
+                <h4>📋 內外參檔案要求說明 (v4.0)</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <strong>內參檔案（規範命名）：</strong>
+                        <strong>內參檔案（嚴格命名）：</strong>
                         <ul style="margin: 10px 0; padding-left: 20px;">
                             <li>camera_matrix_YYYYMMDD_HHMMSS.npy</li>
                             <li>dist_coeffs_YYYYMMDD_HHMMSS.npy</li>
-                            <li>檔案必須成對存在</li>
+                            <li>檔案必須成對存在且時間戳一致</li>
+                            <li>內參矩陣格式: 3×3</li>
+                            <li>畸變係數: 至少4個參數</li>
                         </ul>
                     </div>
                     <div>
                         <strong>外參檔案（較寬鬆命名）：</strong>
                         <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li>extrinsic_*.npy</li>
-                            <li>*extrinsic*.npy</li>
+                            <li>*extrinsic*.npy (包含extrinsic字串)</li>
                             <li>包含rvec和tvec的字典格式</li>
+                            <li>rvec: 3×1旋轉向量</li>
+                            <li>tvec: 3×1平移向量</li>
                         </ul>
                     </div>
                 </div>
@@ -613,6 +634,7 @@
                     2. 點擊「掃描檔案」確認檔案
                     3. 點擊「確認導入」載入標定數據
                     4. 確認轉換器狀態為「已啟用」
+                    5. 世界座標轉換為Z=0平面投影，精度保留2位小數
                 </div>
             </div>
         </div>
@@ -621,7 +643,7 @@
         <div class="panel handshake-panel">
             <h2>
                 <span class="status-indicator" id="handshakeStatus"></span>
-                🤝 運動控制握手控制
+                🤝 運動控制握手控制 <span class="version-badge">v4.0</span>
                 <span class="world-coord-indicator" id="worldCoordIndicator">
                     🌍 世界座標: 未啟用
                 </span>
@@ -690,7 +712,7 @@
             </div>
 
             <div class="handshake-info">
-                <h4>🤝 運動控制握手邏輯說明</h4>
+                <h4>🤝 運動控制握手邏輯說明 (v4.0)</h4>
                 <ol>
                     <li><strong>系統初始化完成</strong> → Ready=1，準備接受控制指令</li>
                     <li><strong>PLC下達控制指令</strong> → 系統檢查Ready=1才執行</li>
@@ -698,7 +720,8 @@
                     <li><strong>操作執行完成</strong> → Running=0</li>
                     <li><strong>PLC清零控制指令</strong> → Ready=1，準備下次操作</li>
                     <li><strong>異常發生時</strong> → Alarm=1, Initialized=0</li>
-                    <li><strong>世界座標轉換</strong> → 需要有效的內外參數據才能啟用</li>
+                    <li><strong>v4.0: 世界座標轉換</strong> → 需要有效的內外參數據才能啟用</li>
+                    <li><strong>v4.0: 自動更新世界座標有效性標誌</strong> → 寄存器256</li>
                 </ol>
             </div>
 
@@ -707,7 +730,7 @@
                 <div class="command-buttons">
                     <button class="btn btn-secondary" onclick="sendManualCommand(0)">清空控制 (0)</button>
                     <button class="btn btn-primary" onclick="sendManualCommand(8)">拍照 (8)</button>
-                    <button class="btn btn-success" onclick="sendManualCommand(16)">拍照+檢測 (16)</button>
+                    <button class="btn btn-success" onclick="sendManualCommand(16)">拍照+檢測+世界座標 (16)</button>
                     <button class="btn btn-warning" onclick="sendManualCommand(32)">重新初始化 (32)</button>
                 </div>
                 <div style="margin-top: 15px;">
@@ -724,7 +747,7 @@
             <div class="panel">
                 <h2>
                     <span class="status-indicator" id="systemStatus"></span>
-                    📊 系統狀態
+                    📊 系統狀態 <span class="version-badge">v4.0</span>
                 </h2>
                 
                 <div class="info-grid">
@@ -845,11 +868,11 @@
 
         <!-- Modbus 寄存器監控面板 -->
         <div class="panel results-panel">
-            <h2>📊 Modbus 寄存器監控 (運動控制握手模式 + 世界座標)</h2>
+            <h2>📊 Modbus 寄存器監控 (v4.0: 運動控制握手 + 世界座標)</h2>
             
             <div style="text-align: center; margin-bottom: 20px;">
                 <span style="font-size: 14px; color: #666;">
-                    自動更新間隔: 3秒 | 最後更新: <span id="registersUpdateTime">--</span>
+                    自動更新間隔: 3秒 | 最後更新: <span id="registersUpdateTime">--</span> | 版本: v4.0
                 </span>
             </div>
             
@@ -874,8 +897,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             refreshStatus();
             refreshCalibrationStatus();
-            setInterval(refreshStatus, 3000); // 每3秒刷新狀態
-            startRegistersAutoUpdate(); // 啟動寄存器自動更新
+            setInterval(refreshStatus, 3000);
+            startRegistersAutoUpdate();
+            console.log('CCD1 視覺檢測系統 v4.0 已啟動');
         });
 
         // Socket 事件處理
@@ -905,29 +929,34 @@
             }
         });
 
-        // ===== 標定相關函數 =====
+        // ===== 標定相關函數 (v4.0) =====
         function scanCalibrationFiles() {
             fetch('/api/calibration/scan')
             .then(response => response.json())
             .then(data => {
-                console.log('掃描結果:', data);
+                console.log('v4.0 掃描結果:', data);
                 updateCalibrationDisplay(data);
                 
                 // 更新工作目錄顯示
-                document.getElementById('workingDirInfo').textContent = data.working_dir;
+                document.getElementById('workingDirInfo').textContent = data.working_dir || '';
                 
                 // 檢查是否可以啟用載入按鈕
-                const canLoad = data.found_intrinsic && data.found_extrinsic;
+                const canLoad = data.success && data.total_intrinsic_pairs > 0 && data.total_extrinsic_files > 0;
                 document.getElementById('loadCalibBtn').disabled = !canLoad;
                 
-                let message = `掃描完成: 找到${data.intrinsic_files.length}組內參檔案, ${data.extrinsic_files.length}個外參檔案`;
-                if (canLoad) {
-                    message += ' - 可以進行導入';
+                let message = '';
+                if (data.success) {
+                    message = `掃描完成: 找到${data.total_intrinsic_pairs}組內參檔案, ${data.total_extrinsic_files}個外參檔案`;
+                    if (canLoad) {
+                        message += ' - 可以進行導入';
+                    } else {
+                        message += ' - 請確認檔案完整性';
+                    }
                 } else {
-                    message += ' - 請確認檔案完整性';
+                    message = data.error || '掃描失敗';
                 }
                 
-                showToast(message, canLoad);
+                showToast(message, data.success);
             })
             .catch(error => {
                 showToast('掃描標定檔案失敗', false);
@@ -943,17 +972,25 @@
             fetch('/api/calibration/load', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})  // 自動選擇最新檔案
+                body: JSON.stringify({})
             })
             .then(response => response.json())
             .then(data => {
-                showToast(data.message, data.success);
+                showToast(data.success ? 
+                    '標定數據載入成功，世界座標轉換已啟用' : 
+                    (data.error || '載入失敗'), 
+                    data.success);
                 
-                if (data.success) {
+                if (data.success && data.loaded) {
                     calibrationValid = true;
                     refreshCalibrationStatus();
-                    refreshStatus(); // 更新整體狀態
+                    refreshStatus();
                     updateWorldCoordIndicators(true);
+                    
+                    // 顯示載入的檔案信息
+                    if (data.files) {
+                        console.log('已載入檔案:', data.files);
+                    }
                 } else {
                     calibrationValid = false;
                     updateWorldCoordIndicators(false);
@@ -976,7 +1013,7 @@
             .then(response => response.json())
             .then(data => {
                 updateCalibrationStatusDisplay(data);
-                calibrationValid = data.is_valid && data.has_transformer;
+                calibrationValid = data.calibration_loaded && data.transformer_ready;
                 updateWorldCoordIndicators(calibrationValid);
             })
             .catch(error => {
@@ -989,10 +1026,15 @@
             const intrinsicStatus = document.getElementById('intrinsicStatus');
             const intrinsicInfo = document.getElementById('intrinsicInfo');
             
-            if (scanData.found_intrinsic) {
+            if (scanData.success && scanData.total_intrinsic_pairs > 0) {
                 intrinsicStatus.className = 'calibration-item valid';
-                intrinsicInfo.innerHTML = `找到 ${scanData.intrinsic_files.length} 組內參檔案<br>` +
-                    `最新: camera_matrix_${scanData.intrinsic_files[0]?.timestamp}.npy`;
+                intrinsicInfo.innerHTML = `找到 ${scanData.total_intrinsic_pairs} 組內參檔案`;
+                
+                // 顯示檔案列表
+                if (scanData.intrinsic_pairs && scanData.intrinsic_pairs.length > 0) {
+                    const latestPair = scanData.intrinsic_pairs[0];
+                    intrinsicInfo.innerHTML += `<br>最新: ${latestPair.timestamp}`;
+                }
             } else {
                 intrinsicStatus.className = 'calibration-item invalid';
                 intrinsicInfo.innerHTML = '未找到內參檔案<br>需要: camera_matrix_*.npy, dist_coeffs_*.npy';
@@ -1002,20 +1044,25 @@
             const extrinsicStatus = document.getElementById('extrinsicStatus');
             const extrinsicInfo = document.getElementById('extrinsicInfo');
             
-            if (scanData.found_extrinsic) {
+            if (scanData.success && scanData.total_extrinsic_files > 0) {
                 extrinsicStatus.className = 'calibration-item valid';
-                extrinsicInfo.innerHTML = `找到 ${scanData.extrinsic_files.length} 個外參檔案<br>` +
-                    `檔案: ${scanData.extrinsic_files[0]?.name || ''}`;
+                extrinsicInfo.innerHTML = `找到 ${scanData.total_extrinsic_files} 個外參檔案`;
+                
+                // 顯示檔案列表
+                if (scanData.extrinsic_files && scanData.extrinsic_files.length > 0) {
+                    const fileNames = scanData.extrinsic_files.map(f => f.split('/').pop()).join(', ');
+                    extrinsicInfo.innerHTML += `<br>${fileNames}`;
+                }
             } else {
                 extrinsicStatus.className = 'calibration-item invalid';
-                extrinsicInfo.innerHTML = '未找到外參檔案<br>需要: extrinsic_*.npy 或類似命名';
+                extrinsicInfo.innerHTML = '未找到外參檔案<br>需要: *extrinsic*.npy';
             }
         }
 
         function updateCalibrationStatusDisplay(statusData) {
             // 更新標定狀態指示器
             const calibrationStatus = document.getElementById('calibrationStatus');
-            if (statusData.is_valid && statusData.has_transformer) {
+            if (statusData.calibration_loaded && statusData.transformer_ready) {
                 calibrationStatus.className = 'status-indicator status-connected';
                 document.getElementById('calibrationStatusText').textContent = '已載入';
             } else {
@@ -1027,20 +1074,20 @@
             const transformerStatus = document.getElementById('transformerStatus');
             const transformerInfo = document.getElementById('transformerInfo');
             
-            if (statusData.has_transformer) {
+            if (statusData.transformer_ready) {
                 transformerStatus.className = 'calibration-item valid';
-                transformerInfo.innerHTML = `轉換器已啟用<br>載入時間: ${statusData.load_time || ''}`;
+                transformerInfo.innerHTML = `轉換器已啟用<br>載入時間: ${statusData.loaded_time || ''}`;
             } else {
                 transformerStatus.className = 'calibration-item invalid';
                 transformerInfo.innerHTML = '轉換器未啟用<br>請先載入有效的內外參數據';
             }
 
             // 更新檔案資訊
-            if (statusData.is_valid) {
+            if (statusData.calibration_loaded && statusData.files) {
                 document.getElementById('intrinsicInfo').innerHTML = 
-                    `已載入: ${statusData.intrinsic_file || '未知'}`;
+                    `已載入: ${statusData.files.camera_matrix || '未知'}<br>畸變係數: ${statusData.files.dist_coeffs || '未知'}`;
                 document.getElementById('extrinsicInfo').innerHTML = 
-                    `已載入: ${statusData.extrinsic_file || '未知'}`;
+                    `已載入: ${statusData.files.extrinsic || '未知'}`;
             }
 
             // 更新工作目錄
@@ -1071,10 +1118,7 @@
                 clearInterval(registersUpdateInterval);
             }
             
-            // 立即更新一次
             refreshRegisters();
-            
-            // 每3秒自動更新
             registersUpdateInterval = setInterval(refreshRegisters, 3000);
         }
 
@@ -1127,6 +1171,7 @@
                 updateModbusButtons();
                 if (data.success) {
                     startRegistersAutoUpdate();
+                    console.log('Modbus v4.0 握手模式已啟動');
                 }
             })
             .catch(error => {
@@ -1186,7 +1231,7 @@
             const commandNames = {
                 0: "清空控制",
                 8: "拍照",
-                16: "拍照+檢測",
+                16: "拍照+檢測 (含世界座標)",
                 32: "重新初始化"
             };
 
@@ -1199,7 +1244,6 @@
             .then(data => {
                 showToast(data.message, data.success);
                 if (data.success) {
-                    // 延遲刷新以查看結果
                     setTimeout(() => {
                         refreshStatus();
                         refreshRegisters();
@@ -1219,7 +1263,7 @@
             .then(data => {
                 const message = data.message + (data.error ? ` (${data.error})` : '');
                 showToast(message, data.success);
-                console.log('Modbus 測試結果:', data);
+                console.log('Modbus v4.0 測試結果:', data);
             })
             .catch(error => {
                 showToast('測試失敗', false);
@@ -1233,9 +1277,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    console.log('🐛 運動控制握手調試信息:', data.debug_info);
+                    console.log('🐛 v4.0 運動控制握手調試信息:', data.debug_info);
                     
-                    let debugText = '🐛 運動控制握手調試信息 (支援世界座標):\n\n';
+                    let debugText = '🐛 v4.0 運動控制握手調試信息:\n\n';
+                    debugText += `版本: ${data.debug_info.version || 'v4.0'}\n`;
+                    debugText += `世界座標支援: ${data.debug_info.world_coord_support}\n`;
                     debugText += `連接狀態: ${data.debug_info.connected}\n`;
                     debugText += `同步運行: ${data.debug_info.sync_running}\n`;
                     debugText += `同步線程: ${data.debug_info.sync_thread_alive}\n`;
@@ -1244,7 +1290,7 @@
                     debugText += `操作計數: ${data.debug_info.operation_count}\n`;
                     debugText += `錯誤計數: ${data.debug_info.error_count}\n`;
                     debugText += `輪詢間隔: ${data.debug_info.sync_interval_ms}ms\n`;
-                    debugText += `世界座標支援: ${data.debug_info.world_coord_supported}\n\n`;
+                    debugText += `寄存器總數: ${data.debug_info.register_count}\n\n`;
                     
                     if (data.debug_info.state_machine) {
                         debugText += '狀態機:\n';
@@ -1261,7 +1307,7 @@
                     }
                     
                     alert(debugText);
-                    showToast('調試信息已顯示 (請查看控制台和彈窗)', true);
+                    showToast('v4.0 調試信息已顯示 (請查看控制台和彈窗)', true);
                 } else {
                     showToast(data.message, false);
                 }
@@ -1275,7 +1321,7 @@
         // 刷新寄存器
         function refreshRegisters() {
             if (!modbusConnected) {
-                return; // 靜默返回，避免錯誤提示
+                return;
             }
 
             fetch('/api/modbus/registers')
@@ -1285,7 +1331,6 @@
                     updateRegistersDisplay(data.registers);
                     document.getElementById('registersUpdateTime').textContent = data.timestamp;
                     
-                    // 更新狀態機顯示
                     if (data.state_machine) {
                         updateStateMachineDisplay(data.state_machine);
                     }
@@ -1300,10 +1345,8 @@
 
         // 更新狀態機顯示
         function updateStateMachineDisplay(stateMachine) {
-            // 更新狀態寄存器值
             document.getElementById('statusRegisterValue').textContent = stateMachine.status_register;
             
-            // 更新各個狀態位
             updateStateBit('readyBit', 'readyStatus', stateMachine.ready);
             updateStateBit('runningBit', 'runningStatus', stateMachine.running);
             updateStateBit('alarmBit', 'alarmStatus', stateMachine.alarm);
@@ -1317,10 +1360,8 @@
             
             statusElement.textContent = isActive ? '1' : '0';
             
-            // 清除所有狀態類
             bitElement.classList.remove('active', 'alarm', 'running');
             
-            // 根據狀態位添加對應的類
             if (bitId === 'alarmBit' && isActive) {
                 bitElement.classList.add('alarm');
             } else if (bitId === 'runningBit' && isActive) {
@@ -1330,16 +1371,16 @@
             }
         }
 
-        // 更新寄存器顯示（包含世界座標）
+        // 更新寄存器顯示（v4.0 擴展世界座標）
         function updateRegistersDisplay(registers) {
             const grid = document.getElementById('registersGrid');
             
-            // 將寄存器按類別分組（擴展世界座標）
+            // v4.0 寄存器分組
             const groups = {
                 '核心握手寄存器 (200-201)': {},
                 '狀態位解析': {},
                 '檢測結果-像素座標 (240-255)': {},
-                '檢測結果-世界座標 (256-276)': {},
+                '檢測結果-世界座標 (256-276) [v4.0新增]': {},
                 '統計資訊 (280-299)': {}
             };
 
@@ -1351,8 +1392,8 @@
                     groups['狀態位解析'][key] = value;
                 } else if (addr >= 240 && addr <= 255) {
                     groups['檢測結果-像素座標 (240-255)'][key] = value;
-                } else if ((addr >= 256 && addr <= 276) || key.includes('世界座標') || key.includes('世界X') || key.includes('世界Y')) {
-                    groups['檢測結果-世界座標 (256-276)'][key] = value;
+                } else if ((addr >= 256 && addr <= 276) || key.includes('世界座標') || key.includes('世界X') || key.includes('世界Y') || key.includes('計算值')) {
+                    groups['檢測結果-世界座標 (256-276) [v4.0新增]'][key] = value;
                 } else if (addr >= 280 && addr <= 299) {
                     groups['統計資訊 (280-299)'][key] = value;
                 }
@@ -1370,10 +1411,16 @@
                         const isHighlighted = shouldHighlightRegister(key, value);
                         const valueClass = isHighlighted ? 'register-value highlight' : 'register-value';
                         
+                        // 特殊格式化世界座標計算值
+                        let displayValue = value;
+                        if (key.includes('計算值_mm')) {
+                            displayValue = `${value} mm`;
+                        }
+                        
                         html += `
                             <div class="register-item">
                                 <span class="register-name">${displayName}</span>
-                                <span class="${valueClass}">${value}</span>
+                                <span class="${valueClass}">${displayValue}</span>
                             </div>
                         `;
                     });
@@ -1383,7 +1430,6 @@
                 }
             });
 
-            // 更新頁面上的關鍵信息
             updateKeyInfoFromRegisters(registers);
         }
 
@@ -1414,28 +1460,24 @@
 
         // 判斷是否需要高亮顯示某個寄存器
         function shouldHighlightRegister(key, value) {
-            // 高亮非零的控制指令
             if (key.includes('控制指令')) {
                 return value > 0;
             }
             
-            // 高亮活動狀態位
             if (key.includes('bit') && value > 0) {
                 return true;
             }
             
-            // 高亮檢測到的圓形
             if (key.includes('檢測圓形數量')) {
                 return value > 0;
             }
             
-            // 高亮非零的座標（像素和世界座標）
             if ((key.includes('X像素') || key.includes('Y像素') || 
-                 key.includes('世界X') || key.includes('世界Y')) && value > 0) {
+                 key.includes('世界X') || key.includes('世界Y') || 
+                 key.includes('計算值')) && value != 0) {
                 return true;
             }
             
-            // 高亮世界座標有效標誌
             if (key.includes('世界座標有效標誌')) {
                 return value > 0;
             }
@@ -1484,7 +1526,7 @@
             });
         }
 
-        // 拍照+檢測（包含世界座標）
+        // 拍照+檢測（v4.0 包含世界座標）
         function captureAndDetect() {
             const btn = event.target;
             btn.disabled = true;
@@ -1504,6 +1546,8 @@
                     operationText = `檢測完成 - ${data.circle_count}個圓形`;
                     if (data.has_world_coords) {
                         operationText += ' (含世界座標)';
+                    } else {
+                        operationText += ' (僅像素座標)';
                     }
                 } else {
                     operationText = '檢測失敗';
@@ -1558,7 +1602,7 @@
             });
         }
 
-        // 更新狀態顯示（包含標定狀態）
+        // 更新狀態顯示（v4.0 包含標定狀態）
         function updateStatus(data) {
             // 更新相機狀態
             const systemStatus = document.getElementById('systemStatus');
@@ -1603,10 +1647,10 @@
                 }
             }
 
-            // 更新標定狀態
+            // v4.0: 更新標定狀態
             if (data.calibration_status) {
                 updateCalibrationStatusDisplay(data.calibration_status);
-                const isValid = data.calibration_status.is_valid && data.calibration_status.has_transformer;
+                const isValid = data.calibration_status.calibration_loaded && data.calibration_status.transformer_ready;
                 updateWorldCoordIndicators(isValid);
             }
 
@@ -1623,9 +1667,14 @@
             if (data.last_result) {
                 updateDetectionResults(data.last_result);
             }
+
+            // v4.0: 檢查版本信息
+            if (data.version) {
+                console.log(`系統版本: ${data.version}`);
+            }
         }
 
-        // 更新檢測結果（包含世界座標顯示）
+        // 更新檢測結果（v4.0 包含世界座標顯示）
         function updateDetectionResults(data) {
             document.getElementById('circleCount').textContent = data.circle_count || 0;
             document.getElementById('captureTime').textContent = `${data.capture_time_ms || 0} ms`;
@@ -1650,12 +1699,12 @@
                                     <div class="coord-label">像素座標</div>
                                     <div class="coord-value">X: ${circle.center[0]} px<br>Y: ${circle.center[1]} px</div>
                                 </div>
-                                <div class="coord-group world-coord">
-                                    <div class="coord-label">世界座標</div>
+                                <div class="coord-group world-coord ${hasWorldCoords ? '' : 'disabled'}">
+                                    <div class="coord-label">世界座標 (Z=0平面)</div>
                                     <div class="coord-value">
                                         ${hasWorldCoords ? 
                                             `X: ${circle.world_coords[0].toFixed(2)} mm<br>Y: ${circle.world_coords[1].toFixed(2)} mm` : 
-                                            '未啟用世界座標轉換'
+                                            '需要載入標定數據'
                                         }
                                     </div>
                                 </div>
@@ -1678,6 +1727,8 @@
                     message = `檢測完成，找到 ${data.circle_count} 個圓形`;
                     if (data.has_world_coords) {
                         message += ' (包含世界座標)';
+                    } else {
+                        message += ' (僅像素座標)';
                     }
                 } else {
                     message = data.error_message || '檢測失敗';
@@ -1689,12 +1740,12 @@
         // 顯示提示訊息
         function showToast(message, isSuccess = true) {
             const toast = document.getElementById('toast');
-            toast.innerHTML = message; // 使用innerHTML支持HTML格式
+            toast.innerHTML = message;
             toast.className = `toast ${isSuccess ? '' : 'error'} show`;
             
             setTimeout(() => {
                 toast.classList.remove('show');
-            }, 4000); // 延長顯示時間到4秒
+            }, 4000);
         }
 
         // 頁面卸載時清理
@@ -1702,10 +1753,19 @@
             stopRegistersAutoUpdate();
         });
 
-        // 初始化時自動掃描標定檔案
+        // v4.0: 初始化時自動掃描標定檔案
         setTimeout(() => {
             scanCalibrationFiles();
         }, 1000);
+
+        // v4.0: 系統啟動日誌
+        console.log(`
+        🚀 CCD1 視覺檢測系統 v4.0 已啟動
+        🌍 新功能: 世界座標轉換支援
+        📡 運動控制握手模式已啟用
+        🔧 支援 NPY 內外參檔案管理
+        📊 擴展寄存器映射 (256-276)
+        `);
     </script>
 </body>
 </html>
