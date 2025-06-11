@@ -44,12 +44,12 @@ def get_obj_angle(image,mode=0):
         (x, y), (MA, ma), angle = ellipse
         print(MA)
         center = (int(x), int(y))
-        cv2.line(image,(center[0],int(center[1] - MA//2)),(center[0],int(center[1] + MA//2)),(10,50,134),2)
-        cv2.putText(image, f"MA: {MA:.2f}", (center[0]-200 , center[1] - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50, 200, 0), 2)
+        # cv2.line(image,(center[0],int(center[1] - MA//2)),(center[0],int(center[1] + MA//2)),(10,50,134),2)
+        # cv2.putText(image, f"MA: {MA:.2f}", (center[0]-200 , center[1] - 10),
+        #         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50, 200, 0), 2)
         # 畫橢圓與方向
         cv2.ellipse(mask_1, ellipse, (0,0,0), -1)
-        cv2.ellipse(image, ellipse, (35,150,0), 1)
+        # cv2.ellipse(image, ellipse, (35,150,0), 1)
         # print(ellipse)
         center, radius = cv2.minEnclosingCircle(contour)
         center = (int(center[0]),int(center[-1]))
