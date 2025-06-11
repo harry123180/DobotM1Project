@@ -140,13 +140,32 @@ class AngleDetector:
         start_time = time.time()
         
         try:
-            # 使用增強版前處理
-            processed_image = self.get_pre_treatment_image_enhanced(image)
+            print(f"開始角度檢測，模式: {mode}, 圖像尺寸: {image.shape}")
             
-            # 調用核心算法
-            result = get_obj_angle(image.copy(), mode=mode)
+            # 檢查圖像格式並轉換為OpenCV算法所需的BGR格式
+            if len(image.shape) == 2:
+                # 灰度圖像，轉換為BGR
+                print("檢測到灰度圖像，轉換為BGR格式")
+                bgr_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            elif len(image.shape) == 3 and image.shape[2] == 1:
+                # 單通道圖像，轉換為BGR
+                print("檢測到單通道圖像，轉換為BGR格式")
+                gray_image = image.squeeze()
+                bgr_image = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
+            elif len(image.shape) == 3 and image.shape[2] == 3:
+                # 已經是3通道圖像
+                print("檢測到3通道圖像，直接使用")
+                bgr_image = image
+            else:
+                raise Exception(f"不支援的圖像格式: {image.shape}")
+            
+            print(f"轉換後圖像尺寸: {bgr_image.shape}")
+            
+            # 調用核心算法 - 傳入BGR格式圖像
+            result = get_obj_angle(bgr_image.copy(), mode=mode)
             
             if result is None:
+                print("角度檢測失敗: 未檢測到有效物體")
                 return AngleResult(
                     success=False,
                     center=None,
@@ -164,6 +183,8 @@ class AngleDetector:
             
             center, angle = result
             processing_time = (time.time() - start_time) * 1000
+            
+            print(f"角度檢測成功: 中心座標({center[0]}, {center[1]}), 角度{angle:.2f}度, 處理時間{processing_time:.2f}ms")
             
             # 從opencv_detect_module.py獲取額外資訊需要增強算法
             # 目前先返回基本結果，後續整合內外徑算法時擴展
@@ -183,6 +204,7 @@ class AngleDetector:
             )
             
         except Exception as e:
+            print(f"角度檢測異常: {str(e)}")
             return AngleResult(
                 success=False,
                 center=None,
@@ -276,6 +298,8 @@ class CCD3AngleDetectionService:
     def connect_modbus(self) -> bool:
         """連接Modbus TCP服務器"""
         try:
+            print("正在連接Modbus TCP服務器...")
+            
             if self.modbus_client:
                 self.modbus_client.close()
             
@@ -290,6 +314,7 @@ class CCD3AngleDetectionService:
                 print(f"CCD3角度檢測模組已連接到Modbus服務器: {self.server_ip}:{self.server_port}")
                 return True
             else:
+                print(f"Modbus連接失敗: 無法連接到 {self.server_ip}:{self.server_port}")
                 self.state_machine.set_alarm(True)
                 return False
                 
@@ -301,9 +326,12 @@ class CCD3AngleDetectionService:
     def initialize_camera(self, ip_address: str = "192.168.1.10") -> bool:
         """初始化相機"""
         try:
+            print(f"正在初始化相機，IP地址: {ip_address}")
+            
             if self.camera:
-                self.camera.stop_stream()
+                print("關閉現有相機連接...")
                 self.camera.disconnect()
+                self.camera = None
             
             # 使用camera_manager.py，需要提供logger參數
             config = CameraConfig(
@@ -316,14 +344,45 @@ class CCD3AngleDetectionService:
                 height=1944
             )
             
+            print(f"相機配置: 曝光時間={config.exposure_time}, 增益={config.gain}, 分辨率={config.width}x{config.height}")
+            
             self.camera = OptimizedCamera(config, logger)
             
+            print("正在連接相機...")
             if self.camera.connect():
-                print(f"CCD3相機已連接: {ip_address}")
-                self.state_machine.set_initialized(True)
-                self.state_machine.set_alarm(False)
-                return True
+                print(f"CCD3相機已成功連接: {ip_address}")
+                
+                # 先啟動串流
+                print("啟動相機串流...")
+                if self.camera.start_streaming():
+                    print("相機串流啟動成功")
+                    
+                    # 測試圖像捕獲能力來驗證相機是否真正可用
+                    print("測試相機圖像捕獲能力...")
+                    try:
+                        test_image = self.camera.capture_frame()
+                        if test_image is not None:
+                            print(f"相機測試成功，可以捕獲圖像，測試圖像尺寸: {test_image.data.shape}")
+                            self.state_machine.set_initialized(True)
+                            self.state_machine.set_alarm(False)
+                            return True
+                        else:
+                            print("相機測試失敗: 無法捕獲圖像")
+                            self.state_machine.set_alarm(True)
+                            self.state_machine.set_initialized(False)
+                            return False
+                    except Exception as e:
+                        print(f"相機測試異常: {e}")
+                        self.state_machine.set_alarm(True)
+                        self.state_machine.set_initialized(False)
+                        return False
+                else:
+                    print("相機串流啟動失敗")
+                    self.state_machine.set_alarm(True)
+                    self.state_machine.set_initialized(False)
+                    return False
             else:
+                print(f"相機連接失敗: {ip_address}")
                 self.state_machine.set_alarm(True)
                 self.state_machine.set_initialized(False)
                 return False
@@ -336,7 +395,20 @@ class CCD3AngleDetectionService:
     
     def capture_and_detect_angle(self, mode: int = 0) -> AngleResult:
         """拍照並檢測角度"""
+        print(f"開始拍照+角度檢測，檢測模式: {mode}")
+        
         if not self.camera:
+            print("錯誤: 相機未初始化")
+            return AngleResult(
+                success=False, center=None, angle=None,
+                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
+                contour_area=None, processing_time=0, capture_time=0, total_time=0,
+                error_message="相機未初始化"
+            )
+        
+        # 檢查相機狀態 - 使用實際捕獲測試而不是device屬性
+        if not self.camera:
+            print("錯誤: 相機未初始化")
             return AngleResult(
                 success=False, center=None, angle=None,
                 major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
@@ -348,38 +420,52 @@ class CCD3AngleDetectionService:
         
         try:
             # 拍照
-            image = self.camera.capture_frame()
-            if image is None:
+            print("正在捕獲圖像...")
+            frame_data = self.camera.capture_frame()
+            
+            if frame_data is None:
+                print("錯誤: 圖像捕獲失敗，返回None")
                 raise Exception("圖像捕獲失敗")
             
+            image = frame_data.data
             capture_time = (time.time() - capture_start) * 1000
+            print(f"圖像捕獲成功，耗時: {capture_time:.2f}ms, 圖像尺寸: {image.shape}")
             
             # 更新檢測參數
             detection_params = self.read_detection_parameters()
-            self.angle_detector.update_params(**detection_params)
+            if detection_params:
+                print(f"檢測參數: {detection_params}")
+                self.angle_detector.update_params(**detection_params)
+            else:
+                print("使用預設檢測參數")
             
             # 角度檢測
             detect_start = time.time()
+            print("開始角度檢測...")
             result = self.angle_detector.detect_angle(image, mode)
             result.capture_time = capture_time
             result.total_time = (time.time() - capture_start) * 1000
             
             if result.success:
                 self.operation_count += 1
+                print(f"角度檢測完成 - 總耗時: {result.total_time:.2f}ms")
             else:
                 self.error_count += 1
+                print(f"角度檢測失敗: {result.error_message}")
             
             return result
             
         except Exception as e:
             self.error_count += 1
+            error_msg = str(e)
+            print(f"捕獲或檢測過程異常: {error_msg}")
             return AngleResult(
                 success=False, center=None, angle=None,
                 major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
                 contour_area=None, processing_time=0,
                 capture_time=(time.time() - capture_start) * 1000,
                 total_time=(time.time() - capture_start) * 1000,
-                error_message=str(e)
+                error_message=error_msg
             )
     
     def read_detection_parameters(self) -> Dict[str, Any]:
@@ -398,8 +484,8 @@ class CCD3AngleDetectionService:
                     params['gaussian_kernel'] = registers[3]
                     params['threshold_mode'] = registers[4]
                     params['manual_threshold'] = registers[5]
-        except:
-            pass
+        except Exception as e:
+            print(f"讀取檢測參數錯誤: {e}")
         
         return params
     
@@ -407,6 +493,7 @@ class CCD3AngleDetectionService:
         """寫入檢測結果到寄存器"""
         try:
             if not self.modbus_client or not self.modbus_client.connected:
+                print("警告: Modbus未連接，無法寫入檢測結果")
                 return
             
             # 檢測結果寄存器 (840-859)
@@ -422,6 +509,8 @@ class CCD3AngleDetectionService:
                 result_registers[3] = (angle_int >> 16) & 0xFFFF  # 角度高位
                 result_registers[4] = angle_int & 0xFFFF          # 角度低位
                 
+                print(f"寫入檢測結果: 成功標誌=1, 中心=({result_registers[1]}, {result_registers[2]}), 角度={result.angle:.2f}度")
+                
                 # 其他參數 (待整合內外徑算法時實現)
                 if result.major_axis:
                     result_registers[5] = int(result.major_axis)
@@ -433,6 +522,8 @@ class CCD3AngleDetectionService:
                     result_registers[8] = int(result.rect_height)
                 if result.contour_area:
                     result_registers[9] = int(result.contour_area)
+            else:
+                print("寫入檢測結果: 檢測失敗")
             
             # 寫入檢測結果 (840-859)
             self.modbus_client.write_registers(
@@ -458,6 +549,8 @@ class CCD3AngleDetectionService:
             self.modbus_client.write_registers(
                 address=self.base_address + 80, values=stats_registers, slave=1
             )
+            
+            print(f"統計資訊已更新: 成功次數={self.operation_count}, 錯誤次數={self.error_count}")
             
         except Exception as e:
             print(f"寫入檢測結果錯誤: {e}")
@@ -486,13 +579,15 @@ class CCD3AngleDetectionService:
     def _update_status_register(self):
         """更新狀態寄存器"""
         try:
-            # 更新初始化狀態
-            camera_ok = self.camera is not None and hasattr(self.camera, 'device') and self.camera.device is not None
+            # 更新初始化狀態 - 檢查相機串流狀態
+            camera_ok = self.camera is not None and getattr(self.camera, 'is_streaming', False)
             modbus_ok = self.modbus_client is not None and self.modbus_client.connected
             
             self.state_machine.set_initialized(camera_ok)
             if not (camera_ok and modbus_ok):
-                self.state_machine.set_alarm(True)
+                if not camera_ok:
+                    self.state_machine.set_alarm(True)
+                    # print("狀態更新: 相機未正確初始化")  # 避免過多輸出
             
             # 寫入狀態寄存器 (801)
             self.modbus_client.write_register(
@@ -520,12 +615,13 @@ class CCD3AngleDetectionService:
             # 檢查新指令
             if control_command != self.last_control_command and control_command != 0:
                 if not self.command_processing:
-                    print(f"收到新控制指令: {control_command}")
+                    print(f"收到新控制指令: {control_command} (上次: {self.last_control_command})")
                     self._handle_control_command(control_command)
                     self.last_control_command = control_command
             
             # PLC清零指令後恢復Ready
             elif control_command == 0 and self.last_control_command != 0:
+                print("PLC已清零指令，恢復Ready狀態")
                 self.state_machine.set_ready(True)
                 self.last_control_command = 0
                 
@@ -535,8 +631,10 @@ class CCD3AngleDetectionService:
     def _handle_control_command(self, command: int):
         """處理控制指令"""
         if not self.state_machine.is_ready():
+            print(f"系統未Ready，無法執行指令 {command}")
             return
         
+        print(f"開始處理控制指令: {command}")
         self.command_processing = True
         self.state_machine.set_ready(False)
         self.state_machine.set_running(True)
@@ -550,13 +648,16 @@ class CCD3AngleDetectionService:
             if command == 8:
                 # 單純拍照
                 print("執行拍照指令")
-                if self.camera:
-                    image = self.camera.capture_frame()
-                    if image is not None:
-                        print("拍照完成")
+                if self.camera and getattr(self.camera, 'is_streaming', False):
+                    frame_data = self.camera.capture_frame()
+                    if frame_data is not None:
+                        print(f"拍照完成，圖像尺寸: {frame_data.data.shape}")
                     else:
-                        print("拍照失敗")
+                        print("拍照失敗: 無法捕獲圖像")
                         self.error_count += 1
+                else:
+                    print("拍照失敗: 相機未初始化或串流未啟動")
+                    self.error_count += 1
                         
             elif command == 16:
                 # 拍照+角度檢測
@@ -570,6 +671,8 @@ class CCD3AngleDetectionService:
                 if not mode_result.isError():
                     detection_mode = mode_result.registers[0]
                 
+                print(f"檢測模式: {detection_mode}")
+                
                 result = self.capture_and_detect_angle(detection_mode)
                 self.write_detection_result(result)
                 
@@ -581,7 +684,14 @@ class CCD3AngleDetectionService:
             elif command == 32:
                 # 重新初始化
                 print("執行重新初始化指令")
-                self.initialize_camera()
+                success = self.initialize_camera()
+                if success:
+                    print("重新初始化成功")
+                else:
+                    print("重新初始化失敗")
+            
+            else:
+                print(f"未知指令: {command}")
                 
         except Exception as e:
             print(f"指令執行錯誤: {e}")
@@ -589,6 +699,7 @@ class CCD3AngleDetectionService:
             self.state_machine.set_alarm(True)
         
         finally:
+            print(f"控制指令 {command} 執行完成")
             self.command_processing = False
             self.state_machine.set_running(False)
     
@@ -598,23 +709,32 @@ class CCD3AngleDetectionService:
             self.stop_handshake = False
             self.handshake_thread = threading.Thread(target=self._handshake_sync_loop, daemon=True)
             self.handshake_thread.start()
+            print("握手服務已啟動")
     
     def stop_handshake_service(self):
         """停止握手服務"""
+        print("正在停止握手服務...")
         self.stop_handshake = True
         if self.handshake_thread:
             self.handshake_thread.join(timeout=2)
     
     def disconnect(self):
         """斷開連接"""
+        print("正在斷開所有連接...")
         self.stop_handshake_service()
         
         if self.camera:
-            self.camera.stop_stream()
+            print("正在關閉相機連接...")
+            # 先停止串流
+            if getattr(self.camera, 'is_streaming', False):
+                print("停止相機串流...")
+                self.camera.stop_streaming()
+            # 然後斷開連接
             self.camera.disconnect()
             self.camera = None
         
         if self.modbus_client:
+            print("正在關閉Modbus連接...")
             self.modbus_client.close()
             self.modbus_client = None
         
@@ -669,13 +789,14 @@ def capture_and_detect():
     
     result = ccd3_service.capture_and_detect_angle(mode)
     
+    # 將numpy類型轉換為Python原生類型以支援JSON序列化
     response_data = {
         'success': result.success,
-        'center': result.center,
-        'angle': result.angle,
-        'processing_time': result.processing_time,
-        'capture_time': result.capture_time,
-        'total_time': result.total_time
+        'center': [int(result.center[0]), int(result.center[1])] if result.center else None,
+        'angle': float(result.angle) if result.angle is not None else None,
+        'processing_time': float(result.processing_time),
+        'capture_time': float(result.capture_time),
+        'total_time': float(result.total_time)
     }
     
     if not result.success:
