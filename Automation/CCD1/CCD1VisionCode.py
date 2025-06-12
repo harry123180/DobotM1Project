@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-CCD1VisionCode.py - CCD視覺控制系統 (Modbus TCP Client版本)
-基於工業設備控制架構的視覺辨識Web控制介面
-作為Modbus TCP Client連接外部PLC/HMI設備
+CCD1VisionCode.py - CCD[U+8996][U+89BA][U+63A7][U+5236][U+7CFB][U+7D71] (Modbus TCP Client[U+7248][U+672C])
+[U+57FA][U+65BC][U+5DE5][U+696D][U+8A2D][U+5099][U+63A7][U+5236][U+67B6][U+69CB][U+7684][U+8996][U+89BA][U+8FA8][U+8B58]Web[U+63A7][U+5236][U+4ECB][U+9762]
+[U+4F5C][U+70BA]Modbus TCP Client[U+9023][U+63A5][U+5916][U+90E8]PLC/HMI[U+8A2D][U+5099]
 """
 
 import sys
@@ -20,32 +20,32 @@ import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
-# 導入Modbus TCP Client服務 (適配pymodbus 3.9.2)
+# [U+5C0E][U+5165]Modbus TCP Client[U+670D][U+52D9] ([U+9069][U+914D]pymodbus 3.9.2)
 try:
     from pymodbus.client import ModbusTcpClient
     from pymodbus.exceptions import ModbusException, ConnectionException
     MODBUS_AVAILABLE = True
     PYMODBUS_VERSION = "3.9.2"
-    print("✅ Modbus Client模組導入成功 (pymodbus 3.9.2)")
+    print("[OK] Modbus Client[U+6A21][U+7D44][U+5C0E][U+5165][U+6210][U+529F] (pymodbus 3.9.2)")
 except ImportError as e:
-    print(f"⚠️ Modbus Client模組導入失敗: {e}")
-    print("💡 請確認pymodbus版本: pip install pymodbus>=3.0.0")
+    print(f"[WARN][U+FE0F] Modbus Client[U+6A21][U+7D44][U+5C0E][U+5165][U+5931][U+6557]: {e}")
+    print("[U+1F4A1] [U+8ACB][U+78BA][U+8A8D]pymodbus[U+7248][U+672C]: pip install pymodbus>=3.0.0")
     MODBUS_AVAILABLE = False
     PYMODBUS_VERSION = "unavailable"
 
-# 導入相機管理模組
+# [U+5C0E][U+5165][U+76F8][U+6A5F][U+7BA1][U+7406][U+6A21][U+7D44]
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'API'))
 try:
     from camera_manager import OptimizedCameraManager, CameraConfig, CameraMode, PixelFormat
     CAMERA_MANAGER_AVAILABLE = True
 except ImportError as e:
-    print(f"❌ 無法導入 camera_manager 模組: {e}")
+    print(f"[FAIL] [U+7121][U+6CD5][U+5C0E][U+5165] camera_manager [U+6A21][U+7D44]: {e}")
     CAMERA_MANAGER_AVAILABLE = False
 
 
 @dataclass
 class DetectionParams:
-    """檢測參數配置"""
+    """[U+6AA2][U+6E2C][U+53C3][U+6578][U+914D][U+7F6E]"""
     min_area: float = 50000.0
     min_roundness: float = 0.8
     gaussian_kernel_size: int = 9
@@ -56,7 +56,7 @@ class DetectionParams:
 
 @dataclass
 class VisionResult:
-    """視覺辨識結果"""
+    """[U+8996][U+89BA][U+8FA8][U+8B58][U+7D50][U+679C]"""
     circle_count: int
     circles: List[Dict[str, Any]]
     processing_time: float
@@ -68,7 +68,7 @@ class VisionResult:
 
 
 class ModbusTcpClientService:
-    """Modbus TCP Client服務 - 連接外部PLC/HMI設備"""
+    """Modbus TCP Client[U+670D][U+52D9] - [U+9023][U+63A5][U+5916][U+90E8]PLC/HMI[U+8A2D][U+5099]"""
     
     def __init__(self, server_ip="192.168.1.100", server_port=502):
         self.server_ip = server_ip
@@ -78,105 +78,105 @@ class ModbusTcpClientService:
         self.running = False
         self.vision_controller = None
         
-        # 連接參數
-        self.reconnect_delay = 5.0  # 重連延遲
-        self.read_timeout = 3.0     # 讀取超時
-        self.write_timeout = 3.0    # 寫入超時
+        # [U+9023][U+63A5][U+53C3][U+6578]
+        self.reconnect_delay = 5.0  # [U+91CD][U+9023][U+5EF6][U+9072]
+        self.read_timeout = 3.0     # [U+8B80][U+53D6][U+8D85][U+6642]
+        self.write_timeout = 3.0    # [U+5BEB][U+5165][U+8D85][U+6642]
         
-        # 新增：同步控制
-        self.sync_enabled = False           # 同步開關
-        self.sync_thread = None            # 同步線程
-        self.sync_running = False          # 同步線程運行狀態
-        self.sync_interval = 0.1           # 同步間隔 (100ms)
-        self.status_sync_counter = 0       # 狀態同步計數器
-        self.status_sync_interval = 10     # 每10次循環同步一次狀態 (1秒)
+        # [U+65B0][U+589E][U+FF1A][U+540C][U+6B65][U+63A7][U+5236]
+        self.sync_enabled = False           # [U+540C][U+6B65][U+958B][U+95DC]
+        self.sync_thread = None            # [U+540C][U+6B65][U+7DDA][U+7A0B]
+        self.sync_running = False          # [U+540C][U+6B65][U+7DDA][U+7A0B][U+904B][U+884C][U+72C0][U+614B]
+        self.sync_interval = 0.1           # [U+540C][U+6B65][U+9593][U+9694] (100ms)
+        self.status_sync_counter = 0       # [U+72C0][U+614B][U+540C][U+6B65][U+8A08][U+6578][U+5668]
+        self.status_sync_interval = 10     # [U+6BCF]10[U+6B21][U+5FAA][U+74B0][U+540C][U+6B65][U+4E00][U+6B21][U+72C0][U+614B] (1[U+79D2])
         
-        # Modbus寄存器映射 (CCD1專用地址段: 200-299)
+        # Modbus[U+5BC4][U+5B58][U+5668][U+6620][U+5C04] (CCD1[U+5C08][U+7528][U+5730][U+5740][U+6BB5]: 200-299)
         self.REGISTERS = {
-            # 控制寄存器 (200-209) - 從外部PLC讀取控制指令
-            'EXTERNAL_CONTROL_ENABLE': 200,    # 外部控制啟用 (0=禁用, 1=啟用)
-            'CAPTURE_TRIGGER': 201,            # 拍照觸發 (讀取到1時觸發)
-            'DETECT_TRIGGER': 202,             # 拍照+檢測觸發 (讀取到1時觸發)
-            'SYSTEM_RESET': 203,               # 系統重置 (讀取到1時重置)
-            'PARAM_UPDATE_TRIGGER': 204,       # 參數更新觸發
+            # [U+63A7][U+5236][U+5BC4][U+5B58][U+5668] (200-209) - [U+5F9E][U+5916][U+90E8]PLC[U+8B80][U+53D6][U+63A7][U+5236][U+6307][U+4EE4]
+            'EXTERNAL_CONTROL_ENABLE': 200,    # [U+5916][U+90E8][U+63A7][U+5236][U+555F][U+7528] (0=[U+7981][U+7528], 1=[U+555F][U+7528])
+            'CAPTURE_TRIGGER': 201,            # [U+62CD][U+7167][U+89F8][U+767C] ([U+8B80][U+53D6][U+5230]1[U+6642][U+89F8][U+767C])
+            'DETECT_TRIGGER': 202,             # [U+62CD][U+7167]+[U+6AA2][U+6E2C][U+89F8][U+767C] ([U+8B80][U+53D6][U+5230]1[U+6642][U+89F8][U+767C])
+            'SYSTEM_RESET': 203,               # [U+7CFB][U+7D71][U+91CD][U+7F6E] ([U+8B80][U+53D6][U+5230]1[U+6642][U+91CD][U+7F6E])
+            'PARAM_UPDATE_TRIGGER': 204,       # [U+53C3][U+6578][U+66F4][U+65B0][U+89F8][U+767C]
             
-            # 參數設定寄存器 (210-219) - 從外部PLC讀取參數設定
-            'MIN_AREA_HIGH': 210,              # 最小面積設定 (高16位)
-            'MIN_AREA_LOW': 211,               # 最小面積設定 (低16位)
-            'MIN_ROUNDNESS': 212,              # 最小圓度設定 (乘以1000)
-            'GAUSSIAN_KERNEL': 213,            # 高斯核大小
-            'CANNY_LOW': 214,                  # Canny低閾值
-            'CANNY_HIGH': 215,                 # Canny高閾值
+            # [U+53C3][U+6578][U+8A2D][U+5B9A][U+5BC4][U+5B58][U+5668] (210-219) - [U+5F9E][U+5916][U+90E8]PLC[U+8B80][U+53D6][U+53C3][U+6578][U+8A2D][U+5B9A]
+            'MIN_AREA_HIGH': 210,              # [U+6700][U+5C0F][U+9762][U+7A4D][U+8A2D][U+5B9A] ([U+9AD8]16[U+4F4D])
+            'MIN_AREA_LOW': 211,               # [U+6700][U+5C0F][U+9762][U+7A4D][U+8A2D][U+5B9A] ([U+4F4E]16[U+4F4D])
+            'MIN_ROUNDNESS': 212,              # [U+6700][U+5C0F][U+5713][U+5EA6][U+8A2D][U+5B9A] ([U+4E58][U+4EE5]1000)
+            'GAUSSIAN_KERNEL': 213,            # [U+9AD8][U+65AF][U+6838][U+5927][U+5C0F]
+            'CANNY_LOW': 214,                  # Canny[U+4F4E][U+95BE][U+503C]
+            'CANNY_HIGH': 215,                 # Canny[U+9AD8][U+95BE][U+503C]
             
-            # 狀態回報寄存器 (220-239) - 寫入狀態到外部PLC
-            'SYSTEM_STATUS': 220,              # 系統狀態 (0=斷線, 1=已連接, 2=處理中)
-            'CAMERA_CONNECTED': 221,           # 相機連接狀態 (0=斷線, 1=已連接)
-            'LAST_OPERATION_STATUS': 222,      # 最後操作狀態 (0=失敗, 1=成功)
-            'PROCESSING_PROGRESS': 223,        # 處理進度 (0-100)
+            # [U+72C0][U+614B][U+56DE][U+5831][U+5BC4][U+5B58][U+5668] (220-239) - [U+5BEB][U+5165][U+72C0][U+614B][U+5230][U+5916][U+90E8]PLC
+            'SYSTEM_STATUS': 220,              # [U+7CFB][U+7D71][U+72C0][U+614B] (0=[U+65B7][U+7DDA], 1=[U+5DF2][U+9023][U+63A5], 2=[U+8655][U+7406][U+4E2D])
+            'CAMERA_CONNECTED': 221,           # [U+76F8][U+6A5F][U+9023][U+63A5][U+72C0][U+614B] (0=[U+65B7][U+7DDA], 1=[U+5DF2][U+9023][U+63A5])
+            'LAST_OPERATION_STATUS': 222,      # [U+6700][U+5F8C][U+64CD][U+4F5C][U+72C0][U+614B] (0=[U+5931][U+6557], 1=[U+6210][U+529F])
+            'PROCESSING_PROGRESS': 223,        # [U+8655][U+7406][U+9032][U+5EA6] (0-100)
             
-            # 結果寄存器 (240-279) - 寫入檢測結果到外部PLC
-            'CIRCLE_COUNT': 240,               # 檢測到的圓形數量
-            'CIRCLE_1_X': 241,                 # 圓形1 X座標
-            'CIRCLE_1_Y': 242,                 # 圓形1 Y座標
-            'CIRCLE_1_RADIUS': 243,            # 圓形1 半徑
-            'CIRCLE_2_X': 244,                 # 圓形2 X座標
-            'CIRCLE_2_Y': 245,                 # 圓形2 Y座標
-            'CIRCLE_2_RADIUS': 246,            # 圓形2 半徑
-            'CIRCLE_3_X': 247,                 # 圓形3 X座標
-            'CIRCLE_3_Y': 248,                 # 圓形3 Y座標
-            'CIRCLE_3_RADIUS': 249,            # 圓形3 半徑
-            'CIRCLE_4_X': 250,                 # 圓形4 X座標
-            'CIRCLE_4_Y': 251,                 # 圓形4 Y座標
-            'CIRCLE_4_RADIUS': 252,            # 圓形4 半徑
-            'CIRCLE_5_X': 253,                 # 圓形5 X座標
-            'CIRCLE_5_Y': 254,                 # 圓形5 Y座標
-            'CIRCLE_5_RADIUS': 255,            # 圓形5 半徑
+            # [U+7D50][U+679C][U+5BC4][U+5B58][U+5668] (240-279) - [U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230][U+5916][U+90E8]PLC
+            'CIRCLE_COUNT': 240,               # [U+6AA2][U+6E2C][U+5230][U+7684][U+5713][U+5F62][U+6578][U+91CF]
+            'CIRCLE_1_X': 241,                 # [U+5713][U+5F62]1 X[U+5EA7][U+6A19]
+            'CIRCLE_1_Y': 242,                 # [U+5713][U+5F62]1 Y[U+5EA7][U+6A19]
+            'CIRCLE_1_RADIUS': 243,            # [U+5713][U+5F62]1 [U+534A][U+5F91]
+            'CIRCLE_2_X': 244,                 # [U+5713][U+5F62]2 X[U+5EA7][U+6A19]
+            'CIRCLE_2_Y': 245,                 # [U+5713][U+5F62]2 Y[U+5EA7][U+6A19]
+            'CIRCLE_2_RADIUS': 246,            # [U+5713][U+5F62]2 [U+534A][U+5F91]
+            'CIRCLE_3_X': 247,                 # [U+5713][U+5F62]3 X[U+5EA7][U+6A19]
+            'CIRCLE_3_Y': 248,                 # [U+5713][U+5F62]3 Y[U+5EA7][U+6A19]
+            'CIRCLE_3_RADIUS': 249,            # [U+5713][U+5F62]3 [U+534A][U+5F91]
+            'CIRCLE_4_X': 250,                 # [U+5713][U+5F62]4 X[U+5EA7][U+6A19]
+            'CIRCLE_4_Y': 251,                 # [U+5713][U+5F62]4 Y[U+5EA7][U+6A19]
+            'CIRCLE_4_RADIUS': 252,            # [U+5713][U+5F62]4 [U+534A][U+5F91]
+            'CIRCLE_5_X': 253,                 # [U+5713][U+5F62]5 X[U+5EA7][U+6A19]
+            'CIRCLE_5_Y': 254,                 # [U+5713][U+5F62]5 Y[U+5EA7][U+6A19]
+            'CIRCLE_5_RADIUS': 255,            # [U+5713][U+5F62]5 [U+534A][U+5F91]
             
-            # 統計資訊寄存器 (280-299) - 寫入統計到外部PLC
-            'LAST_CAPTURE_TIME': 280,          # 最後拍照耗時 (ms)
-            'LAST_PROCESS_TIME': 281,          # 最後處理耗時 (ms)
-            'LAST_TOTAL_TIME': 282,            # 最後總耗時 (ms)
-            'OPERATION_COUNT': 283,            # 操作計數器
-            'ERROR_COUNT': 284,                # 錯誤計數器
-            'CONNECTION_COUNT': 285,           # 連接計數器
-            'VERSION_MAJOR': 290,              # 軟體版本主版號
-            'VERSION_MINOR': 291,              # 軟體版本次版號
-            'UPTIME_HOURS': 292,               # 系統運行時間 (小時)
-            'UPTIME_MINUTES': 293,             # 系統運行時間 (分鐘)
+            # [U+7D71][U+8A08][U+8CC7][U+8A0A][U+5BC4][U+5B58][U+5668] (280-299) - [U+5BEB][U+5165][U+7D71][U+8A08][U+5230][U+5916][U+90E8]PLC
+            'LAST_CAPTURE_TIME': 280,          # [U+6700][U+5F8C][U+62CD][U+7167][U+8017][U+6642] (ms)
+            'LAST_PROCESS_TIME': 281,          # [U+6700][U+5F8C][U+8655][U+7406][U+8017][U+6642] (ms)
+            'LAST_TOTAL_TIME': 282,            # [U+6700][U+5F8C][U+7E3D][U+8017][U+6642] (ms)
+            'OPERATION_COUNT': 283,            # [U+64CD][U+4F5C][U+8A08][U+6578][U+5668]
+            'ERROR_COUNT': 284,                # [U+932F][U+8AA4][U+8A08][U+6578][U+5668]
+            'CONNECTION_COUNT': 285,           # [U+9023][U+63A5][U+8A08][U+6578][U+5668]
+            'VERSION_MAJOR': 290,              # [U+8EDF][U+9AD4][U+7248][U+672C][U+4E3B][U+7248][U+865F]
+            'VERSION_MINOR': 291,              # [U+8EDF][U+9AD4][U+7248][U+672C][U+6B21][U+7248][U+865F]
+            'UPTIME_HOURS': 292,               # [U+7CFB][U+7D71][U+904B][U+884C][U+6642][U+9593] ([U+5C0F][U+6642])
+            'UPTIME_MINUTES': 293,             # [U+7CFB][U+7D71][U+904B][U+884C][U+6642][U+9593] ([U+5206][U+9418])
         }
         
-        # 狀態追蹤
+        # [U+72C0][U+614B][U+8FFD][U+8E64]
         self.last_trigger_states = {}
         self.operation_count = 0
         self.error_count = 0
         self.connection_count = 0
         self.start_time = time.time()
         
-        # 外部控制狀態
+        # [U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B]
         self.external_control_enabled = False
         self.last_params_hash = None
         
     def set_vision_controller(self, controller):
-        """設置視覺控制器引用"""
+        """[U+8A2D][U+7F6E][U+8996][U+89BA][U+63A7][U+5236][U+5668][U+5F15][U+7528]"""
         self.vision_controller = controller
         
     def set_server_address(self, ip: str, port: int = 502):
-        """設置Modbus服務器地址"""
+        """[U+8A2D][U+7F6E]Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740]"""
         self.server_ip = ip
         self.server_port = port
-        print(f"🔧 Modbus服務器地址設置為: {ip}:{port}")
+        print(f"[U+1F527] Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740][U+8A2D][U+7F6E][U+70BA]: {ip}:{port}")
     
     def connect(self) -> bool:
-        """連接到Modbus TCP服務器"""
+        """[U+9023][U+63A5][U+5230]Modbus TCP[U+670D][U+52D9][U+5668]"""
         if not MODBUS_AVAILABLE:
-            print("❌ Modbus Client不可用")
+            print("[FAIL] Modbus Client[U+4E0D][U+53EF][U+7528]")
             return False
         
         try:
             if self.client:
                 self.client.close()
             
-            print(f"🔗 正在連接Modbus TCP服務器: {self.server_ip}:{self.server_port}")
+            print(f"[U+1F517] [U+6B63][U+5728][U+9023][U+63A5]Modbus TCP[U+670D][U+52D9][U+5668]: {self.server_ip}:{self.server_port}")
             
             self.client = ModbusTcpClient(
                 host=self.server_ip,
@@ -184,39 +184,39 @@ class ModbusTcpClientService:
                 timeout=self.read_timeout
             )
             
-            # 嘗試連接
+            # [U+5617][U+8A66][U+9023][U+63A5]
             if self.client.connect():
                 self.connected = True
                 self.connection_count += 1
                 
-                # 寫入初始狀態
+                # [U+5BEB][U+5165][U+521D][U+59CB][U+72C0][U+614B]
                 self._write_initial_status()
                 
-                print(f"✅ Modbus TCP Client連接成功: {self.server_ip}:{self.server_port}")
+                print(f"[OK] Modbus TCP Client[U+9023][U+63A5][U+6210][U+529F]: {self.server_ip}:{self.server_port}")
                 return True
             else:
-                print(f"❌ Modbus TCP連接失敗: {self.server_ip}:{self.server_port}")
+                print(f"[FAIL] Modbus TCP[U+9023][U+63A5][U+5931][U+6557]: {self.server_ip}:{self.server_port}")
                 self.connected = False
                 return False
                 
         except Exception as e:
-            print(f"❌ Modbus TCP連接異常: {e}")
+            print(f"[FAIL] Modbus TCP[U+9023][U+63A5][U+7570][U+5E38]: {e}")
             self.connected = False
             return False
     
     def disconnect(self):
-        """斷開Modbus連接"""
-        # 先停止同步線程
+        """[U+65B7][U+958B]Modbus[U+9023][U+63A5]"""
+        # [U+5148][U+505C][U+6B62][U+540C][U+6B65][U+7DDA][U+7A0B]
         self.stop_sync()
         
         if self.client and self.connected:
             try:
-                # 寫入斷線狀態
+                # [U+5BEB][U+5165][U+65B7][U+7DDA][U+72C0][U+614B]
                 self.write_register('SYSTEM_STATUS', 0)
                 self.write_register('CAMERA_CONNECTED', 0)
                 
                 self.client.close()
-                print("🔌 Modbus TCP Client已斷開連接")
+                print("[U+1F50C] Modbus TCP Client[U+5DF2][U+65B7][U+958B][U+9023][U+63A5]")
             except:
                 pass
         
@@ -224,121 +224,121 @@ class ModbusTcpClientService:
         self.client = None
     
     def enable_external_control(self, enable: bool):
-        """啟用/禁用外部控制"""
+        """[U+555F][U+7528]/[U+7981][U+7528][U+5916][U+90E8][U+63A7][U+5236]"""
         self.external_control_enabled = enable
         
         if enable and self.connected:
-            # 啟用外部控制時開始同步
+            # [U+555F][U+7528][U+5916][U+90E8][U+63A7][U+5236][U+6642][U+958B][U+59CB][U+540C][U+6B65]
             self.start_sync()
-            print("🔄 外部控制已啟用，開始同步線程")
+            print("[U+1F504] [U+5916][U+90E8][U+63A7][U+5236][U+5DF2][U+555F][U+7528][U+FF0C][U+958B][U+59CB][U+540C][U+6B65][U+7DDA][U+7A0B]")
         else:
-            # 禁用外部控制時停止同步
+            # [U+7981][U+7528][U+5916][U+90E8][U+63A7][U+5236][U+6642][U+505C][U+6B62][U+540C][U+6B65]
             self.stop_sync()
-            print("⏹️ 外部控制已禁用，停止同步線程")
+            print("[U+23F9][U+FE0F] [U+5916][U+90E8][U+63A7][U+5236][U+5DF2][U+7981][U+7528][U+FF0C][U+505C][U+6B62][U+540C][U+6B65][U+7DDA][U+7A0B]")
     
     def start_sync(self):
-        """啟動同步線程"""
+        """[U+555F][U+52D5][U+540C][U+6B65][U+7DDA][U+7A0B]"""
         if self.sync_running:
-            return  # 已經在運行
+            return  # [U+5DF2][U+7D93][U+5728][U+904B][U+884C]
         
         self.sync_running = True
         self.sync_thread = threading.Thread(target=self._sync_loop, daemon=True)
         self.sync_thread.start()
-        print("✅ Modbus同步線程已啟動")
+        print("[OK] Modbus[U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+555F][U+52D5]")
     
     def stop_sync(self):
-        """停止同步線程"""
+        """[U+505C][U+6B62][U+540C][U+6B65][U+7DDA][U+7A0B]"""
         if self.sync_running:
             self.sync_running = False
             if self.sync_thread and self.sync_thread.is_alive():
-                self.sync_thread.join(timeout=2.0)  # 等待最多2秒
-            print("🛑 Modbus同步線程已停止")
+                self.sync_thread.join(timeout=2.0)  # [U+7B49][U+5F85][U+6700][U+591A]2[U+79D2]
+            print("[U+1F6D1] Modbus[U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+505C][U+6B62]")
     
     def _sync_loop(self):
-        """同步循環 - 在獨立線程中運行"""
-        print("🔄 同步線程開始運行...")
+        """[U+540C][U+6B65][U+5FAA][U+74B0] - [U+5728][U+7368][U+7ACB][U+7DDA][U+7A0B][U+4E2D][U+904B][U+884C]"""
+        print("[U+1F504] [U+540C][U+6B65][U+7DDA][U+7A0B][U+958B][U+59CB][U+904B][U+884C]...")
         
         while self.sync_running and self.connected:
             try:
-                # 1. 檢查外部控制狀態變化
+                # 1. [U+6AA2][U+67E5][U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B][U+8B8A][U+5316]
                 self._check_external_control_changes()
                 
-                # 2. 如果外部控制啟用，進行觸發檢測
+                # 2. [U+5982][U+679C][U+5916][U+90E8][U+63A7][U+5236][U+555F][U+7528][U+FF0C][U+9032][U+884C][U+89F8][U+767C][U+6AA2][U+6E2C]
                 if self.external_control_enabled:
                     self._check_all_triggers()
                     self._check_parameter_updates()
                 else:
-                    # 如果外部控制被禁用，停止同步線程
-                    print("⚠️ 外部控制已禁用，同步線程將退出")
+                    # [U+5982][U+679C][U+5916][U+90E8][U+63A7][U+5236][U+88AB][U+7981][U+7528][U+FF0C][U+505C][U+6B62][U+540C][U+6B65][U+7DDA][U+7A0B]
+                    print("[WARN][U+FE0F] [U+5916][U+90E8][U+63A7][U+5236][U+5DF2][U+7981][U+7528][U+FF0C][U+540C][U+6B65][U+7DDA][U+7A0B][U+5C07][U+9000][U+51FA]")
                     break
                 
-                # 3. 定期同步狀態（每1秒一次）
+                # 3. [U+5B9A][U+671F][U+540C][U+6B65][U+72C0][U+614B][U+FF08][U+6BCF]1[U+79D2][U+4E00][U+6B21][U+FF09]
                 self.status_sync_counter += 1
                 if self.status_sync_counter >= self.status_sync_interval:
                     self._sync_status_to_plc()
                     self._update_uptime()
                     self.status_sync_counter = 0
                 
-                # 短暫休眠
+                # [U+77ED][U+66AB][U+4F11][U+7720]
                 time.sleep(self.sync_interval)
                 
             except ConnectionException:
-                print("❌ Modbus連接中斷，同步線程退出")
+                print("[FAIL] Modbus[U+9023][U+63A5][U+4E2D][U+65B7][U+FF0C][U+540C][U+6B65][U+7DDA][U+7A0B][U+9000][U+51FA]")
                 self.connected = False
                 break
                 
             except Exception as e:
-                print(f"❌ 同步線程錯誤: {e}")
+                print(f"[FAIL] [U+540C][U+6B65][U+7DDA][U+7A0B][U+932F][U+8AA4]: {e}")
                 self.error_count += 1
-                time.sleep(1.0)  # 錯誤時延長休眠
+                time.sleep(1.0)  # [U+932F][U+8AA4][U+6642][U+5EF6][U+9577][U+4F11][U+7720]
         
         self.sync_running = False
-        print("⏹️ 同步線程已退出")
+        print("[U+23F9][U+FE0F] [U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+9000][U+51FA]")
     
     def _check_all_triggers(self):
-        """檢查所有觸發信號 (增加詳細日誌)"""
+        """[U+6AA2][U+67E5][U+6240][U+6709][U+89F8][U+767C][U+4FE1][U+865F] ([U+589E][U+52A0][U+8A73][U+7D30][U+65E5][U+8A8C])"""
         try:
-            # 檢查拍照觸發
+            # [U+6AA2][U+67E5][U+62CD][U+7167][U+89F8][U+767C]
             capture_trigger = self.read_register('CAPTURE_TRIGGER')
             if capture_trigger is not None:
                 if (capture_trigger > 0 and 
                     capture_trigger != self.last_trigger_states.get('capture', 0)):
                     
-                    print(f"📸 檢測到拍照觸發: {capture_trigger} (上次: {self.last_trigger_states.get('capture', 0)})")
+                    print(f"[U+1F4F8] [U+6AA2][U+6E2C][U+5230][U+62CD][U+7167][U+89F8][U+767C]: {capture_trigger} ([U+4E0A][U+6B21]: {self.last_trigger_states.get('capture', 0)})")
                     self.last_trigger_states['capture'] = capture_trigger
                     self._handle_capture_trigger()
-                    # 處理完成後清除觸發信號
+                    # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                     self.write_register('CAPTURE_TRIGGER', 0)
             
-            # 檢查檢測觸發
+            # [U+6AA2][U+67E5][U+6AA2][U+6E2C][U+89F8][U+767C]
             detect_trigger = self.read_register('DETECT_TRIGGER')
             if detect_trigger is not None:
                 if (detect_trigger > 0 and 
                     detect_trigger != self.last_trigger_states.get('detect', 0)):
                     
-                    print(f"🔍 檢測到檢測觸發: {detect_trigger} (上次: {self.last_trigger_states.get('detect', 0)})")
+                    print(f"[U+1F50D] [U+6AA2][U+6E2C][U+5230][U+6AA2][U+6E2C][U+89F8][U+767C]: {detect_trigger} ([U+4E0A][U+6B21]: {self.last_trigger_states.get('detect', 0)})")
                     self.last_trigger_states['detect'] = detect_trigger
                     self._handle_detect_trigger()
-                    # 處理完成後清除觸發信號
+                    # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                     self.write_register('DETECT_TRIGGER', 0)
             
-            # 檢查重置觸發
+            # [U+6AA2][U+67E5][U+91CD][U+7F6E][U+89F8][U+767C]
             reset_trigger = self.read_register('SYSTEM_RESET')
             if reset_trigger is not None:
                 if (reset_trigger > 0 and 
                     reset_trigger != self.last_trigger_states.get('reset', 0)):
                     
-                    print(f"🔄 檢測到重置觸發: {reset_trigger} (上次: {self.last_trigger_states.get('reset', 0)})")
+                    print(f"[U+1F504] [U+6AA2][U+6E2C][U+5230][U+91CD][U+7F6E][U+89F8][U+767C]: {reset_trigger} ([U+4E0A][U+6B21]: {self.last_trigger_states.get('reset', 0)})")
                     self.last_trigger_states['reset'] = reset_trigger
                     self._handle_reset_trigger()
-                    # 處理完成後清除觸發信號
+                    # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                     self.write_register('SYSTEM_RESET', 0)
                     
         except Exception as e:
-            print(f"❌ 檢查觸發信號失敗: {e}")
+            print(f"[FAIL] [U+6AA2][U+67E5][U+89F8][U+767C][U+4FE1][U+865F][U+5931][U+6557]: {e}")
     
     def get_debug_info(self) -> Dict[str, Any]:
-        """獲取調試信息"""
+        """[U+7372][U+53D6][U+8ABF][U+8A66][U+4FE1][U+606F]"""
         return {
             'connected': self.connected,
             'external_control_enabled': self.external_control_enabled,
@@ -351,57 +351,57 @@ class ModbusTcpClientService:
         }
     
     def _check_external_control_changes(self):
-        """檢查外部控制狀態變化"""
+        """[U+6AA2][U+67E5][U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B][U+8B8A][U+5316]"""
         try:
             control_value = self.read_register('EXTERNAL_CONTROL_ENABLE')
             if control_value is not None:
                 new_state = bool(control_value)
                 if new_state != self.external_control_enabled:
                     self.external_control_enabled = new_state
-                    print(f"🔄 外部控制狀態同步: {'啟用' if new_state else '停用'}")
+                    print(f"[U+1F504] [U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B][U+540C][U+6B65]: {'[U+555F][U+7528]' if new_state else '[U+505C][U+7528]'}")
         except:
             pass
     
     def _check_all_triggers(self):
-        """檢查所有觸發信號"""
+        """[U+6AA2][U+67E5][U+6240][U+6709][U+89F8][U+767C][U+4FE1][U+865F]"""
         try:
-            # 檢查拍照觸發
+            # [U+6AA2][U+67E5][U+62CD][U+7167][U+89F8][U+767C]
             capture_trigger = self.read_register('CAPTURE_TRIGGER')
             if (capture_trigger is not None and capture_trigger > 0 and 
                 capture_trigger != self.last_trigger_states.get('capture', 0)):
                 
                 self.last_trigger_states['capture'] = capture_trigger
                 self._handle_capture_trigger()
-                # 處理完成後清除觸發信號
+                # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                 self.write_register('CAPTURE_TRIGGER', 0)
             
-            # 檢查檢測觸發
+            # [U+6AA2][U+67E5][U+6AA2][U+6E2C][U+89F8][U+767C]
             detect_trigger = self.read_register('DETECT_TRIGGER')
             if (detect_trigger is not None and detect_trigger > 0 and 
                 detect_trigger != self.last_trigger_states.get('detect', 0)):
                 
                 self.last_trigger_states['detect'] = detect_trigger
                 self._handle_detect_trigger()
-                # 處理完成後清除觸發信號
+                # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                 self.write_register('DETECT_TRIGGER', 0)
             
-            # 檢查重置觸發
+            # [U+6AA2][U+67E5][U+91CD][U+7F6E][U+89F8][U+767C]
             reset_trigger = self.read_register('SYSTEM_RESET')
             if (reset_trigger is not None and reset_trigger > 0 and 
                 reset_trigger != self.last_trigger_states.get('reset', 0)):
                 
                 self.last_trigger_states['reset'] = reset_trigger
                 self._handle_reset_trigger()
-                # 處理完成後清除觸發信號
+                # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                 self.write_register('SYSTEM_RESET', 0)
                 
         except Exception as e:
-            print(f"❌ 檢查觸發信號失敗: {e}")
+            print(f"[FAIL] [U+6AA2][U+67E5][U+89F8][U+767C][U+4FE1][U+865F][U+5931][U+6557]: {e}")
     
     def _sync_status_to_plc(self):
-        """同步狀態到PLC"""
+        """[U+540C][U+6B65][U+72C0][U+614B][U+5230]PLC"""
         try:
-            # 同步系統狀態
+            # [U+540C][U+6B65][U+7CFB][U+7D71][U+72C0][U+614B]
             if self.vision_controller and self.vision_controller.is_connected:
                 self.write_register('SYSTEM_STATUS', 1)
                 self.write_register('CAMERA_CONNECTED', 1)
@@ -409,56 +409,56 @@ class ModbusTcpClientService:
                 self.write_register('SYSTEM_STATUS', 0)
                 self.write_register('CAMERA_CONNECTED', 0)
             
-            # 同步計數器
+            # [U+540C][U+6B65][U+8A08][U+6578][U+5668]
             self.write_register('OPERATION_COUNT', self.operation_count)
             self.write_register('ERROR_COUNT', self.error_count)
             self.write_register('CONNECTION_COUNT', self.connection_count)
             
         except Exception as e:
-            print(f"❌ 同步狀態到PLC失敗: {e}")
+            print(f"[FAIL] [U+540C][U+6B65][U+72C0][U+614B][U+5230]PLC[U+5931][U+6557]: {e}")
     
     def _write_initial_status(self):
-        """寫入初始狀態到PLC"""
+        """[U+5BEB][U+5165][U+521D][U+59CB][U+72C0][U+614B][U+5230]PLC"""
         try:
-            # 版本資訊
+            # [U+7248][U+672C][U+8CC7][U+8A0A]
             self.write_register('VERSION_MAJOR', 2)
             self.write_register('VERSION_MINOR', 1)
             
-            # 系統狀態
+            # [U+7CFB][U+7D71][U+72C0][U+614B]
             camera_status = 1 if (self.vision_controller and self.vision_controller.is_connected) else 0
             self.write_register('SYSTEM_STATUS', camera_status)
             self.write_register('CAMERA_CONNECTED', camera_status)
             self.write_register('LAST_OPERATION_STATUS', 1)
             
-            # 計數器
+            # [U+8A08][U+6578][U+5668]
             self.write_register('OPERATION_COUNT', self.operation_count)
             self.write_register('ERROR_COUNT', self.error_count)
             self.write_register('CONNECTION_COUNT', self.connection_count)
             
-            print("📊 初始狀態已寫入PLC")
+            print("[U+1F4CA] [U+521D][U+59CB][U+72C0][U+614B][U+5DF2][U+5BEB][U+5165]PLC")
             
         except Exception as e:
-            print(f"❌ 寫入初始狀態失敗: {e}")
+            print(f"[FAIL] [U+5BEB][U+5165][U+521D][U+59CB][U+72C0][U+614B][U+5931][U+6557]: {e}")
     
     def _handle_capture_trigger(self):
-        """處理拍照觸發 (在同步線程中執行)"""
+        """[U+8655][U+7406][U+62CD][U+7167][U+89F8][U+767C] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         if not self.vision_controller:
             return
         
         try:
             self.write_register('PROCESSING_PROGRESS', 50)
-            print("📸 外部觸發: 執行拍照")
+            print("[U+1F4F8] [U+5916][U+90E8][U+89F8][U+767C]: [U+57F7][U+884C][U+62CD][U+7167]")
             
             image, capture_time = self.vision_controller.capture_image()
             
             if image is not None:
                 self.write_register('LAST_OPERATION_STATUS', 1)
                 self.write_register('LAST_CAPTURE_TIME', int(capture_time * 1000))
-                print(f"✅ 拍照成功，耗時: {capture_time*1000:.2f}ms")
+                print(f"[OK] [U+62CD][U+7167][U+6210][U+529F][U+FF0C][U+8017][U+6642]: {capture_time*1000:.2f}ms")
             else:
                 self.write_register('LAST_OPERATION_STATUS', 0)
                 self.error_count += 1
-                print("❌ 拍照失敗")
+                print("[FAIL] [U+62CD][U+7167][U+5931][U+6557]")
             
             self.operation_count += 1
             self.write_register('OPERATION_COUNT', self.operation_count)
@@ -466,31 +466,31 @@ class ModbusTcpClientService:
             self.write_register('PROCESSING_PROGRESS', 100)
             
         except Exception as e:
-            print(f"❌ 處理拍照觸發失敗: {e}")
+            print(f"[FAIL] [U+8655][U+7406][U+62CD][U+7167][U+89F8][U+767C][U+5931][U+6557]: {e}")
             self.write_register('LAST_OPERATION_STATUS', 0)
             self.write_register('PROCESSING_PROGRESS', 0)
             self.error_count += 1
     
     def _handle_detect_trigger(self):
-        """處理檢測觸發 (在同步線程中執行)"""
+        """[U+8655][U+7406][U+6AA2][U+6E2C][U+89F8][U+767C] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         if not self.vision_controller:
             return
         
         try:
             self.write_register('PROCESSING_PROGRESS', 20)
-            print("🔍 外部觸發: 執行拍照+檢測")
+            print("[U+1F50D] [U+5916][U+90E8][U+89F8][U+767C]: [U+57F7][U+884C][U+62CD][U+7167]+[U+6AA2][U+6E2C]")
             
             result = self.vision_controller.capture_and_detect()
             
             if result.success:
-                # 更新檢測結果到PLC
+                # [U+66F4][U+65B0][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230]PLC
                 self.update_detection_results(result)
                 self.write_register('LAST_OPERATION_STATUS', 1)
-                print(f"✅ 檢測成功，找到 {result.circle_count} 個圓形")
+                print(f"[OK] [U+6AA2][U+6E2C][U+6210][U+529F][U+FF0C][U+627E][U+5230] {result.circle_count} [U+500B][U+5713][U+5F62]")
             else:
                 self.write_register('LAST_OPERATION_STATUS', 0)
                 self.error_count += 1
-                print(f"❌ 檢測失敗: {result.error_message}")
+                print(f"[FAIL] [U+6AA2][U+6E2C][U+5931][U+6557]: {result.error_message}")
             
             self.operation_count += 1
             self.write_register('OPERATION_COUNT', self.operation_count)
@@ -498,45 +498,45 @@ class ModbusTcpClientService:
             self.write_register('PROCESSING_PROGRESS', 100)
             
         except Exception as e:
-            print(f"❌ 處理檢測觸發失敗: {e}")
+            print(f"[FAIL] [U+8655][U+7406][U+6AA2][U+6E2C][U+89F8][U+767C][U+5931][U+6557]: {e}")
             self.write_register('LAST_OPERATION_STATUS', 0)
             self.write_register('PROCESSING_PROGRESS', 0)
             self.error_count += 1
     
     def _handle_reset_trigger(self):
-        """處理重置觸發 (在同步線程中執行)"""
+        """[U+8655][U+7406][U+91CD][U+7F6E][U+89F8][U+767C] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         try:
-            print("🔄 外部觸發: 系統重置")
+            print("[U+1F504] [U+5916][U+90E8][U+89F8][U+767C]: [U+7CFB][U+7D71][U+91CD][U+7F6E]")
             
-            # 重置計數器
+            # [U+91CD][U+7F6E][U+8A08][U+6578][U+5668]
             self.operation_count = 0
             self.error_count = 0
             
-            # 清空檢測結果
+            # [U+6E05][U+7A7A][U+6AA2][U+6E2C][U+7D50][U+679C]
             self.write_register('CIRCLE_COUNT', 0)
             for i in range(1, 6):
                 self.write_register(f'CIRCLE_{i}_X', 0)
                 self.write_register(f'CIRCLE_{i}_Y', 0)
                 self.write_register(f'CIRCLE_{i}_RADIUS', 0)
             
-            # 更新計數器
+            # [U+66F4][U+65B0][U+8A08][U+6578][U+5668]
             self.write_register('OPERATION_COUNT', 0)
             self.write_register('ERROR_COUNT', 0)
             
-            print("✅ 系統重置完成")
+            print("[OK] [U+7CFB][U+7D71][U+91CD][U+7F6E][U+5B8C][U+6210]")
             
         except Exception as e:
-            print(f"❌ 處理重置觸發失敗: {e}")
+            print(f"[FAIL] [U+8655][U+7406][U+91CD][U+7F6E][U+89F8][U+767C][U+5931][U+6557]: {e}")
     
     def _handle_parameter_update(self):
-        """處理參數更新觸發 (在同步線程中執行)"""
+        """[U+8655][U+7406][U+53C3][U+6578][U+66F4][U+65B0][U+89F8][U+767C] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         if not self.vision_controller:
             return
         
         try:
-            print("📊 外部觸發: 參數更新")
+            print("[U+1F4CA] [U+5916][U+90E8][U+89F8][U+767C]: [U+53C3][U+6578][U+66F4][U+65B0]")
             
-            # 讀取新參數
+            # [U+8B80][U+53D6][U+65B0][U+53C3][U+6578]
             area_high = self.read_register('MIN_AREA_HIGH') or 0
             area_low = self.read_register('MIN_AREA_LOW') or 50000
             min_area = (area_high << 16) + area_low
@@ -548,7 +548,7 @@ class ModbusTcpClientService:
             canny_low = self.read_register('CANNY_LOW') or 20
             canny_high = self.read_register('CANNY_HIGH') or 60
             
-            # 更新視覺控制器參數
+            # [U+66F4][U+65B0][U+8996][U+89BA][U+63A7][U+5236][U+5668][U+53C3][U+6578]
             self.vision_controller.update_detection_params(
                 min_area=min_area,
                 min_roundness=min_roundness,
@@ -557,13 +557,13 @@ class ModbusTcpClientService:
                 canny_high=canny_high
             )
             
-            print(f"✅ 參數更新完成: 面積>={min_area}, 圓度>={min_roundness}")
+            print(f"[OK] [U+53C3][U+6578][U+66F4][U+65B0][U+5B8C][U+6210]: [U+9762][U+7A4D]>={min_area}, [U+5713][U+5EA6]>={min_roundness}")
             
         except Exception as e:
-            print(f"❌ 處理參數更新失敗: {e}")
+            print(f"[FAIL] [U+8655][U+7406][U+53C3][U+6578][U+66F4][U+65B0][U+5931][U+6557]: {e}")
     
     def _check_parameter_updates(self):
-        """檢查參數更新 (在同步線程中執行)"""
+        """[U+6AA2][U+67E5][U+53C3][U+6578][U+66F4][U+65B0] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         try:
             param_trigger = self.read_register('PARAM_UPDATE_TRIGGER')
             if (param_trigger is not None and param_trigger > 0 and 
@@ -571,14 +571,14 @@ class ModbusTcpClientService:
                 
                 self.last_trigger_states['param'] = param_trigger
                 self._handle_parameter_update()
-                # 處理完成後清除觸發信號
+                # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                 self.write_register('PARAM_UPDATE_TRIGGER', 0)
                 
         except Exception as e:
-            print(f"❌ 檢查參數更新失敗: {e}")
+            print(f"[FAIL] [U+6AA2][U+67E5][U+53C3][U+6578][U+66F4][U+65B0][U+5931][U+6557]: {e}")
     
     def _update_uptime(self):
-        """更新運行時間 (在同步線程中執行)"""
+        """[U+66F4][U+65B0][U+904B][U+884C][U+6642][U+9593] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         try:
             uptime_total_minutes = int((time.time() - self.start_time) / 60)
             uptime_hours = uptime_total_minutes // 60
@@ -589,24 +589,24 @@ class ModbusTcpClientService:
         except:
             pass
     def start_monitoring(self):
-        """啟動基礎監控 (已棄用，改為同步線程)"""
-        print("⚠️ start_monitoring已棄用，請使用start_sync")
+        """[U+555F][U+52D5][U+57FA][U+790E][U+76E3][U+63A7] ([U+5DF2][U+68C4][U+7528][U+FF0C][U+6539][U+70BA][U+540C][U+6B65][U+7DDA][U+7A0B])"""
+        print("[WARN][U+FE0F] start_monitoring[U+5DF2][U+68C4][U+7528][U+FF0C][U+8ACB][U+4F7F][U+7528]start_sync")
         return True
     
     def stop_monitoring(self):
-        """停止基礎監控 (已棄用，改為同步線程)"""
-        print("⚠️ stop_monitoring已棄用，請使用stop_sync")
+        """[U+505C][U+6B62][U+57FA][U+790E][U+76E3][U+63A7] ([U+5DF2][U+68C4][U+7528][U+FF0C][U+6539][U+70BA][U+540C][U+6B65][U+7DDA][U+7A0B])"""
+        print("[WARN][U+FE0F] stop_monitoring[U+5DF2][U+68C4][U+7528][U+FF0C][U+8ACB][U+4F7F][U+7528]stop_sync")
     
     def _monitor_loop(self):
-        """舊監控循環 (已棄用)"""
+        """[U+820A][U+76E3][U+63A7][U+5FAA][U+74B0] ([U+5DF2][U+68C4][U+7528])"""
         pass
     
     def _monitor_loop(self):
-        """舊監控循環 (已棄用)"""
+        """[U+820A][U+76E3][U+63A7][U+5FAA][U+74B0] ([U+5DF2][U+68C4][U+7528])"""
         pass
     
     def _update_uptime(self):
-        """更新運行時間"""
+        """[U+66F4][U+65B0][U+904B][U+884C][U+6642][U+9593]"""
         try:
             uptime_total_minutes = int((time.time() - self.start_time) / 60)
             uptime_hours = uptime_total_minutes // 60
@@ -618,15 +618,15 @@ class ModbusTcpClientService:
             pass
     
     def _check_external_control(self):
-        """檢查外部控制狀態 (已棄用)"""
+        """[U+6AA2][U+67E5][U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B] ([U+5DF2][U+68C4][U+7528])"""
         pass
     
     def _check_triggers(self):
-        """檢查觸發信號 (已棄用)"""
+        """[U+6AA2][U+67E5][U+89F8][U+767C][U+4FE1][U+865F] ([U+5DF2][U+68C4][U+7528])"""
         pass
     
     def _check_parameter_updates(self):
-        """檢查參數更新"""
+        """[U+6AA2][U+67E5][U+53C3][U+6578][U+66F4][U+65B0]"""
         try:
             param_trigger = self.read_register('PARAM_UPDATE_TRIGGER')
             if (param_trigger is not None and param_trigger > 0 and 
@@ -634,43 +634,43 @@ class ModbusTcpClientService:
                 
                 self.last_trigger_states['param'] = param_trigger
                 self._handle_parameter_update()
-                # 處理完成後清除觸發信號
+                # [U+8655][U+7406][U+5B8C][U+6210][U+5F8C][U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F]
                 self.write_register('PARAM_UPDATE_TRIGGER', 0)
                 
         except Exception as e:
-            print(f"❌ 檢查參數更新失敗: {e}")
+            print(f"[FAIL] [U+6AA2][U+67E5][U+53C3][U+6578][U+66F4][U+65B0][U+5931][U+6557]: {e}")
     
     def _handle_detect_trigger(self):
-        """處理檢測觸發 (在同步線程中執行)"""
+        """[U+8655][U+7406][U+6AA2][U+6E2C][U+89F8][U+767C] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         if not self.vision_controller:
-            print("❌ 檢測觸發失敗: vision_controller 不存在")
+            print("[FAIL] [U+6AA2][U+6E2C][U+89F8][U+767C][U+5931][U+6557]: vision_controller [U+4E0D][U+5B58][U+5728]")
             self.error_count += 1
             return
         
         try:
-            print("🔍 外部觸發: 開始執行拍照+檢測")
+            print("[U+1F50D] [U+5916][U+90E8][U+89F8][U+767C]: [U+958B][U+59CB][U+57F7][U+884C][U+62CD][U+7167]+[U+6AA2][U+6E2C]")
             self.write_register('PROCESSING_PROGRESS', 20)
             
-            # 檢查相機連接狀態
+            # [U+6AA2][U+67E5][U+76F8][U+6A5F][U+9023][U+63A5][U+72C0][U+614B]
             if not self.vision_controller.is_connected:
-                print("❌ 檢測觸發失敗: 相機未連接")
+                print("[FAIL] [U+6AA2][U+6E2C][U+89F8][U+767C][U+5931][U+6557]: [U+76F8][U+6A5F][U+672A][U+9023][U+63A5]")
                 self.write_register('LAST_OPERATION_STATUS', 0)
                 self.write_register('PROCESSING_PROGRESS', 0)
                 self.error_count += 1
                 return
             
-            print("📸 正在執行拍照+檢測...")
+            print("[U+1F4F8] [U+6B63][U+5728][U+57F7][U+884C][U+62CD][U+7167]+[U+6AA2][U+6E2C]...")
             result = self.vision_controller.capture_and_detect()
             
             if result and result.success:
-                # 更新檢測結果到PLC
-                print(f"✅ 檢測成功，找到 {result.circle_count} 個圓形")
+                # [U+66F4][U+65B0][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230]PLC
+                print(f"[OK] [U+6AA2][U+6E2C][U+6210][U+529F][U+FF0C][U+627E][U+5230] {result.circle_count} [U+500B][U+5713][U+5F62]")
                 self.update_detection_results(result)
                 self.write_register('LAST_OPERATION_STATUS', 1)
                 self.write_register('PROCESSING_PROGRESS', 100)
             else:
-                error_msg = result.error_message if result else "檢測結果為空"
-                print(f"❌ 檢測失敗: {error_msg}")
+                error_msg = result.error_message if result else "[U+6AA2][U+6E2C][U+7D50][U+679C][U+70BA][U+7A7A]"
+                print(f"[FAIL] [U+6AA2][U+6E2C][U+5931][U+6557]: {error_msg}")
                 self.write_register('LAST_OPERATION_STATUS', 0)
                 self.write_register('PROCESSING_PROGRESS', 0)
                 self.error_count += 1
@@ -680,10 +680,10 @@ class ModbusTcpClientService:
             self.write_register('ERROR_COUNT', self.error_count)
             
         except Exception as e:
-            print(f"❌ 處理檢測觸發異常: {e}")
-            print(f"❌ 異常類型: {type(e).__name__}")
+            print(f"[FAIL] [U+8655][U+7406][U+6AA2][U+6E2C][U+89F8][U+767C][U+7570][U+5E38]: {e}")
+            print(f"[FAIL] [U+7570][U+5E38][U+985E][U+578B]: {type(e).__name__}")
             import traceback
-            print(f"❌ 詳細堆疊: {traceback.format_exc()}")
+            print(f"[FAIL] [U+8A73][U+7D30][U+5806][U+758A]: {traceback.format_exc()}")
             
             self.write_register('LAST_OPERATION_STATUS', 0)
             self.write_register('PROCESSING_PROGRESS', 0)
@@ -691,47 +691,47 @@ class ModbusTcpClientService:
             self.write_register('ERROR_COUNT', self.error_count)
     
     def _handle_capture_trigger(self):
-        """處理拍照觸發 (在同步線程中執行)"""
+        """[U+8655][U+7406][U+62CD][U+7167][U+89F8][U+767C] ([U+5728][U+540C][U+6B65][U+7DDA][U+7A0B][U+4E2D][U+57F7][U+884C])"""
         if not self.vision_controller:
-            print("❌ 拍照觸發失敗: vision_controller 不存在")
+            print("[FAIL] [U+62CD][U+7167][U+89F8][U+767C][U+5931][U+6557]: vision_controller [U+4E0D][U+5B58][U+5728]")
             self.error_count += 1
             return
         
         try:
-            print("📸 外部觸發: 開始執行拍照")
+            print("[U+1F4F8] [U+5916][U+90E8][U+89F8][U+767C]: [U+958B][U+59CB][U+57F7][U+884C][U+62CD][U+7167]")
             self.write_register('PROCESSING_PROGRESS', 50)
             
-            # 檢查相機連接狀態
+            # [U+6AA2][U+67E5][U+76F8][U+6A5F][U+9023][U+63A5][U+72C0][U+614B]
             if not self.vision_controller.is_connected:
-                print("❌ 拍照觸發失敗: 相機未連接")
+                print("[FAIL] [U+62CD][U+7167][U+89F8][U+767C][U+5931][U+6557]: [U+76F8][U+6A5F][U+672A][U+9023][U+63A5]")
                 self.write_register('LAST_OPERATION_STATUS', 0)
                 self.write_register('PROCESSING_PROGRESS', 0)
                 self.error_count += 1
                 return
             
-            print("📸 正在執行拍照...")
+            print("[U+1F4F8] [U+6B63][U+5728][U+57F7][U+884C][U+62CD][U+7167]...")
             image, capture_time = self.vision_controller.capture_image()
             
             if image is not None:
                 self.write_register('LAST_OPERATION_STATUS', 1)
                 self.write_register('LAST_CAPTURE_TIME', int(capture_time * 1000))
                 self.write_register('PROCESSING_PROGRESS', 100)
-                print(f"✅ 拍照成功，耗時: {capture_time*1000:.2f}ms")
+                print(f"[OK] [U+62CD][U+7167][U+6210][U+529F][U+FF0C][U+8017][U+6642]: {capture_time*1000:.2f}ms")
             else:
                 self.write_register('LAST_OPERATION_STATUS', 0)
                 self.write_register('PROCESSING_PROGRESS', 0)
                 self.error_count += 1
-                print("❌ 拍照失敗: 返回圖像為空")
+                print("[FAIL] [U+62CD][U+7167][U+5931][U+6557]: [U+8FD4][U+56DE][U+5716][U+50CF][U+70BA][U+7A7A]")
             
             self.operation_count += 1
             self.write_register('OPERATION_COUNT', self.operation_count)
             self.write_register('ERROR_COUNT', self.error_count)
             
         except Exception as e:
-            print(f"❌ 處理拍照觸發異常: {e}")
-            print(f"❌ 異常類型: {type(e).__name__}")
+            print(f"[FAIL] [U+8655][U+7406][U+62CD][U+7167][U+89F8][U+767C][U+7570][U+5E38]: {e}")
+            print(f"[FAIL] [U+7570][U+5E38][U+985E][U+578B]: {type(e).__name__}")
             import traceback
-            print(f"❌ 詳細堆疊: {traceback.format_exc()}")
+            print(f"[FAIL] [U+8A73][U+7D30][U+5806][U+758A]: {traceback.format_exc()}")
             
             self.write_register('LAST_OPERATION_STATUS', 0)
             self.write_register('PROCESSING_PROGRESS', 0)
@@ -739,39 +739,39 @@ class ModbusTcpClientService:
             self.write_register('ERROR_COUNT', self.error_count)
     
     def _handle_reset_trigger(self):
-        """處理重置觸發"""
+        """[U+8655][U+7406][U+91CD][U+7F6E][U+89F8][U+767C]"""
         try:
-            print("🔄 外部觸發: 系統重置")
+            print("[U+1F504] [U+5916][U+90E8][U+89F8][U+767C]: [U+7CFB][U+7D71][U+91CD][U+7F6E]")
             
-            # 重置計數器
+            # [U+91CD][U+7F6E][U+8A08][U+6578][U+5668]
             self.operation_count = 0
             self.error_count = 0
             
-            # 清空檢測結果
+            # [U+6E05][U+7A7A][U+6AA2][U+6E2C][U+7D50][U+679C]
             self.write_register('CIRCLE_COUNT', 0)
             for i in range(1, 6):
                 self.write_register(f'CIRCLE_{i}_X', 0)
                 self.write_register(f'CIRCLE_{i}_Y', 0)
                 self.write_register(f'CIRCLE_{i}_RADIUS', 0)
             
-            # 更新計數器
+            # [U+66F4][U+65B0][U+8A08][U+6578][U+5668]
             self.write_register('OPERATION_COUNT', 0)
             self.write_register('ERROR_COUNT', 0)
             
-            print("✅ 系統重置完成")
+            print("[OK] [U+7CFB][U+7D71][U+91CD][U+7F6E][U+5B8C][U+6210]")
             
         except Exception as e:
-            print(f"❌ 處理重置觸發失敗: {e}")
+            print(f"[FAIL] [U+8655][U+7406][U+91CD][U+7F6E][U+89F8][U+767C][U+5931][U+6557]: {e}")
     
     def _handle_parameter_update(self):
-        """處理參數更新觸發"""
+        """[U+8655][U+7406][U+53C3][U+6578][U+66F4][U+65B0][U+89F8][U+767C]"""
         if not self.vision_controller:
             return
         
         try:
-            print("📊 外部觸發: 參數更新")
+            print("[U+1F4CA] [U+5916][U+90E8][U+89F8][U+767C]: [U+53C3][U+6578][U+66F4][U+65B0]")
             
-            # 讀取新參數
+            # [U+8B80][U+53D6][U+65B0][U+53C3][U+6578]
             area_high = self.read_register('MIN_AREA_HIGH') or 0
             area_low = self.read_register('MIN_AREA_LOW') or 50000
             min_area = (area_high << 16) + area_low
@@ -783,7 +783,7 @@ class ModbusTcpClientService:
             canny_low = self.read_register('CANNY_LOW') or 20
             canny_high = self.read_register('CANNY_HIGH') or 60
             
-            # 更新視覺控制器參數
+            # [U+66F4][U+65B0][U+8996][U+89BA][U+63A7][U+5236][U+5668][U+53C3][U+6578]
             self.vision_controller.update_detection_params(
                 min_area=min_area,
                 min_roundness=min_roundness,
@@ -792,100 +792,100 @@ class ModbusTcpClientService:
                 canny_high=canny_high
             )
             
-            print(f"✅ 參數更新完成: 面積>={min_area}, 圓度>={min_roundness}")
+            print(f"[OK] [U+53C3][U+6578][U+66F4][U+65B0][U+5B8C][U+6210]: [U+9762][U+7A4D]>={min_area}, [U+5713][U+5EA6]>={min_roundness}")
             
         except Exception as e:
-            print(f"❌ 處理參數更新失敗: {e}")
+            print(f"[FAIL] [U+8655][U+7406][U+53C3][U+6578][U+66F4][U+65B0][U+5931][U+6557]: {e}")
     
     def _update_system_status(self):
-        """更新系統狀態到PLC (已棄用)"""
+        """[U+66F4][U+65B0][U+7CFB][U+7D71][U+72C0][U+614B][U+5230]PLC ([U+5DF2][U+68C4][U+7528])"""
         pass
     
     def read_register(self, register_name: str) -> Optional[int]:
-        """讀取寄存器 (pymodbus 3.x 語法修正)"""
+        """[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668] (pymodbus 3.x [U+8A9E][U+6CD5][U+4FEE][U+6B63])"""
         if not self.connected or not self.client or register_name not in self.REGISTERS:
             return None
         
         try:
             address = self.REGISTERS[register_name]
-            # pymodbus 3.x: 使用關鍵字參數
+            # pymodbus 3.x: [U+4F7F][U+7528][U+95DC][U+9375][U+5B57][U+53C3][U+6578]
             result = self.client.read_holding_registers(address, count=1, slave=1)
             
             if not result.isError():
                 return result.registers[0]
             else:
-                print(f"❌ 讀取寄存器失敗 {register_name}: {result}")
+                print(f"[FAIL] [U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+5931][U+6557] {register_name}: {result}")
                 return None
                 
         except Exception as e:
-            print(f"❌ 讀取寄存器異常 {register_name}: {e}")
+            print(f"[FAIL] [U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+7570][U+5E38] {register_name}: {e}")
             return None
     
     def write_register(self, register_name: str, value: int) -> bool:
-        """寫入寄存器 (pymodbus 3.x 語法修正)"""
+        """[U+5BEB][U+5165][U+5BC4][U+5B58][U+5668] (pymodbus 3.x [U+8A9E][U+6CD5][U+4FEE][U+6B63])"""
         if not self.connected or not self.client or register_name not in self.REGISTERS:
             return False
         
         try:
             address = self.REGISTERS[register_name]
-            # pymodbus 3.x: 使用關鍵字參數
+            # pymodbus 3.x: [U+4F7F][U+7528][U+95DC][U+9375][U+5B57][U+53C3][U+6578]
             result = self.client.write_register(address, value, slave=1)
             
             if not result.isError():
                 return True
             else:
-                print(f"❌ 寫入寄存器失敗 {register_name}: {result}")
+                print(f"[FAIL] [U+5BEB][U+5165][U+5BC4][U+5B58][U+5668][U+5931][U+6557] {register_name}: {result}")
                 return False
                 
         except Exception as e:
-            print(f"❌ 寫入寄存器異常 {register_name}: {e}")
+            print(f"[FAIL] [U+5BEB][U+5165][U+5BC4][U+5B58][U+5668][U+7570][U+5E38] {register_name}: {e}")
             return False
     
     def read_multiple_registers(self, start_address: int, count: int) -> Optional[List[int]]:
-        """讀取多個連續寄存器 (pymodbus 3.x 語法修正)"""
+        """[U+8B80][U+53D6][U+591A][U+500B][U+9023][U+7E8C][U+5BC4][U+5B58][U+5668] (pymodbus 3.x [U+8A9E][U+6CD5][U+4FEE][U+6B63])"""
         if not self.connected or not self.client:
             return None
         
         try:
-            # pymodbus 3.x: 使用關鍵字參數
+            # pymodbus 3.x: [U+4F7F][U+7528][U+95DC][U+9375][U+5B57][U+53C3][U+6578]
             result = self.client.read_holding_registers(start_address, count=count, slave=1)
             
             if not result.isError():
                 return result.registers
             else:
-                print(f"❌ 讀取多個寄存器失敗: {result}")
+                print(f"[FAIL] [U+8B80][U+53D6][U+591A][U+500B][U+5BC4][U+5B58][U+5668][U+5931][U+6557]: {result}")
                 return None
                 
         except Exception as e:
-            print(f"❌ 讀取多個寄存器異常: {e}")
+            print(f"[FAIL] [U+8B80][U+53D6][U+591A][U+500B][U+5BC4][U+5B58][U+5668][U+7570][U+5E38]: {e}")
             return None
     
     def write_multiple_registers(self, start_address: int, values: List[int]) -> bool:
-        """寫入多個連續寄存器 (pymodbus 3.x 語法修正)"""
+        """[U+5BEB][U+5165][U+591A][U+500B][U+9023][U+7E8C][U+5BC4][U+5B58][U+5668] (pymodbus 3.x [U+8A9E][U+6CD5][U+4FEE][U+6B63])"""
         if not self.connected or not self.client:
             return False
         
         try:
-            # pymodbus 3.x: 使用關鍵字參數
+            # pymodbus 3.x: [U+4F7F][U+7528][U+95DC][U+9375][U+5B57][U+53C3][U+6578]
             result = self.client.write_registers(start_address, values, slave=1)
             
             if not result.isError():
                 return True
             else:
-                print(f"❌ 寫入多個寄存器失敗: {result}")
+                print(f"[FAIL] [U+5BEB][U+5165][U+591A][U+500B][U+5BC4][U+5B58][U+5668][U+5931][U+6557]: {result}")
                 return False
                 
         except Exception as e:
-            print(f"❌ 寫入多個寄存器異常: {e}")
+            print(f"[FAIL] [U+5BEB][U+5165][U+591A][U+500B][U+5BC4][U+5B58][U+5668][U+7570][U+5E38]: {e}")
             return False
     
     def update_detection_results(self, result: VisionResult):
-        """更新檢測結果到PLC"""
+        """[U+66F4][U+65B0][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230]PLC"""
         try:
-            # 寫入圓形數量
+            # [U+5BEB][U+5165][U+5713][U+5F62][U+6578][U+91CF]
             self.write_register('CIRCLE_COUNT', result.circle_count)
             
-            # 寫入圓形座標和半徑 (最多5個)
+            # [U+5BEB][U+5165][U+5713][U+5F62][U+5EA7][U+6A19][U+548C][U+534A][U+5F91] ([U+6700][U+591A]5[U+500B])
             for i in range(5):
                 if i < len(result.circles):
                     circle = result.circles[i]
@@ -893,21 +893,21 @@ class ModbusTcpClientService:
                     self.write_register(f'CIRCLE_{i+1}_Y', int(circle['center'][1]))
                     self.write_register(f'CIRCLE_{i+1}_RADIUS', int(circle['radius']))
                 else:
-                    # 清空未使用的寄存器
+                    # [U+6E05][U+7A7A][U+672A][U+4F7F][U+7528][U+7684][U+5BC4][U+5B58][U+5668]
                     self.write_register(f'CIRCLE_{i+1}_X', 0)
                     self.write_register(f'CIRCLE_{i+1}_Y', 0)
                     self.write_register(f'CIRCLE_{i+1}_RADIUS', 0)
             
-            # 寫入時間統計
+            # [U+5BEB][U+5165][U+6642][U+9593][U+7D71][U+8A08]
             self.write_register('LAST_CAPTURE_TIME', int(result.capture_time * 1000))
             self.write_register('LAST_PROCESS_TIME', int(result.processing_time * 1000))
             self.write_register('LAST_TOTAL_TIME', int(result.total_time * 1000))
             
         except Exception as e:
-            print(f"❌ 更新檢測結果到PLC失敗: {e}")
+            print(f"[FAIL] [U+66F4][U+65B0][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230]PLC[U+5931][U+6557]: {e}")
     
     def get_connection_status(self) -> Dict[str, Any]:
-        """獲取連接狀態"""
+        """[U+7372][U+53D6][U+9023][U+63A5][U+72C0][U+614B]"""
         return {
             'connected': self.connected,
             'server_ip': self.server_ip,
@@ -921,7 +921,7 @@ class ModbusTcpClientService:
 
 
 class MockModbusTcpClientService:
-    """Modbus TCP Client的模擬實現 (當pymodbus不可用時使用)"""
+    """Modbus TCP Client[U+7684][U+6A21][U+64EC][U+5BE6][U+73FE] ([U+7576]pymodbus[U+4E0D][U+53EF][U+7528][U+6642][U+4F7F][U+7528])"""
     
     def __init__(self, server_ip="192.168.1.100", server_port=502):
         self.server_ip = server_ip
@@ -930,10 +930,10 @@ class MockModbusTcpClientService:
         self.running = False
         self.vision_controller = None
         
-        # 模擬寄存器存儲
+        # [U+6A21][U+64EC][U+5BC4][U+5B58][U+5668][U+5B58][U+5132]
         self.registers = {}
         
-        # 同步控制 (與真實版本相同)
+        # [U+540C][U+6B65][U+63A7][U+5236] ([U+8207][U+771F][U+5BE6][U+7248][U+672C][U+76F8][U+540C])
         self.sync_enabled = False
         self.sync_thread = None
         self.sync_running = False
@@ -942,7 +942,7 @@ class MockModbusTcpClientService:
         self.status_sync_interval = 10
     
     def get_debug_info(self) -> Dict[str, Any]:
-        """獲取調試信息 (模擬版本)"""
+        """[U+7372][U+53D6][U+8ABF][U+8A66][U+4FE1][U+606F] ([U+6A21][U+64EC][U+7248][U+672C])"""
         return {
             'connected': self.connected,
             'external_control_enabled': self.external_control_enabled,
@@ -955,7 +955,7 @@ class MockModbusTcpClientService:
             'mock_mode': True
         }
         
-        # 寄存器映射 (與真實版本相同)
+        # [U+5BC4][U+5B58][U+5668][U+6620][U+5C04] ([U+8207][U+771F][U+5BE6][U+7248][U+672C][U+76F8][U+540C])
         self.REGISTERS = {
             'EXTERNAL_CONTROL_ENABLE': 200,
             'CAPTURE_TRIGGER': 201,
@@ -1000,11 +1000,11 @@ class MockModbusTcpClientService:
             'UPTIME_MINUTES': 293,
         }
         
-        # 初始化寄存器
+        # [U+521D][U+59CB][U+5316][U+5BC4][U+5B58][U+5668]
         for name, address in self.REGISTERS.items():
             self.registers[address] = 0
         
-        # 狀態追蹤
+        # [U+72C0][U+614B][U+8FFD][U+8E64]
         self.operation_count = 0
         self.error_count = 0
         self.connection_count = 0
@@ -1017,14 +1017,14 @@ class MockModbusTcpClientService:
     def set_server_address(self, ip: str, port: int = 502):
         self.server_ip = ip
         self.server_port = port
-        print(f"⚠️ 模擬模式: Modbus服務器地址設置為: {ip}:{port}")
+        print(f"[WARN][U+FE0F] [U+6A21][U+64EC][U+6A21][U+5F0F]: Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740][U+8A2D][U+7F6E][U+70BA]: {ip}:{port}")
     
     def connect(self) -> bool:
-        print(f"⚠️ 模擬連接到Modbus TCP服務器: {self.server_ip}:{self.server_port}")
+        print(f"[WARN][U+FE0F] [U+6A21][U+64EC][U+9023][U+63A5][U+5230]Modbus TCP[U+670D][U+52D9][U+5668]: {self.server_ip}:{self.server_port}")
         self.connected = True
         self.connection_count += 1
         
-        # 設置初始值
+        # [U+8A2D][U+7F6E][U+521D][U+59CB][U+503C]
         self.write_register('VERSION_MAJOR', 2)
         self.write_register('VERSION_MINOR', 1)
         self.write_register('MIN_AREA_LOW', 50000)
@@ -1033,46 +1033,46 @@ class MockModbusTcpClientService:
         return True
     
     def disconnect(self):
-        print("⚠️ 模擬Modbus TCP Client已斷開連接")
+        print("[WARN][U+FE0F] [U+6A21][U+64EC]Modbus TCP Client[U+5DF2][U+65B7][U+958B][U+9023][U+63A5]")
         self.stop_sync()
         self.connected = False
     
     def enable_external_control(self, enable: bool):
-        """啟用/禁用外部控制 (模擬版本)"""
+        """[U+555F][U+7528]/[U+7981][U+7528][U+5916][U+90E8][U+63A7][U+5236] ([U+6A21][U+64EC][U+7248][U+672C])"""
         self.external_control_enabled = enable
         
         if enable and self.connected:
             self.start_sync()
-            print("⚠️ 模擬外部控制已啟用，開始模擬同步")
+            print("[WARN][U+FE0F] [U+6A21][U+64EC][U+5916][U+90E8][U+63A7][U+5236][U+5DF2][U+555F][U+7528][U+FF0C][U+958B][U+59CB][U+6A21][U+64EC][U+540C][U+6B65]")
         else:
             self.stop_sync()
-            print("⚠️ 模擬外部控制已禁用，停止模擬同步")
+            print("[WARN][U+FE0F] [U+6A21][U+64EC][U+5916][U+90E8][U+63A7][U+5236][U+5DF2][U+7981][U+7528][U+FF0C][U+505C][U+6B62][U+6A21][U+64EC][U+540C][U+6B65]")
     
     def start_sync(self):
-        """啟動模擬同步線程"""
+        """[U+555F][U+52D5][U+6A21][U+64EC][U+540C][U+6B65][U+7DDA][U+7A0B]"""
         if self.sync_running:
             return
         
         self.sync_running = True
         self.sync_thread = threading.Thread(target=self._mock_sync_loop, daemon=True)
         self.sync_thread.start()
-        print("⚠️ 模擬同步線程已啟動")
+        print("[WARN][U+FE0F] [U+6A21][U+64EC][U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+555F][U+52D5]")
     
     def stop_sync(self):
-        """停止模擬同步線程"""
+        """[U+505C][U+6B62][U+6A21][U+64EC][U+540C][U+6B65][U+7DDA][U+7A0B]"""
         if self.sync_running:
             self.sync_running = False
             if self.sync_thread and self.sync_thread.is_alive():
                 self.sync_thread.join(timeout=1.0)
-            print("⚠️ 模擬同步線程已停止")
+            print("[WARN][U+FE0F] [U+6A21][U+64EC][U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+505C][U+6B62]")
     
     def _mock_sync_loop(self):
-        """模擬同步循環"""
-        print("⚠️ 模擬同步線程開始運行...")
+        """[U+6A21][U+64EC][U+540C][U+6B65][U+5FAA][U+74B0]"""
+        print("[WARN][U+FE0F] [U+6A21][U+64EC][U+540C][U+6B65][U+7DDA][U+7A0B][U+958B][U+59CB][U+904B][U+884C]...")
         
         while self.sync_running and self.connected:
             try:
-                # 模擬基本的狀態更新
+                # [U+6A21][U+64EC][U+57FA][U+672C][U+7684][U+72C0][U+614B][U+66F4][U+65B0]
                 if self.vision_controller and self.vision_controller.is_connected:
                     self.write_register('SYSTEM_STATUS', 1)
                     self.write_register('CAMERA_CONNECTED', 1)
@@ -1080,24 +1080,24 @@ class MockModbusTcpClientService:
                     self.write_register('SYSTEM_STATUS', 0)
                     self.write_register('CAMERA_CONNECTED', 0)
                 
-                # 更新計數器
+                # [U+66F4][U+65B0][U+8A08][U+6578][U+5668]
                 self.write_register('OPERATION_COUNT', self.operation_count)
                 self.write_register('ERROR_COUNT', self.error_count)
                 
                 time.sleep(self.sync_interval)
                 
             except Exception as e:
-                print(f"⚠️ 模擬同步錯誤: {e}")
+                print(f"[WARN][U+FE0F] [U+6A21][U+64EC][U+540C][U+6B65][U+932F][U+8AA4]: {e}")
                 time.sleep(1.0)
         
-        print("⚠️ 模擬同步線程已退出")
+        print("[WARN][U+FE0F] [U+6A21][U+64EC][U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+9000][U+51FA]")
     
     def start_monitoring(self):
-        print("⚠️ 模擬start_monitoring，請使用start_sync")
+        print("[WARN][U+FE0F] [U+6A21][U+64EC]start_monitoring[U+FF0C][U+8ACB][U+4F7F][U+7528]start_sync")
         return True
     
     def stop_monitoring(self):
-        print("⚠️ 模擬stop_monitoring，請使用stop_sync")
+        print("[WARN][U+FE0F] [U+6A21][U+64EC]stop_monitoring[U+FF0C][U+8ACB][U+4F7F][U+7528]stop_sync")
     
     def read_register(self, register_name: str) -> Optional[int]:
         if register_name in self.REGISTERS:
@@ -1153,17 +1153,17 @@ class MockModbusTcpClientService:
 
 
 class CircleDetector:
-    """圓形檢測器"""
+    """[U+5713][U+5F62][U+6AA2][U+6E2C][U+5668]"""
     
     def __init__(self, params: DetectionParams = None):
         self.params = params or DetectionParams()
     
     def update_params(self, params: DetectionParams):
-        """更新檢測參數"""
+        """[U+66F4][U+65B0][U+6AA2][U+6E2C][U+53C3][U+6578]"""
         self.params = params
     
     def is_circle(self, contour, tolerance=0.2):
-        """判斷輪廓是否為圓形"""
+        """[U+5224][U+65B7][U+8F2A][U+5ED3][U+662F][U+5426][U+70BA][U+5713][U+5F62]"""
         area = cv2.contourArea(contour)
         perimeter = cv2.arcLength(contour, True)
         if perimeter == 0:
@@ -1172,31 +1172,31 @@ class CircleDetector:
         return 1 - tolerance < circularity < 1 + tolerance
     
     def detect_circles(self, image: np.ndarray) -> Tuple[List[Dict], np.ndarray]:
-        """檢測圓形並返回結果和標註圖像"""
+        """[U+6AA2][U+6E2C][U+5713][U+5F62][U+4E26][U+8FD4][U+56DE][U+7D50][U+679C][U+548C][U+6A19][U+8A3B][U+5716][U+50CF]"""
         if image is None:
             return [], None
         
         try:
-            # 確保是灰度圖像
+            # [U+78BA][U+4FDD][U+662F][U+7070][U+5EA6][U+5716][U+50CF]
             if len(image.shape) == 3:
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             else:
                 gray = image.copy()
             
-            # 創建彩色輸出圖像
+            # [U+5275][U+5EFA][U+5F69][U+8272][U+8F38][U+51FA][U+5716][U+50CF]
             if len(image.shape) == 3:
                 result_image = image.copy()
             else:
                 result_image = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
             
-            # 使用參數進行處理
+            # [U+4F7F][U+7528][U+53C3][U+6578][U+9032][U+884C][U+8655][U+7406]
             kernel_size = (self.params.gaussian_kernel_size, self.params.gaussian_kernel_size)
             blurred = cv2.GaussianBlur(gray, kernel_size, self.params.gaussian_sigma)
             
-            # Canny 邊緣檢測
+            # Canny [U+908A][U+7DE3][U+6AA2][U+6E2C]
             edges = cv2.Canny(blurred, self.params.canny_low, self.params.canny_high)
             
-            # 輪廓檢測
+            # [U+8F2A][U+5ED3][U+6AA2][U+6E2C]
             contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
             circles = []
@@ -1205,23 +1205,23 @@ class CircleDetector:
             for contour in contours:
                 area = cv2.contourArea(contour)
                 
-                # 使用設定的參數進行篩選
+                # [U+4F7F][U+7528][U+8A2D][U+5B9A][U+7684][U+53C3][U+6578][U+9032][U+884C][U+7BE9][U+9078]
                 if area < self.params.min_area:
                     continue
                 
-                # 計算圓度
+                # [U+8A08][U+7B97][U+5713][U+5EA6]
                 perimeter = cv2.arcLength(contour, True)
                 if perimeter == 0:
                     continue
                     
                 roundness = (4 * np.pi * area) / (perimeter ** 2)
                 
-                # 檢查圓度條件
+                # [U+6AA2][U+67E5][U+5713][U+5EA6][U+689D][U+4EF6]
                 if roundness < self.params.min_roundness:
                     continue
                 
                 if self.is_circle(contour):
-                    # 計算圓心和半徑
+                    # [U+8A08][U+7B97][U+5713][U+5FC3][U+548C][U+534A][U+5F91]
                     (x, y), radius = cv2.minEnclosingCircle(contour)
                     center = (int(x), int(y))
                     radius = int(radius)
@@ -1235,32 +1235,32 @@ class CircleDetector:
                     }
                     circles.append(circle_info)
                     
-                    # 在圖像上繪製圓形和編號
-                    cv2.circle(result_image, center, radius, (0, 255, 0), 3)  # 綠色圓圈
-                    cv2.circle(result_image, center, 5, (0, 0, 255), -1)      # 紅色圓心
+                    # [U+5728][U+5716][U+50CF][U+4E0A][U+7E6A][U+88FD][U+5713][U+5F62][U+548C][U+7DE8][U+865F]
+                    cv2.circle(result_image, center, radius, (0, 255, 0), 3)  # [U+7DA0][U+8272][U+5713][U+5708]
+                    cv2.circle(result_image, center, 5, (0, 0, 255), -1)      # [U+7D05][U+8272][U+5713][U+5FC3]
                     
-                    # 繪製編號
+                    # [U+7E6A][U+88FD][U+7DE8][U+865F]
                     font = cv2.FONT_HERSHEY_SIMPLEX
                     font_scale = 2.0
                     thickness = 3
                     text = str(circle_id)
                     
-                    # 計算文字大小和位置
+                    # [U+8A08][U+7B97][U+6587][U+5B57][U+5927][U+5C0F][U+548C][U+4F4D][U+7F6E]
                     (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness)
                     text_x = center[0] - text_width // 2
                     text_y = center[1] - radius - 10
                     
-                    # 確保文字不會超出圖像邊界
+                    # [U+78BA][U+4FDD][U+6587][U+5B57][U+4E0D][U+6703][U+8D85][U+51FA][U+5716][U+50CF][U+908A][U+754C]
                     text_x = max(10, min(text_x, result_image.shape[1] - text_width - 10))
                     text_y = max(text_height + 10, min(text_y, result_image.shape[0] - 10))
                     
-                    # 繪製文字背景
+                    # [U+7E6A][U+88FD][U+6587][U+5B57][U+80CC][U+666F]
                     cv2.rectangle(result_image, 
                                 (text_x - 5, text_y - text_height - 5),
                                 (text_x + text_width + 5, text_y + 5),
                                 (255, 255, 255), -1)
                     
-                    # 繪製文字
+                    # [U+7E6A][U+88FD][U+6587][U+5B57]
                     cv2.putText(result_image, text, (text_x, text_y), 
                               font, font_scale, (0, 0, 0), thickness)
                     
@@ -1269,12 +1269,12 @@ class CircleDetector:
             return circles, result_image
             
         except Exception as e:
-            print(f"圓形檢測失敗: {e}")
+            print(f"[U+5713][U+5F62][U+6AA2][U+6E2C][U+5931][U+6557]: {e}")
             return [], image
 
 
 class CCD1VisionController:
-    """CCD1 視覺控制器 (Modbus TCP Client版本)"""
+    """CCD1 [U+8996][U+89BA][U+63A7][U+5236][U+5668] (Modbus TCP Client[U+7248][U+672C])"""
     
     def __init__(self):
         self.camera_manager: Optional[OptimizedCameraManager] = None
@@ -1287,21 +1287,21 @@ class CCD1VisionController:
         self.last_result: Optional[VisionResult] = None
         self.lock = threading.Lock()
         
-        # 設置日誌
+        # [U+8A2D][U+7F6E][U+65E5][U+8A8C]
         self.logger = logging.getLogger("CCD1Vision")
         self.logger.setLevel(logging.INFO)
         
-        # 選擇合適的Modbus Client服務
+        # [U+9078][U+64C7][U+5408][U+9069][U+7684]Modbus Client[U+670D][U+52D9]
         if MODBUS_AVAILABLE:
             self.modbus_client = ModbusTcpClientService()
-            print("✅ 使用完整Modbus TCP Client服務")
+            print("[OK] [U+4F7F][U+7528][U+5B8C][U+6574]Modbus TCP Client[U+670D][U+52D9]")
         else:
             self.modbus_client = MockModbusTcpClientService()
-            print("⚠️ 使用模擬Modbus TCP Client服務 (功能受限)")
+            print("[WARN][U+FE0F] [U+4F7F][U+7528][U+6A21][U+64EC]Modbus TCP Client[U+670D][U+52D9] ([U+529F][U+80FD][U+53D7][U+9650])")
             
         self.modbus_client.set_vision_controller(self)
         
-        # 初始化相機配置
+        # [U+521D][U+59CB][U+5316][U+76F8][U+6A5F][U+914D][U+7F6E]
         self.camera_config = CameraConfig(
             name=self.camera_name,
             ip=self.camera_ip,
@@ -1316,19 +1316,19 @@ class CCD1VisionController:
         )
     
     def set_modbus_server(self, ip: str, port: int = 502) -> Dict[str, Any]:
-        """設置Modbus服務器地址"""
+        """[U+8A2D][U+7F6E]Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740]"""
         try:
-            # 如果已連接，先斷開
+            # [U+5982][U+679C][U+5DF2][U+9023][U+63A5][U+FF0C][U+5148][U+65B7][U+958B]
             if self.modbus_client.connected:
                 self.modbus_client.stop_monitoring()
                 self.modbus_client.disconnect()
             
-            # 設置新地址
+            # [U+8A2D][U+7F6E][U+65B0][U+5730][U+5740]
             self.modbus_client.set_server_address(ip, port)
             
             return {
                 'success': True,
-                'message': f'Modbus服務器地址已設置: {ip}:{port}',
+                'message': f'Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740][U+5DF2][U+8A2D][U+7F6E]: {ip}:{port}',
                 'server_ip': ip,
                 'server_port': port
             }
@@ -1336,58 +1336,58 @@ class CCD1VisionController:
         except Exception as e:
             return {
                 'success': False,
-                'message': f'設置Modbus服務器地址失敗: {str(e)}'
+                'message': f'[U+8A2D][U+7F6E]Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740][U+5931][U+6557]: {str(e)}'
             }
     
     def connect_modbus(self) -> Dict[str, Any]:
-        """連接Modbus TCP服務器"""
+        """[U+9023][U+63A5]Modbus TCP[U+670D][U+52D9][U+5668]"""
         try:
             if self.modbus_client.connect():
-                # 連接成功後，檢查外部控制狀態並啟動同步
-                # 讀取當前外部控制狀態
+                # [U+9023][U+63A5][U+6210][U+529F][U+5F8C][U+FF0C][U+6AA2][U+67E5][U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B][U+4E26][U+555F][U+52D5][U+540C][U+6B65]
+                # [U+8B80][U+53D6][U+7576][U+524D][U+5916][U+90E8][U+63A7][U+5236][U+72C0][U+614B]
                 current_control = self.modbus_client.read_register('EXTERNAL_CONTROL_ENABLE')
                 if current_control == 1:
-                    # 如果PLC端已經啟用外部控制，則自動啟動同步
+                    # [U+5982][U+679C]PLC[U+7AEF][U+5DF2][U+7D93][U+555F][U+7528][U+5916][U+90E8][U+63A7][U+5236][U+FF0C][U+5247][U+81EA][U+52D5][U+555F][U+52D5][U+540C][U+6B65]
                     self.modbus_client.enable_external_control(True)
-                    print("🔄 檢測到PLC端外部控制已啟用，自動啟動同步線程")
+                    print("[U+1F504] [U+6AA2][U+6E2C][U+5230]PLC[U+7AEF][U+5916][U+90E8][U+63A7][U+5236][U+5DF2][U+555F][U+7528][U+FF0C][U+81EA][U+52D5][U+555F][U+52D5][U+540C][U+6B65][U+7DDA][U+7A0B]")
                 
                 return {
                     'success': True,
-                    'message': f'Modbus TCP連接成功: {self.modbus_client.server_ip}:{self.modbus_client.server_port}',
+                    'message': f'Modbus TCP[U+9023][U+63A5][U+6210][U+529F]: {self.modbus_client.server_ip}:{self.modbus_client.server_port}',
                     'connection_status': self.modbus_client.get_connection_status(),
                     'auto_sync_started': current_control == 1
                 }
             else:
                 return {
                     'success': False,
-                    'message': f'無法連接到Modbus服務器: {self.modbus_client.server_ip}:{self.modbus_client.server_port}'
+                    'message': f'[U+7121][U+6CD5][U+9023][U+63A5][U+5230]Modbus[U+670D][U+52D9][U+5668]: {self.modbus_client.server_ip}:{self.modbus_client.server_port}'
                 }
                 
         except Exception as e:
             return {
                 'success': False,
-                'message': f'Modbus連接異常: {str(e)}'
+                'message': f'Modbus[U+9023][U+63A5][U+7570][U+5E38]: {str(e)}'
             }
     
     def disconnect_modbus(self) -> Dict[str, Any]:
-        """斷開Modbus連接"""
+        """[U+65B7][U+958B]Modbus[U+9023][U+63A5]"""
         try:
-            self.modbus_client.disconnect()  # 這會自動停止同步線程
+            self.modbus_client.disconnect()  # [U+9019][U+6703][U+81EA][U+52D5][U+505C][U+6B62][U+540C][U+6B65][U+7DDA][U+7A0B]
             
             return {
                 'success': True,
-                'message': 'Modbus連接已斷開，同步線程已停止'
+                'message': 'Modbus[U+9023][U+63A5][U+5DF2][U+65B7][U+958B][U+FF0C][U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+505C][U+6B62]'
             }
             
         except Exception as e:
             return {
                 'success': False,
-                'message': f'斷開Modbus連接失敗: {str(e)}'
+                'message': f'[U+65B7][U+958B]Modbus[U+9023][U+63A5][U+5931][U+6557]: {str(e)}'
             }
     
     def update_detection_params(self, min_area: float = None, min_roundness: float = None, 
                               gaussian_kernel: int = None, canny_low: int = None, canny_high: int = None):
-        """更新檢測參數"""
+        """[U+66F4][U+65B0][U+6AA2][U+6E2C][U+53C3][U+6578]"""
         if min_area is not None:
             self.detection_params.min_area = min_area
         if min_roundness is not None:
@@ -1401,16 +1401,16 @@ class CCD1VisionController:
             
         self.detector.update_params(self.detection_params)
         
-        self.logger.info(f"檢測參數已更新: 面積>={self.detection_params.min_area}, 圓度>={self.detection_params.min_roundness}")
+        self.logger.info(f"[U+6AA2][U+6E2C][U+53C3][U+6578][U+5DF2][U+66F4][U+65B0]: [U+9762][U+7A4D]>={self.detection_params.min_area}, [U+5713][U+5EA6]>={self.detection_params.min_roundness}")
     
     def initialize_camera(self, ip_address: str = None) -> Dict[str, Any]:
-        """初始化相機連接"""
+        """[U+521D][U+59CB][U+5316][U+76F8][U+6A5F][U+9023][U+63A5]"""
         try:
             if ip_address:
                 self.camera_ip = ip_address
                 self.camera_config.ip = ip_address
             
-            self.logger.info(f"正在初始化相機 {self.camera_name} (IP: {self.camera_ip})")
+            self.logger.info(f"[U+6B63][U+5728][U+521D][U+59CB][U+5316][U+76F8][U+6A5F] {self.camera_name} (IP: {self.camera_ip})")
             
             if self.camera_manager:
                 self.camera_manager.shutdown()
@@ -1419,33 +1419,33 @@ class CCD1VisionController:
             
             success = self.camera_manager.add_camera(self.camera_name, self.camera_config)
             if not success:
-                raise Exception("添加相機失敗")
+                raise Exception("[U+6DFB][U+52A0][U+76F8][U+6A5F][U+5931][U+6557]")
             
             connect_result = self.camera_manager.connect_camera(self.camera_name)
             if not connect_result:
-                raise Exception("相機連接失敗")
+                raise Exception("[U+76F8][U+6A5F][U+9023][U+63A5][U+5931][U+6557]")
             
             stream_result = self.camera_manager.start_streaming([self.camera_name])
             if not stream_result.get(self.camera_name, False):
-                raise Exception("開始串流失敗")
+                raise Exception("[U+958B][U+59CB][U+4E32][U+6D41][U+5931][U+6557]")
             
-            # 設置增益為200
+            # [U+8A2D][U+7F6E][U+589E][U+76CA][U+70BA]200
             camera = self.camera_manager.cameras[self.camera_name]
             camera.camera.MV_CC_SetFloatValue("Gain", 200.0)
             
             self.is_connected = True
-            self.logger.info(f"相機 {self.camera_name} 初始化成功")
+            self.logger.info(f"[U+76F8][U+6A5F] {self.camera_name} [U+521D][U+59CB][U+5316][U+6210][U+529F]")
             
             return {
                 'success': True,
-                'message': f'相機 {self.camera_name} 連接成功',
+                'message': f'[U+76F8][U+6A5F] {self.camera_name} [U+9023][U+63A5][U+6210][U+529F]',
                 'camera_ip': self.camera_ip,
                 'gain_set': 200.0
             }
             
         except Exception as e:
             self.is_connected = False
-            error_msg = f"相機初始化失敗: {str(e)}"
+            error_msg = f"[U+76F8][U+6A5F][U+521D][U+59CB][U+5316][U+5931][U+6557]: {str(e)}"
             self.logger.error(error_msg)
             
             return {
@@ -1455,7 +1455,7 @@ class CCD1VisionController:
             }
     
     def capture_image(self) -> Tuple[Optional[np.ndarray], float]:
-        """捕獲圖像"""
+        """[U+6355][U+7372][U+5716][U+50CF]"""
         if not self.is_connected or not self.camera_manager:
             return None, 0.0
         
@@ -1480,11 +1480,11 @@ class CCD1VisionController:
             return display_image, capture_time
             
         except Exception as e:
-            self.logger.error(f"捕獲圖像失敗: {e}")
+            self.logger.error(f"[U+6355][U+7372][U+5716][U+50CF][U+5931][U+6557]: {e}")
             return None, 0.0
     
     def capture_and_detect(self) -> VisionResult:
-        """拍照並進行圓形檢測"""
+        """[U+62CD][U+7167][U+4E26][U+9032][U+884C][U+5713][U+5F62][U+6AA2][U+6E2C]"""
         total_start = time.time()
         
         try:
@@ -1499,7 +1499,7 @@ class CCD1VisionController:
                     total_time=time.time() - total_start,
                     timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     success=False,
-                    error_message="圖像捕獲失敗"
+                    error_message="[U+5716][U+50CF][U+6355][U+7372][U+5931][U+6557]"
                 )
             else:
                 process_start = time.time()
@@ -1521,14 +1521,14 @@ class CCD1VisionController:
             
             self.last_result = result
             
-            # 更新Modbus結果 (如果連接)
+            # [U+66F4][U+65B0]Modbus[U+7D50][U+679C] ([U+5982][U+679C][U+9023][U+63A5])
             if self.modbus_client.connected:
                 self.modbus_client.update_detection_results(result)
             
             return result
             
         except Exception as e:
-            error_msg = f"檢測失敗: {str(e)}"
+            error_msg = f"[U+6AA2][U+6E2C][U+5931][U+6557]: {str(e)}"
             self.logger.error(error_msg)
             
             result = VisionResult(
@@ -1548,7 +1548,7 @@ class CCD1VisionController:
             return result
     
     def get_image_base64(self) -> Optional[str]:
-        """獲取當前圖像的base64編碼"""
+        """[U+7372][U+53D6][U+7576][U+524D][U+5716][U+50CF][U+7684]base64[U+7DE8][U+78BC]"""
         if self.last_image is None:
             return None
         
@@ -1567,11 +1567,11 @@ class CCD1VisionController:
             return f"data:image/jpeg;base64,{image_base64}"
             
         except Exception as e:
-            self.logger.error(f"圖像編碼失敗: {e}")
+            self.logger.error(f"[U+5716][U+50CF][U+7DE8][U+78BC][U+5931][U+6557]: {e}")
             return None
     
     def get_status(self) -> Dict[str, Any]:
-        """獲取系統狀態"""
+        """[U+7372][U+53D6][U+7CFB][U+7D71][U+72C0][U+614B]"""
         status = {
             'connected': self.is_connected,
             'camera_name': self.camera_name,
@@ -1593,8 +1593,8 @@ class CCD1VisionController:
         return status
     
     def disconnect(self):
-        """斷開所有連接"""
-        # 斷開相機連接
+        """[U+65B7][U+958B][U+6240][U+6709][U+9023][U+63A5]"""
+        # [U+65B7][U+958B][U+76F8][U+6A5F][U+9023][U+63A5]
         if self.camera_manager:
             self.camera_manager.shutdown()
             self.camera_manager = None
@@ -1602,43 +1602,43 @@ class CCD1VisionController:
         self.is_connected = False
         self.last_image = None
         
-        # 斷開Modbus連接
+        # [U+65B7][U+958B]Modbus[U+9023][U+63A5]
         try:
             self.modbus_client.stop_monitoring()
             self.modbus_client.disconnect()
         except:
             pass
         
-        self.logger.info("所有連接已斷開")
+        self.logger.info("[U+6240][U+6709][U+9023][U+63A5][U+5DF2][U+65B7][U+958B]")
 
 
-# Flask應用設置
+# Flask[U+61C9][U+7528][U+8A2D][U+7F6E]
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'ccd_vision_control_client_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# 創建控制器實例
+# [U+5275][U+5EFA][U+63A7][U+5236][U+5668][U+5BE6][U+4F8B]
 vision_controller = CCD1VisionController()
 
-# 設置日誌
+# [U+8A2D][U+7F6E][U+65E5][U+8A8C]
 logging.basicConfig(level=logging.INFO)
 
 
 @app.route('/')
 def index():
-    """主頁面"""
+    """[U+4E3B][U+9801][U+9762]"""
     return render_template('ccd_vision_client.html')
 
 
 @app.route('/api/status')
 def get_status():
-    """獲取系統狀態"""
+    """[U+7372][U+53D6][U+7CFB][U+7D71][U+72C0][U+614B]"""
     return jsonify(vision_controller.get_status())
 
 
 @app.route('/api/modbus/set_server', methods=['POST'])
 def set_modbus_server():
-    """設置Modbus服務器地址"""
+    """[U+8A2D][U+7F6E]Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740]"""
     data = request.get_json()
     ip = data.get('ip', '192.168.1.100')
     port = data.get('port', 502)
@@ -1651,7 +1651,7 @@ def set_modbus_server():
 
 @app.route('/api/modbus/connect', methods=['POST'])
 def connect_modbus():
-    """連接Modbus TCP服務器"""
+    """[U+9023][U+63A5]Modbus TCP[U+670D][U+52D9][U+5668]"""
     result = vision_controller.connect_modbus()
     socketio.emit('status_update', vision_controller.get_status())
     
@@ -1660,7 +1660,7 @@ def connect_modbus():
 
 @app.route('/api/modbus/disconnect', methods=['POST'])
 def disconnect_modbus():
-    """斷開Modbus連接"""
+    """[U+65B7][U+958B]Modbus[U+9023][U+63A5]"""
     result = vision_controller.disconnect_modbus()
     socketio.emit('status_update', vision_controller.get_status())
     
@@ -1669,29 +1669,29 @@ def disconnect_modbus():
 
 @app.route('/api/modbus/registers', methods=['GET'])
 def get_modbus_registers():
-    """獲取所有Modbus寄存器的即時數值"""
+    """[U+7372][U+53D6][U+6240][U+6709]Modbus[U+5BC4][U+5B58][U+5668][U+7684][U+5373][U+6642][U+6578][U+503C]"""
     modbus_client = vision_controller.modbus_client
     
     if not modbus_client.connected:
         return jsonify({
             'success': False,
-            'message': 'Modbus Client未連接',
+            'message': 'Modbus Client[U+672A][U+9023][U+63A5]',
             'registers': {}
         })
     
     try:
         registers = {}
         
-        # 控制寄存器 (200-209) - 從PLC讀取
+        # [U+63A7][U+5236][U+5BC4][U+5B58][U+5668] (200-209) - [U+5F9E]PLC[U+8B80][U+53D6]
         control_registers = {
-            '200_外部控制啟用': modbus_client.read_register('EXTERNAL_CONTROL_ENABLE'),
-            '201_拍照觸發': modbus_client.read_register('CAPTURE_TRIGGER'),
-            '202_拍照檢測觸發': modbus_client.read_register('DETECT_TRIGGER'),
-            '203_系統重置': modbus_client.read_register('SYSTEM_RESET'),
-            '204_參數更新觸發': modbus_client.read_register('PARAM_UPDATE_TRIGGER'),
+            '200_[U+5916][U+90E8][U+63A7][U+5236][U+555F][U+7528]': modbus_client.read_register('EXTERNAL_CONTROL_ENABLE'),
+            '201_[U+62CD][U+7167][U+89F8][U+767C]': modbus_client.read_register('CAPTURE_TRIGGER'),
+            '202_[U+62CD][U+7167][U+6AA2][U+6E2C][U+89F8][U+767C]': modbus_client.read_register('DETECT_TRIGGER'),
+            '203_[U+7CFB][U+7D71][U+91CD][U+7F6E]': modbus_client.read_register('SYSTEM_RESET'),
+            '204_[U+53C3][U+6578][U+66F4][U+65B0][U+89F8][U+767C]': modbus_client.read_register('PARAM_UPDATE_TRIGGER'),
         }
         
-        # 參數設定寄存器 (210-219) - 從PLC讀取
+        # [U+53C3][U+6578][U+8A2D][U+5B9A][U+5BC4][U+5B58][U+5668] (210-219) - [U+5F9E]PLC[U+8B80][U+53D6]
         area_high = modbus_client.read_register('MIN_AREA_HIGH') or 0
         area_low = modbus_client.read_register('MIN_AREA_LOW') or 0
         combined_area = (area_high << 16) + area_low
@@ -1699,53 +1699,53 @@ def get_modbus_registers():
         roundness_value = roundness_raw / 1000.0
         
         param_registers = {
-            '210_最小面積_高16位': area_high,
-            '211_最小面積_低16位': area_low,
-            '211_合併面積值': combined_area,
-            '212_最小圓度_x1000': roundness_raw,
-            '212_圓度實際值': round(roundness_value, 3),
-            '213_高斯核大小': modbus_client.read_register('GAUSSIAN_KERNEL'),
-            '214_Canny低閾值': modbus_client.read_register('CANNY_LOW'),
-            '215_Canny高閾值': modbus_client.read_register('CANNY_HIGH'),
+            '210_[U+6700][U+5C0F][U+9762][U+7A4D]_[U+9AD8]16[U+4F4D]': area_high,
+            '211_[U+6700][U+5C0F][U+9762][U+7A4D]_[U+4F4E]16[U+4F4D]': area_low,
+            '211_[U+5408][U+4F75][U+9762][U+7A4D][U+503C]': combined_area,
+            '212_[U+6700][U+5C0F][U+5713][U+5EA6]_x1000': roundness_raw,
+            '212_[U+5713][U+5EA6][U+5BE6][U+969B][U+503C]': round(roundness_value, 3),
+            '213_[U+9AD8][U+65AF][U+6838][U+5927][U+5C0F]': modbus_client.read_register('GAUSSIAN_KERNEL'),
+            '214_Canny[U+4F4E][U+95BE][U+503C]': modbus_client.read_register('CANNY_LOW'),
+            '215_Canny[U+9AD8][U+95BE][U+503C]': modbus_client.read_register('CANNY_HIGH'),
         }
         
-        # 狀態回報寄存器 (220-239) - 寫入到PLC
+        # [U+72C0][U+614B][U+56DE][U+5831][U+5BC4][U+5B58][U+5668] (220-239) - [U+5BEB][U+5165][U+5230]PLC
         status_registers = {
-            '220_系統狀態': modbus_client.read_register('SYSTEM_STATUS'),
-            '221_相機連接狀態': modbus_client.read_register('CAMERA_CONNECTED'),
-            '222_最後操作狀態': modbus_client.read_register('LAST_OPERATION_STATUS'),
-            '223_處理進度': modbus_client.read_register('PROCESSING_PROGRESS'),
+            '220_[U+7CFB][U+7D71][U+72C0][U+614B]': modbus_client.read_register('SYSTEM_STATUS'),
+            '221_[U+76F8][U+6A5F][U+9023][U+63A5][U+72C0][U+614B]': modbus_client.read_register('CAMERA_CONNECTED'),
+            '222_[U+6700][U+5F8C][U+64CD][U+4F5C][U+72C0][U+614B]': modbus_client.read_register('LAST_OPERATION_STATUS'),
+            '223_[U+8655][U+7406][U+9032][U+5EA6]': modbus_client.read_register('PROCESSING_PROGRESS'),
         }
         
-        # 檢測結果寄存器 (240-279) - 寫入到PLC
+        # [U+6AA2][U+6E2C][U+7D50][U+679C][U+5BC4][U+5B58][U+5668] (240-279) - [U+5BEB][U+5165][U+5230]PLC
         result_registers = {
-            '240_檢測圓形數量': modbus_client.read_register('CIRCLE_COUNT'),
+            '240_[U+6AA2][U+6E2C][U+5713][U+5F62][U+6578][U+91CF]': modbus_client.read_register('CIRCLE_COUNT'),
         }
         
-        # 圓形詳細資料
+        # [U+5713][U+5F62][U+8A73][U+7D30][U+8CC7][U+6599]
         for i in range(1, 6):
             x_val = modbus_client.read_register(f'CIRCLE_{i}_X')
             y_val = modbus_client.read_register(f'CIRCLE_{i}_Y')
             r_val = modbus_client.read_register(f'CIRCLE_{i}_RADIUS')
-            result_registers[f'{240+i*3-2}_圓形{i}_X座標'] = x_val
-            result_registers[f'{240+i*3-1}_圓形{i}_Y座標'] = y_val
-            result_registers[f'{240+i*3}_圓形{i}_半徑'] = r_val
+            result_registers[f'{240+i*3-2}_[U+5713][U+5F62]{i}_X[U+5EA7][U+6A19]'] = x_val
+            result_registers[f'{240+i*3-1}_[U+5713][U+5F62]{i}_Y[U+5EA7][U+6A19]'] = y_val
+            result_registers[f'{240+i*3}_[U+5713][U+5F62]{i}_[U+534A][U+5F91]'] = r_val
         
-        # 統計資訊寄存器 (280-299) - 寫入到PLC
+        # [U+7D71][U+8A08][U+8CC7][U+8A0A][U+5BC4][U+5B58][U+5668] (280-299) - [U+5BEB][U+5165][U+5230]PLC
         stats_registers = {
-            '280_最後拍照耗時ms': modbus_client.read_register('LAST_CAPTURE_TIME'),
-            '281_最後處理耗時ms': modbus_client.read_register('LAST_PROCESS_TIME'),
-            '282_最後總耗時ms': modbus_client.read_register('LAST_TOTAL_TIME'),
-            '283_操作計數器': modbus_client.read_register('OPERATION_COUNT'),
-            '284_錯誤計數器': modbus_client.read_register('ERROR_COUNT'),
-            '285_連接計數器': modbus_client.read_register('CONNECTION_COUNT'),
-            '290_軟體版本主號': modbus_client.read_register('VERSION_MAJOR'),
-            '291_軟體版本次號': modbus_client.read_register('VERSION_MINOR'),
-            '292_運行時間小時': modbus_client.read_register('UPTIME_HOURS'),
-            '293_運行時間分鐘': modbus_client.read_register('UPTIME_MINUTES'),
+            '280_[U+6700][U+5F8C][U+62CD][U+7167][U+8017][U+6642]ms': modbus_client.read_register('LAST_CAPTURE_TIME'),
+            '281_[U+6700][U+5F8C][U+8655][U+7406][U+8017][U+6642]ms': modbus_client.read_register('LAST_PROCESS_TIME'),
+            '282_[U+6700][U+5F8C][U+7E3D][U+8017][U+6642]ms': modbus_client.read_register('LAST_TOTAL_TIME'),
+            '283_[U+64CD][U+4F5C][U+8A08][U+6578][U+5668]': modbus_client.read_register('OPERATION_COUNT'),
+            '284_[U+932F][U+8AA4][U+8A08][U+6578][U+5668]': modbus_client.read_register('ERROR_COUNT'),
+            '285_[U+9023][U+63A5][U+8A08][U+6578][U+5668]': modbus_client.read_register('CONNECTION_COUNT'),
+            '290_[U+8EDF][U+9AD4][U+7248][U+672C][U+4E3B][U+865F]': modbus_client.read_register('VERSION_MAJOR'),
+            '291_[U+8EDF][U+9AD4][U+7248][U+672C][U+6B21][U+865F]': modbus_client.read_register('VERSION_MINOR'),
+            '292_[U+904B][U+884C][U+6642][U+9593][U+5C0F][U+6642]': modbus_client.read_register('UPTIME_HOURS'),
+            '293_[U+904B][U+884C][U+6642][U+9593][U+5206][U+9418]': modbus_client.read_register('UPTIME_MINUTES'),
         }
         
-        # 組合所有寄存器
+        # [U+7D44][U+5408][U+6240][U+6709][U+5BC4][U+5B58][U+5668]
         registers.update(control_registers)
         registers.update(param_registers)
         registers.update(status_registers)
@@ -1754,7 +1754,7 @@ def get_modbus_registers():
         
         return jsonify({
             'success': True,
-            'message': 'Modbus寄存器讀取成功',
+            'message': 'Modbus[U+5BC4][U+5B58][U+5668][U+8B80][U+53D6][U+6210][U+529F]',
             'registers': registers,
             'external_control_enabled': modbus_client.external_control_enabled,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -1765,7 +1765,7 @@ def get_modbus_registers():
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'讀取寄存器失敗: {str(e)}',
+            'message': f'[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+5931][U+6557]: {str(e)}',
             'registers': {},
             'error': str(e)
         })
@@ -1773,11 +1773,11 @@ def get_modbus_registers():
 
 @app.route('/api/modbus/test', methods=['GET'])
 def test_modbus():
-    """測試Modbus Client連接狀態"""
+    """[U+6E2C][U+8A66]Modbus Client[U+9023][U+63A5][U+72C0][U+614B]"""
     if not MODBUS_AVAILABLE:
         return jsonify({
             'success': False,
-            'message': 'Modbus Client模組不可用',
+            'message': 'Modbus Client[U+6A21][U+7D44][U+4E0D][U+53EF][U+7528]',
             'available': False,
             'connected': False,
             'pymodbus_version': PYMODBUS_VERSION,
@@ -1789,42 +1789,42 @@ def test_modbus():
     if not modbus_client.connected:
         return jsonify({
             'success': False,
-            'message': f'未連接到Modbus服務器: {modbus_client.server_ip}:{modbus_client.server_port}',
+            'message': f'[U+672A][U+9023][U+63A5][U+5230]Modbus[U+670D][U+52D9][U+5668]: {modbus_client.server_ip}:{modbus_client.server_port}',
             'available': True,
             'connected': False,
             'pymodbus_version': PYMODBUS_VERSION,
-            'suggestion': '請先連接到Modbus TCP服務器'
+            'suggestion': '[U+8ACB][U+5148][U+9023][U+63A5][U+5230]Modbus TCP[U+670D][U+52D9][U+5668]'
         })
     
     try:
-        # 檢查pymodbus版本
+        # [U+6AA2][U+67E5]pymodbus[U+7248][U+672C]
         import pymodbus
         actual_version = pymodbus.__version__
         
-        # 測試讀寫操作
+        # [U+6E2C][U+8A66][U+8B80][U+5BEB][U+64CD][U+4F5C]
         test_success = False
         error_message = ""
         
-        # 測試寫入版本號
+        # [U+6E2C][U+8A66][U+5BEB][U+5165][U+7248][U+672C][U+865F]
         write_success = modbus_client.write_register('VERSION_MAJOR', 99)
         if write_success:
-            # 測試讀取
+            # [U+6E2C][U+8A66][U+8B80][U+53D6]
             read_value = modbus_client.read_register('VERSION_MAJOR')
             if read_value == 99:
                 test_success = True
-                # 恢復正確值
+                # [U+6062][U+5FA9][U+6B63][U+78BA][U+503C]
                 modbus_client.write_register('VERSION_MAJOR', 2)
             else:
-                error_message = f"讀取值不匹配: 期望99, 實際{read_value}"
+                error_message = f"[U+8B80][U+53D6][U+503C][U+4E0D][U+5339][U+914D]: [U+671F][U+671B]99, [U+5BE6][U+969B]{read_value}"
         else:
-            error_message = "寫入操作失敗"
+            error_message = "[U+5BEB][U+5165][U+64CD][U+4F5C][U+5931][U+6557]"
         
-        # 獲取連接狀態
+        # [U+7372][U+53D6][U+9023][U+63A5][U+72C0][U+614B]
         connection_status = modbus_client.get_connection_status()
         
         return jsonify({
             'success': test_success,
-            'message': f'✅ Modbus Client正常 (pymodbus {actual_version})' if test_success else f'❌ Modbus測試失敗: {error_message}',
+            'message': f'[OK] Modbus Client[U+6B63][U+5E38] (pymodbus {actual_version})' if test_success else f'[FAIL] Modbus[U+6E2C][U+8A66][U+5931][U+6557]: {error_message}',
             'available': True,
             'connected': True,
             'pymodbus_version': actual_version,
@@ -1839,7 +1839,7 @@ def test_modbus():
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'Modbus測試異常: {str(e)}',
+            'message': f'Modbus[U+6E2C][U+8A66][U+7570][U+5E38]: {str(e)}',
             'available': True,
             'connected': modbus_client.connected,
             'pymodbus_version': PYMODBUS_VERSION,
@@ -1850,7 +1850,7 @@ def test_modbus():
 
 @app.route('/api/initialize', methods=['POST'])
 def initialize_camera():
-    """初始化相機"""
+    """[U+521D][U+59CB][U+5316][U+76F8][U+6A5F]"""
     data = request.get_json()
     ip_address = data.get('ip_address') if data else None
     
@@ -1862,7 +1862,7 @@ def initialize_camera():
 
 @app.route('/api/update_params', methods=['POST'])
 def update_detection_params():
-    """更新檢測參數"""
+    """[U+66F4][U+65B0][U+6AA2][U+6E2C][U+53C3][U+6578]"""
     data = request.get_json()
     min_area = data.get('min_area')
     min_roundness = data.get('min_roundness')
@@ -1880,20 +1880,20 @@ def update_detection_params():
     
     return jsonify({
         'success': True,
-        'message': '參數已更新',
+        'message': '[U+53C3][U+6578][U+5DF2][U+66F4][U+65B0]',
         'params': asdict(vision_controller.detection_params)
     })
 
 
 @app.route('/api/capture', methods=['POST'])
 def capture_image():
-    """拍照"""
+    """[U+62CD][U+7167]"""
     image, capture_time = vision_controller.capture_image()
     
     if image is None:
         return jsonify({
             'success': False,
-            'message': '圖像捕獲失敗',
+            'message': '[U+5716][U+50CF][U+6355][U+7372][U+5931][U+6557]',
             'capture_time_ms': 0
         })
     
@@ -1902,7 +1902,7 @@ def capture_image():
     
     result = {
         'success': True,
-        'message': '圖像捕獲成功',
+        'message': '[U+5716][U+50CF][U+6355][U+7372][U+6210][U+529F]',
         'capture_time_ms': round(capture_time_ms, 2),
         'image': image_base64,
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1914,7 +1914,7 @@ def capture_image():
 
 @app.route('/api/capture_and_detect', methods=['POST'])
 def capture_and_detect():
-    """拍照並檢測"""
+    """[U+62CD][U+7167][U+4E26][U+6AA2][U+6E2C]"""
     result = vision_controller.capture_and_detect()
     
     response = {
@@ -1935,84 +1935,84 @@ def capture_and_detect():
 
 @app.route('/api/disconnect', methods=['POST'])
 def disconnect():
-    """斷開所有連接"""
+    """[U+65B7][U+958B][U+6240][U+6709][U+9023][U+63A5]"""
     vision_controller.disconnect()
     socketio.emit('status_update', vision_controller.get_status())
     
-    return jsonify({'success': True, 'message': '所有連接已斷開'})
+    return jsonify({'success': True, 'message': '[U+6240][U+6709][U+9023][U+63A5][U+5DF2][U+65B7][U+958B]'})
 
 
 @app.route('/api/modbus/toggle_external_control', methods=['POST'])
 def toggle_external_control():
-    """切換外部控制模式"""
+    """[U+5207][U+63DB][U+5916][U+90E8][U+63A7][U+5236][U+6A21][U+5F0F]"""
     data = request.get_json()
     enable = data.get('enable', False)
     
     modbus_client = vision_controller.modbus_client
     
-    # 檢查服務是否可用
+    # [U+6AA2][U+67E5][U+670D][U+52D9][U+662F][U+5426][U+53EF][U+7528]
     if not modbus_client.connected:
         return jsonify({
             'success': False,
-            'message': 'Modbus Client未連接到服務器'
+            'message': 'Modbus Client[U+672A][U+9023][U+63A5][U+5230][U+670D][U+52D9][U+5668]'
         })
     
     try:
-        # 寫入外部控制啟用寄存器到PLC
+        # [U+5BEB][U+5165][U+5916][U+90E8][U+63A7][U+5236][U+555F][U+7528][U+5BC4][U+5B58][U+5668][U+5230]PLC
         value = 1 if enable else 0
         success = modbus_client.write_register('EXTERNAL_CONTROL_ENABLE', value)
         
         if success:
-            # 啟用/禁用同步線程
+            # [U+555F][U+7528]/[U+7981][U+7528][U+540C][U+6B65][U+7DDA][U+7A0B]
             modbus_client.enable_external_control(enable)
             
-            # 驗證寫入 (從PLC讀回確認)
+            # [U+9A57][U+8B49][U+5BEB][U+5165] ([U+5F9E]PLC[U+8B80][U+56DE][U+78BA][U+8A8D])
             read_back = modbus_client.read_register('EXTERNAL_CONTROL_ENABLE')
             
-            # 記錄日誌
-            action = '啟用' if enable else '停用'
-            sync_status = '同步線程已啟動' if enable else '同步線程已停止'
-            print(f"🔄 WebUI設定外部控制: {action}, {sync_status}")
+            # [U+8A18][U+9304][U+65E5][U+8A8C]
+            action = '[U+555F][U+7528]' if enable else '[U+505C][U+7528]'
+            sync_status = '[U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+555F][U+52D5]' if enable else '[U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+505C][U+6B62]'
+            print(f"[U+1F504] WebUI[U+8A2D][U+5B9A][U+5916][U+90E8][U+63A7][U+5236]: {action}, {sync_status}")
             
-            service_type = "Modbus TCP Client" if MODBUS_AVAILABLE else "模擬Client"
+            service_type = "Modbus TCP Client" if MODBUS_AVAILABLE else "[U+6A21][U+64EC]Client"
             
             return jsonify({
                 'success': True,
                 'external_control_enabled': enable,
-                'message': f'外部控制已{action} ({service_type}), {sync_status}',
+                'message': f'[U+5916][U+90E8][U+63A7][U+5236][U+5DF2]{action} ({service_type}), {sync_status}',
                 'register_value': value,
                 'read_back_value': read_back,
                 'verified': (read_back == value),
                 'service_type': service_type,
-                'sync_thread_status': '運行中' if enable else '已停止'
+                'sync_thread_status': '[U+904B][U+884C][U+4E2D]' if enable else '[U+5DF2][U+505C][U+6B62]'
             })
         else:
             return jsonify({
                 'success': False,
-                'message': 'Modbus寄存器寫入失敗'
+                'message': 'Modbus[U+5BC4][U+5B58][U+5668][U+5BEB][U+5165][U+5931][U+6557]'
             })
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'操作失敗: {str(e)}'
+            'message': f'[U+64CD][U+4F5C][U+5931][U+6557]: {str(e)}'
         })
 
 
 @app.route('/api/modbus/debug', methods=['GET'])
 def get_modbus_debug():
-    """獲取Modbus調試信息"""
+    """[U+7372][U+53D6]Modbus[U+8ABF][U+8A66][U+4FE1][U+606F]"""
     modbus_client = vision_controller.modbus_client
     
     if not modbus_client:
         return jsonify({
             'success': False,
-            'message': 'Modbus Client不存在'
+            'message': 'Modbus Client[U+4E0D][U+5B58][U+5728]'
         })
     
     try:
         debug_info = modbus_client.get_debug_info()
         
-        # 額外檢查當前寄存器狀態
+        # [U+984D][U+5916][U+6AA2][U+67E5][U+7576][U+524D][U+5BC4][U+5B58][U+5668][U+72C0][U+614B]
         if modbus_client.connected:
             current_registers = {
                 'EXTERNAL_CONTROL_ENABLE': modbus_client.read_register('EXTERNAL_CONTROL_ENABLE'),
@@ -2034,22 +2034,22 @@ def get_modbus_debug():
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'獲取調試信息失敗: {str(e)}',
+            'message': f'[U+7372][U+53D6][U+8ABF][U+8A66][U+4FE1][U+606F][U+5931][U+6557]: {str(e)}',
             'error': str(e)
         })
 
 
 @app.route('/api/modbus/reset_trigger_states', methods=['POST'])
 def reset_trigger_states():
-    """重置觸發狀態記錄"""
+    """[U+91CD][U+7F6E][U+89F8][U+767C][U+72C0][U+614B][U+8A18][U+9304]"""
     modbus_client = vision_controller.modbus_client
     
     try:
-        # 清除觸發狀態記錄
+        # [U+6E05][U+9664][U+89F8][U+767C][U+72C0][U+614B][U+8A18][U+9304]
         old_states = modbus_client.last_trigger_states.copy()
         modbus_client.last_trigger_states.clear()
         
-        # 重置錯誤計數（可選）
+        # [U+91CD][U+7F6E][U+932F][U+8AA4][U+8A08][U+6578][U+FF08][U+53EF][U+9078][U+FF09]
         reset_errors = request.get_json().get('reset_errors', False) if request.get_json() else False
         if reset_errors:
             modbus_client.error_count = 0
@@ -2057,7 +2057,7 @@ def reset_trigger_states():
         
         return jsonify({
             'success': True,
-            'message': '觸發狀態已重置',
+            'message': '[U+89F8][U+767C][U+72C0][U+614B][U+5DF2][U+91CD][U+7F6E]',
             'old_states': old_states,
             'error_count_reset': reset_errors,
             'current_error_count': modbus_client.error_count
@@ -2066,71 +2066,71 @@ def reset_trigger_states():
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'重置觸發狀態失敗: {str(e)}'
+            'message': f'[U+91CD][U+7F6E][U+89F8][U+767C][U+72C0][U+614B][U+5931][U+6557]: {str(e)}'
         })
 
 
 @app.route('/api/modbus/clear_triggers', methods=['POST'])
 def clear_triggers():
-    """清除所有觸發信號"""
+    """[U+6E05][U+9664][U+6240][U+6709][U+89F8][U+767C][U+4FE1][U+865F]"""
     modbus_client = vision_controller.modbus_client
     
     if not modbus_client.connected:
         return jsonify({
             'success': False,
-            'message': 'Modbus未連接'
+            'message': 'Modbus[U+672A][U+9023][U+63A5]'
         })
     
     try:
-        # 清除所有觸發信號
+        # [U+6E05][U+9664][U+6240][U+6709][U+89F8][U+767C][U+4FE1][U+865F]
         triggers_cleared = {}
         triggers_cleared['CAPTURE_TRIGGER'] = modbus_client.write_register('CAPTURE_TRIGGER', 0)
         triggers_cleared['DETECT_TRIGGER'] = modbus_client.write_register('DETECT_TRIGGER', 0)
         triggers_cleared['SYSTEM_RESET'] = modbus_client.write_register('SYSTEM_RESET', 0)
         triggers_cleared['PARAM_UPDATE_TRIGGER'] = modbus_client.write_register('PARAM_UPDATE_TRIGGER', 0)
         
-        # 重置處理進度
+        # [U+91CD][U+7F6E][U+8655][U+7406][U+9032][U+5EA6]
         modbus_client.write_register('PROCESSING_PROGRESS', 0)
         
         success_count = sum(triggers_cleared.values())
         
         return jsonify({
             'success': True,
-            'message': f'已清除 {success_count}/4 個觸發信號',
+            'message': f'[U+5DF2][U+6E05][U+9664] {success_count}/4 [U+500B][U+89F8][U+767C][U+4FE1][U+865F]',
             'triggers_cleared': triggers_cleared
         })
         
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'清除觸發信號失敗: {str(e)}'
+            'message': f'[U+6E05][U+9664][U+89F8][U+767C][U+4FE1][U+865F][U+5931][U+6557]: {str(e)}'
         })
 
 
 @app.route('/api/modbus/manual_trigger', methods=['POST'])
 def manual_trigger():
-    """手動觸發檢測 (繞過Modbus，直接調用)"""
+    """[U+624B][U+52D5][U+89F8][U+767C][U+6AA2][U+6E2C] ([U+7E5E][U+904E]Modbus[U+FF0C][U+76F4][U+63A5][U+8ABF][U+7528])"""
     data = request.get_json()
-    action = data.get('action', 'detect')  # 'capture' 或 'detect'
+    action = data.get('action', 'detect')  # 'capture' [U+6216] 'detect'
     
     modbus_client = vision_controller.modbus_client
     
     try:
         if action == 'capture':
-            print("🔧 手動觸發: 拍照")
+            print("[U+1F527] [U+624B][U+52D5][U+89F8][U+767C]: [U+62CD][U+7167]")
             modbus_client._handle_capture_trigger()
         elif action == 'detect':
-            print("🔧 手動觸發: 拍照+檢測")
+            print("[U+1F527] [U+624B][U+52D5][U+89F8][U+767C]: [U+62CD][U+7167]+[U+6AA2][U+6E2C]")
             modbus_client._handle_detect_trigger()
         else:
             return jsonify({
                 'success': False,
-                'message': '無效的操作類型'
+                'message': '[U+7121][U+6548][U+7684][U+64CD][U+4F5C][U+985E][U+578B]'
             })
         
         return jsonify({
             'success': True,
-            'message': f'手動觸發 {action} 完成',
+            'message': f'[U+624B][U+52D5][U+89F8][U+767C] {action} [U+5B8C][U+6210]',
             'operation_count': modbus_client.operation_count,
             'error_count': modbus_client.error_count
         })
@@ -2138,29 +2138,29 @@ def manual_trigger():
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'手動觸發失敗: {str(e)}'
+            'message': f'[U+624B][U+52D5][U+89F8][U+767C][U+5931][U+6557]: {str(e)}'
         })
 
 
 @app.route('/api/modbus/force_sync', methods=['POST'])
 def force_start_sync():
-    """強制啟動同步線程 (調試用)"""
+    """[U+5F37][U+5236][U+555F][U+52D5][U+540C][U+6B65][U+7DDA][U+7A0B] ([U+8ABF][U+8A66][U+7528])"""
     modbus_client = vision_controller.modbus_client
     
     if not modbus_client.connected:
         return jsonify({
             'success': False,
-            'message': 'Modbus未連接'
+            'message': 'Modbus[U+672A][U+9023][U+63A5]'
         })
     
     try:
-        # 強制啟動同步
+        # [U+5F37][U+5236][U+555F][U+52D5][U+540C][U+6B65]
         modbus_client.external_control_enabled = True
         modbus_client.start_sync()
         
         return jsonify({
             'success': True,
-            'message': '同步線程已強制啟動',
+            'message': '[U+540C][U+6B65][U+7DDA][U+7A0B][U+5DF2][U+5F37][U+5236][U+555F][U+52D5]',
             'sync_running': modbus_client.sync_running,
             'external_control': modbus_client.external_control_enabled
         })
@@ -2168,20 +2168,20 @@ def force_start_sync():
     except Exception as e:
         return jsonify({
             'success': False,
-            'message': f'強制啟動同步失敗: {str(e)}'
+            'message': f'[U+5F37][U+5236][U+555F][U+52D5][U+540C][U+6B65][U+5931][U+6557]: {str(e)}'
         })
 
 
 @app.route('/api/modbus/info', methods=['GET'])
 def get_modbus_info():
-    """獲取Modbus Client資訊"""
+    """[U+7372][U+53D6]Modbus Client[U+8CC7][U+8A0A]"""
     try:
         import pymodbus
         current_version = pymodbus.__version__
-        version_info = f"當前版本: {current_version}"
+        version_info = f"[U+7576][U+524D][U+7248][U+672C]: {current_version}"
     except:
-        current_version = "未安裝"
-        version_info = "pymodbus未安裝"
+        current_version = "[U+672A][U+5B89][U+88DD]"
+        version_info = "pymodbus[U+672A][U+5B89][U+88DD]"
     
     return jsonify({
         'pymodbus_available': MODBUS_AVAILABLE,
@@ -2195,20 +2195,20 @@ def get_modbus_info():
             'pip install "pymodbus[serial]>=3.0.0"'
         ],
         'verify_command': 'python -c "import pymodbus; print(f\'pymodbus {pymodbus.__version__}\')"',
-        'architecture': 'Modbus TCP Client (連接外部PLC/HMI)',
+        'architecture': 'Modbus TCP Client ([U+9023][U+63A5][U+5916][U+90E8]PLC/HMI)',
         'register_mapping': {
-            '控制寄存器 (200-209)': '從PLC讀取控制指令',
-            '參數設定 (210-219)': '從PLC讀取檢測參數',
-            '狀態回報 (220-239)': '寫入系統狀態到PLC',
-            '檢測結果 (240-279)': '寫入檢測結果到PLC',
-            '統計資訊 (280-299)': '寫入統計資料到PLC'
+            '[U+63A7][U+5236][U+5BC4][U+5B58][U+5668] (200-209)': '[U+5F9E]PLC[U+8B80][U+53D6][U+63A7][U+5236][U+6307][U+4EE4]',
+            '[U+53C3][U+6578][U+8A2D][U+5B9A] (210-219)': '[U+5F9E]PLC[U+8B80][U+53D6][U+6AA2][U+6E2C][U+53C3][U+6578]',
+            '[U+72C0][U+614B][U+56DE][U+5831] (220-239)': '[U+5BEB][U+5165][U+7CFB][U+7D71][U+72C0][U+614B][U+5230]PLC',
+            '[U+6AA2][U+6E2C][U+7D50][U+679C] (240-279)': '[U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230]PLC',
+            '[U+7D71][U+8A08][U+8CC7][U+8A0A] (280-299)': '[U+5BEB][U+5165][U+7D71][U+8A08][U+8CC7][U+6599][U+5230]PLC'
         },
         'features': [
-            '自動重連機制',
-            '外部觸發控制',
-            '參數動態更新',
-            '狀態即時回報',
-            '錯誤計數追蹤'
+            '[U+81EA][U+52D5][U+91CD][U+9023][U+6A5F][U+5236]',
+            '[U+5916][U+90E8][U+89F8][U+767C][U+63A7][U+5236]',
+            '[U+53C3][U+6578][U+52D5][U+614B][U+66F4][U+65B0]',
+            '[U+72C0][U+614B][U+5373][U+6642][U+56DE][U+5831]',
+            '[U+932F][U+8AA4][U+8A08][U+6578][U+8FFD][U+8E64]'
         ],
         'restart_required': True,
         'compatibility': {
@@ -2222,84 +2222,84 @@ def get_modbus_info():
 
 @socketio.on('connect')
 def handle_connect():
-    """客戶端連接"""
+    """[U+5BA2][U+6236][U+7AEF][U+9023][U+63A5]"""
     emit('status_update', vision_controller.get_status())
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """客戶端斷開"""
+    """[U+5BA2][U+6236][U+7AEF][U+65B7][U+958B]"""
     pass
 
 
 def main():
-    """主函數"""
-    print("🚀 CCD1 視覺控制系統啟動中 (Modbus TCP Client版本)...")
+    """[U+4E3B][U+51FD][U+6578]"""
+    print("[U+1F680] CCD1 [U+8996][U+89BA][U+63A7][U+5236][U+7CFB][U+7D71][U+555F][U+52D5][U+4E2D] (Modbus TCP Client[U+7248][U+672C])...")
     
     if not CAMERA_MANAGER_AVAILABLE:
-        print("❌ 相機管理器不可用，請檢查SDK導入")
+        print("[FAIL] [U+76F8][U+6A5F][U+7BA1][U+7406][U+5668][U+4E0D][U+53EF][U+7528][U+FF0C][U+8ACB][U+6AA2][U+67E5]SDK[U+5C0E][U+5165]")
         return
     
     try:
-        print("🔧 系統架構: Modbus TCP Client")
-        print("📡 連接模式: 主動連接外部PLC/HMI設備")
+        print("[U+1F527] [U+7CFB][U+7D71][U+67B6][U+69CB]: Modbus TCP Client")
+        print("[U+1F4E1] [U+9023][U+63A5][U+6A21][U+5F0F]: [U+4E3B][U+52D5][U+9023][U+63A5][U+5916][U+90E8]PLC/HMI[U+8A2D][U+5099]")
         
         if MODBUS_AVAILABLE:
-            print(f"✅ Modbus TCP Client模組可用 (pymodbus {PYMODBUS_VERSION})")
-            print("📊 CCD1 Modbus寄存器映射 (Client模式):")
-            print("   ┌─ 控制寄存器 (200-209) ← 從PLC讀取")
-            print("   │  • 200: 外部控制啟用")
-            print("   │  • 201: 拍照觸發")
-            print("   │  • 202: 拍照+檢測觸發")
-            print("   │  • 203: 系統重置")
-            print("   │  • 204: 參數更新觸發")
-            print("   ├─ 參數設定 (210-219) ← 從PLC讀取")
-            print("   │  • 210-211: 最小面積設定")
-            print("   │  • 212: 最小圓度設定")
-            print("   │  • 213-215: 圖像處理參數")
-            print("   ├─ 狀態回報 (220-239) → 寫入到PLC")
-            print("   │  • 220: 系統狀態")
-            print("   │  • 221: 相機連接狀態")
-            print("   │  • 222: 最後操作狀態")
-            print("   │  • 223: 處理進度")
-            print("   ├─ 檢測結果 (240-279) → 寫入到PLC")
-            print("   │  • 240: 檢測圓形數量")
-            print("   │  • 241-255: 圓形1-5的座標和半徑")
-            print("   └─ 統計資訊 (280-299) → 寫入到PLC")
-            print("      • 280-282: 時間統計")
-            print("      • 283-285: 計數器")
-            print("      • 290-293: 版本與運行時間")
+            print(f"[OK] Modbus TCP Client[U+6A21][U+7D44][U+53EF][U+7528] (pymodbus {PYMODBUS_VERSION})")
+            print("[U+1F4CA] CCD1 Modbus[U+5BC4][U+5B58][U+5668][U+6620][U+5C04] (Client[U+6A21][U+5F0F]):")
+            print("   [U+250C][U+2500] [U+63A7][U+5236][U+5BC4][U+5B58][U+5668] (200-209) [U+2190] [U+5F9E]PLC[U+8B80][U+53D6]")
+            print("   [U+2502]  [U+2022] 200: [U+5916][U+90E8][U+63A7][U+5236][U+555F][U+7528]")
+            print("   [U+2502]  [U+2022] 201: [U+62CD][U+7167][U+89F8][U+767C]")
+            print("   [U+2502]  [U+2022] 202: [U+62CD][U+7167]+[U+6AA2][U+6E2C][U+89F8][U+767C]")
+            print("   [U+2502]  [U+2022] 203: [U+7CFB][U+7D71][U+91CD][U+7F6E]")
+            print("   [U+2502]  [U+2022] 204: [U+53C3][U+6578][U+66F4][U+65B0][U+89F8][U+767C]")
+            print("   [U+251C][U+2500] [U+53C3][U+6578][U+8A2D][U+5B9A] (210-219) [U+2190] [U+5F9E]PLC[U+8B80][U+53D6]")
+            print("   [U+2502]  [U+2022] 210-211: [U+6700][U+5C0F][U+9762][U+7A4D][U+8A2D][U+5B9A]")
+            print("   [U+2502]  [U+2022] 212: [U+6700][U+5C0F][U+5713][U+5EA6][U+8A2D][U+5B9A]")
+            print("   [U+2502]  [U+2022] 213-215: [U+5716][U+50CF][U+8655][U+7406][U+53C3][U+6578]")
+            print("   [U+251C][U+2500] [U+72C0][U+614B][U+56DE][U+5831] (220-239) [U+2192] [U+5BEB][U+5165][U+5230]PLC")
+            print("   [U+2502]  [U+2022] 220: [U+7CFB][U+7D71][U+72C0][U+614B]")
+            print("   [U+2502]  [U+2022] 221: [U+76F8][U+6A5F][U+9023][U+63A5][U+72C0][U+614B]")
+            print("   [U+2502]  [U+2022] 222: [U+6700][U+5F8C][U+64CD][U+4F5C][U+72C0][U+614B]")
+            print("   [U+2502]  [U+2022] 223: [U+8655][U+7406][U+9032][U+5EA6]")
+            print("   [U+251C][U+2500] [U+6AA2][U+6E2C][U+7D50][U+679C] (240-279) [U+2192] [U+5BEB][U+5165][U+5230]PLC")
+            print("   [U+2502]  [U+2022] 240: [U+6AA2][U+6E2C][U+5713][U+5F62][U+6578][U+91CF]")
+            print("   [U+2502]  [U+2022] 241-255: [U+5713][U+5F62]1-5[U+7684][U+5EA7][U+6A19][U+548C][U+534A][U+5F91]")
+            print("   [U+2514][U+2500] [U+7D71][U+8A08][U+8CC7][U+8A0A] (280-299) [U+2192] [U+5BEB][U+5165][U+5230]PLC")
+            print("      [U+2022] 280-282: [U+6642][U+9593][U+7D71][U+8A08]")
+            print("      [U+2022] 283-285: [U+8A08][U+6578][U+5668]")
+            print("      [U+2022] 290-293: [U+7248][U+672C][U+8207][U+904B][U+884C][U+6642][U+9593]")
         else:
-            print("⚠️ Modbus Client功能不可用 (使用模擬模式)")
+            print("[WARN][U+FE0F] Modbus Client[U+529F][U+80FD][U+4E0D][U+53EF][U+7528] ([U+4F7F][U+7528][U+6A21][U+64EC][U+6A21][U+5F0F])")
         
-        print("🌐 Web介面啟動中...")
-        print("📱 訪問地址: http://localhost:5051")
-        print("🎯 系統功能:")
-        print("   • 相機連接管理")
-        print("   • 參數調整介面")
-        print("   • 圓形檢測與標註")
-        print("   • Modbus TCP Client外部控制")
-        print("   • 即時狀態監控")
-        print("🔗 使用說明:")
-        print("   1. 先設置Modbus服務器IP地址")
-        print("   2. 連接到外部PLC/HMI設備")
-        print("   3. 初始化相機連接")
-        print("   4. 啟用外部控制模式")
-        print("   5. 通過PLC控制拍照和檢測")
+        print("[U+1F310] Web[U+4ECB][U+9762][U+555F][U+52D5][U+4E2D]...")
+        print("[U+1F4F1] [U+8A2A][U+554F][U+5730][U+5740]: http://localhost:5051")
+        print("[U+1F3AF] [U+7CFB][U+7D71][U+529F][U+80FD]:")
+        print("   [U+2022] [U+76F8][U+6A5F][U+9023][U+63A5][U+7BA1][U+7406]")
+        print("   [U+2022] [U+53C3][U+6578][U+8ABF][U+6574][U+4ECB][U+9762]")
+        print("   [U+2022] [U+5713][U+5F62][U+6AA2][U+6E2C][U+8207][U+6A19][U+8A3B]")
+        print("   [U+2022] Modbus TCP Client[U+5916][U+90E8][U+63A7][U+5236]")
+        print("   [U+2022] [U+5373][U+6642][U+72C0][U+614B][U+76E3][U+63A7]")
+        print("[U+1F517] [U+4F7F][U+7528][U+8AAA][U+660E]:")
+        print("   1. [U+5148][U+8A2D][U+7F6E]Modbus[U+670D][U+52D9][U+5668]IP[U+5730][U+5740]")
+        print("   2. [U+9023][U+63A5][U+5230][U+5916][U+90E8]PLC/HMI[U+8A2D][U+5099]")
+        print("   3. [U+521D][U+59CB][U+5316][U+76F8][U+6A5F][U+9023][U+63A5]")
+        print("   4. [U+555F][U+7528][U+5916][U+90E8][U+63A7][U+5236][U+6A21][U+5F0F]")
+        print("   5. [U+901A][U+904E]PLC[U+63A7][U+5236][U+62CD][U+7167][U+548C][U+6AA2][U+6E2C]")
         print("=" * 60)
         
         socketio.run(app, host='0.0.0.0', port=5051, debug=False)
         
     except KeyboardInterrupt:
-        print("\n🛑 用戶中斷，正在關閉系統...")
+        print("\n[U+1F6D1] [U+7528][U+6236][U+4E2D][U+65B7][U+FF0C][U+6B63][U+5728][U+95DC][U+9589][U+7CFB][U+7D71]...")
     except Exception as e:
-        print(f"❌ 系統運行錯誤: {e}")
+        print(f"[FAIL] [U+7CFB][U+7D71][U+904B][U+884C][U+932F][U+8AA4]: {e}")
     finally:
         try:
             vision_controller.disconnect()
         except:
             pass
-        print("✅ 系統已安全關閉")
+        print("[OK] [U+7CFB][U+7D71][U+5DF2][U+5B89][U+5168][U+95DC][U+9589]")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-VP_app.py - 震動盤Web UI控制應用
-作為純Modbus TCP Client連接主服務器，通過VP_main模組控制震動盤
+VP_app.py - [U+9707][U+52D5][U+76E4]Web UI[U+63A7][U+5236][U+61C9][U+7528]
+[U+4F5C][U+70BA][U+7D14]Modbus TCP Client[U+9023][U+63A5][U+4E3B][U+670D][U+52D9][U+5668][U+FF0C][U+901A][U+904E]VP_main[U+6A21][U+7D44][U+63A7][U+5236][U+9707][U+52D5][U+76E4]
 """
 
 from flask import Flask, render_template, request, jsonify
@@ -15,34 +15,34 @@ from pymodbus.client import ModbusTcpClient
 from typing import Dict, Any, Optional
 
 class VibrationPlateWebApp:
-    """震動盤Web控制應用 - 純Modbus TCP Client"""
+    """[U+9707][U+52D5][U+76E4]Web[U+63A7][U+5236][U+61C9][U+7528] - [U+7D14]Modbus TCP Client"""
     
     def __init__(self):
-        # 載入配置
+        # [U+8F09][U+5165][U+914D][U+7F6E]
         self.config = self.load_config()
         
-        # Modbus TCP Client (連接主服務器)
+        # Modbus TCP Client ([U+9023][U+63A5][U+4E3B][U+670D][U+52D9][U+5668])
         self.modbus_client: Optional[ModbusTcpClient] = None
         self.connected_to_server = False
         
-        # 狀態監控
+        # [U+72C0][U+614B][U+76E3][U+63A7]
         self.status_monitor_thread = None
         self.monitoring = False
         
-        # 寄存器映射 (與VP_main.py一致 - 基地址300)
+        # [U+5BC4][U+5B58][U+5668][U+6620][U+5C04] ([U+8207]VP_main.py[U+4E00][U+81F4] - [U+57FA][U+5730][U+5740]300)
         self.base_address = self.config['modbus_mapping']['base_address']
         self.init_register_mapping()
         
-        # 狀態快取和指令計數
+        # [U+72C0][U+614B][U+5FEB][U+53D6][U+548C][U+6307][U+4EE4][U+8A08][U+6578]
         self.command_id_counter = 1
         
-        # 初始化Flask應用
+        # [U+521D][U+59CB][U+5316]Flask[U+61C9][U+7528]
         self.init_flask_app()
         
     def load_config(self) -> Dict[str, Any]:
-        """載入配置檔案"""
+        """[U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848]"""
         default_config = {
-            "module_id": "震動盤Web UI",
+            "module_id": "[U+9707][U+52D5][U+76E4]Web UI",
             "tcp_server": {
                 "host": "127.0.0.1",
                 "port": 502,
@@ -72,114 +72,114 @@ class VibrationPlateWebApp:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     loaded_config = json.load(f)
                     default_config.update(loaded_config)
-                print(f"已載入配置檔案: {config_path}")
+                print(f"[U+5DF2][U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848]: {config_path}")
             else:
                 with open(config_path, 'w', encoding='utf-8') as f:
                     json.dump(default_config, f, indent=2, ensure_ascii=False)
-                print(f"已創建預設配置檔案: {config_path}")
+                print(f"[U+5DF2][U+5275][U+5EFA][U+9810][U+8A2D][U+914D][U+7F6E][U+6A94][U+6848]: {config_path}")
         except Exception as e:
-            print(f"載入配置檔案失敗: {e}")
+            print(f"[U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848][U+5931][U+6557]: {e}")
             
         return default_config
     
     def init_register_mapping(self):
-        """初始化寄存器映射 (與VP_main.py一致)"""
+        """[U+521D][U+59CB][U+5316][U+5BC4][U+5B58][U+5668][U+6620][U+5C04] ([U+8207]VP_main.py[U+4E00][U+81F4])"""
         base = self.base_address  # 300
         
-        # 狀態寄存器區 (只讀) base+0 ~ base+14
+        # [U+72C0][U+614B][U+5BC4][U+5B58][U+5668][U+5340] ([U+53EA][U+8B80]) base+0 ~ base+14
         self.status_registers = {
-            'module_status': base + 0,          # 模組狀態
-            'device_connection': base + 1,      # 設備連接狀態
-            'device_status': base + 2,          # 設備狀態
-            'error_code': base + 3,             # 錯誤代碼
-            'current_action_low': base + 4,     # 當前動作低位
-            'current_action_high': base + 5,    # 當前動作高位
-            'target_action_low': base + 6,      # 目標動作低位
-            'target_action_high': base + 7,     # 目標動作高位
-            'command_status': base + 8,         # 指令執行狀態
-            'comm_error_count': base + 9,       # 通訊錯誤計數
-            'brightness_status': base + 10,     # 背光亮度狀態
-            'backlight_status': base + 11,      # 背光開關狀態
-            'vibration_status': base + 12,      # 震動狀態
-            'reserved_13': base + 13,           # 保留
-            'timestamp': base + 14              # 時間戳
+            'module_status': base + 0,          # [U+6A21][U+7D44][U+72C0][U+614B]
+            'device_connection': base + 1,      # [U+8A2D][U+5099][U+9023][U+63A5][U+72C0][U+614B]
+            'device_status': base + 2,          # [U+8A2D][U+5099][U+72C0][U+614B]
+            'error_code': base + 3,             # [U+932F][U+8AA4][U+4EE3][U+78BC]
+            'current_action_low': base + 4,     # [U+7576][U+524D][U+52D5][U+4F5C][U+4F4E][U+4F4D]
+            'current_action_high': base + 5,    # [U+7576][U+524D][U+52D5][U+4F5C][U+9AD8][U+4F4D]
+            'target_action_low': base + 6,      # [U+76EE][U+6A19][U+52D5][U+4F5C][U+4F4E][U+4F4D]
+            'target_action_high': base + 7,     # [U+76EE][U+6A19][U+52D5][U+4F5C][U+9AD8][U+4F4D]
+            'command_status': base + 8,         # [U+6307][U+4EE4][U+57F7][U+884C][U+72C0][U+614B]
+            'comm_error_count': base + 9,       # [U+901A][U+8A0A][U+932F][U+8AA4][U+8A08][U+6578]
+            'brightness_status': base + 10,     # [U+80CC][U+5149][U+4EAE][U+5EA6][U+72C0][U+614B]
+            'backlight_status': base + 11,      # [U+80CC][U+5149][U+958B][U+95DC][U+72C0][U+614B]
+            'vibration_status': base + 12,      # [U+9707][U+52D5][U+72C0][U+614B]
+            'reserved_13': base + 13,           # [U+4FDD][U+7559]
+            'timestamp': base + 14              # [U+6642][U+9593][U+6233]
         }
         
-        # 指令寄存器區 (讀寫) base+20 ~ base+24
+        # [U+6307][U+4EE4][U+5BC4][U+5B58][U+5668][U+5340] ([U+8B80][U+5BEB]) base+20 ~ base+24
         self.command_registers = {
-            'command_code': base + 20,          # 指令代碼 (320)
-            'param1': base + 21,                # 參數1
-            'param2': base + 22,                # 參數2
-            'command_id': base + 23,            # 指令ID
-            'reserved': base + 24               # 保留
+            'command_code': base + 20,          # [U+6307][U+4EE4][U+4EE3][U+78BC] (320)
+            'param1': base + 21,                # [U+53C3][U+6578]1
+            'param2': base + 22,                # [U+53C3][U+6578]2
+            'command_id': base + 23,            # [U+6307][U+4EE4]ID
+            'reserved': base + 24               # [U+4FDD][U+7559]
         }
         
-        # VP_main指令映射
+        # VP_main[U+6307][U+4EE4][U+6620][U+5C04]
         self.command_map = {
-            'nop': 0,                # 無操作
-            'enable_device': 1,      # 設備啟用 (背光開啟)
-            'disable_device': 2,     # 設備停用 (背光關閉)
-            'stop_all': 3,           # 停止所有動作 ★
-            'set_brightness': 4,     # 設定背光亮度
-            'execute_action': 5,     # 執行動作
-            'emergency_stop': 6,     # 緊急停止 ★
-            'reset_error': 7,        # 錯誤重置
+            'nop': 0,                # [U+7121][U+64CD][U+4F5C]
+            'enable_device': 1,      # [U+8A2D][U+5099][U+555F][U+7528] ([U+80CC][U+5149][U+958B][U+555F])
+            'disable_device': 2,     # [U+8A2D][U+5099][U+505C][U+7528] ([U+80CC][U+5149][U+95DC][U+9589])
+            'stop_all': 3,           # [U+505C][U+6B62][U+6240][U+6709][U+52D5][U+4F5C] [U+2605]
+            'set_brightness': 4,     # [U+8A2D][U+5B9A][U+80CC][U+5149][U+4EAE][U+5EA6]
+            'execute_action': 5,     # [U+57F7][U+884C][U+52D5][U+4F5C]
+            'emergency_stop': 6,     # [U+7DCA][U+6025][U+505C][U+6B62] [U+2605]
+            'reset_error': 7,        # [U+932F][U+8AA4][U+91CD][U+7F6E]
         }
         
-        # 動作編碼映射 (用於execute_action指令的param1)
+        # [U+52D5][U+4F5C][U+7DE8][U+78BC][U+6620][U+5C04] ([U+7528][U+65BC]execute_action[U+6307][U+4EE4][U+7684]param1)
         self.action_map = {
             'stop': 0, 'up': 1, 'down': 2, 'left': 3, 'right': 4,
             'upleft': 5, 'downleft': 6, 'upright': 7, 'downright': 8,
             'horizontal': 9, 'vertical': 10, 'spread': 11
         }
         
-        print(f"震動盤Web UI寄存器映射初始化:")
-        print(f"  主服務器: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
-        print(f"  基地址: {base}")
-        print(f"  指令寄存器: {base + 20} ~ {base + 24}")
-        print(f"  停止指令: 指令代碼3寫入寄存器{base + 20}")
+        print(f"[U+9707][U+52D5][U+76E4]Web UI[U+5BC4][U+5B58][U+5668][U+6620][U+5C04][U+521D][U+59CB][U+5316]:")
+        print(f"  [U+4E3B][U+670D][U+52D9][U+5668]: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
+        print(f"  [U+57FA][U+5730][U+5740]: {base}")
+        print(f"  [U+6307][U+4EE4][U+5BC4][U+5B58][U+5668]: {base + 20} ~ {base + 24}")
+        print(f"  [U+505C][U+6B62][U+6307][U+4EE4]: [U+6307][U+4EE4][U+4EE3][U+78BC]3[U+5BEB][U+5165][U+5BC4][U+5B58][U+5668]{base + 20}")
         
     def init_flask_app(self):
-        """初始化Flask應用"""
+        """[U+521D][U+59CB][U+5316]Flask[U+61C9][U+7528]"""
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = 'vp_web_app_2024'
         
-        # 初始化SocketIO
+        # [U+521D][U+59CB][U+5316]SocketIO
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
         
-        # 錯誤處理
+        # [U+932F][U+8AA4][U+8655][U+7406]
         @self.app.errorhandler(404)
         def not_found_error(error):
-            return jsonify({'success': False, 'message': '路徑不存在'}), 404
+            return jsonify({'success': False, 'message': '[U+8DEF][U+5F91][U+4E0D][U+5B58][U+5728]'}), 404
         
         @self.app.errorhandler(500)
         def internal_error(error):
-            return jsonify({'success': False, 'message': '內部服務器錯誤'}), 500
+            return jsonify({'success': False, 'message': '[U+5167][U+90E8][U+670D][U+52D9][U+5668][U+932F][U+8AA4]'}), 500
         
         @self.app.errorhandler(405)
         def method_not_allowed(error):
-            return jsonify({'success': False, 'message': '請求方法不被允許'}), 405
+            return jsonify({'success': False, 'message': '[U+8ACB][U+6C42][U+65B9][U+6CD5][U+4E0D][U+88AB][U+5141][U+8A31]'}), 405
         
-        # 註冊路由
+        # [U+8A3B][U+518A][U+8DEF][U+7531]
         self.register_routes()
         self.register_socketio_events()
         
     def register_routes(self):
-        """註冊Flask路由"""
+        """[U+8A3B][U+518A]Flask[U+8DEF][U+7531]"""
         
         @self.app.route('/')
         def index():
-            """主頁面"""
+            """[U+4E3B][U+9801][U+9762]"""
             return render_template('index.html', config=self.config)
         
         @self.app.route('/api/status')
         def get_status():
-            """獲取系統狀態"""
+            """[U+7372][U+53D6][U+7CFB][U+7D71][U+72C0][U+614B]"""
             return jsonify(self.get_current_status())
         
         @self.app.route('/api/connect', methods=['POST'])
         def connect_server():
-            """連接到主Modbus TCP服務器"""
+            """[U+9023][U+63A5][U+5230][U+4E3B]Modbus TCP[U+670D][U+52D9][U+5668]"""
             try:
                 data = request.get_json() or {}
                 
@@ -197,36 +197,36 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'連接時發生錯誤: {str(e)}'
+                    'message': f'[U+9023][U+63A5][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/disconnect', methods=['POST'])
         def disconnect_server():
-            """斷開Modbus TCP連接"""
+            """[U+65B7][U+958B]Modbus TCP[U+9023][U+63A5]"""
             try:
                 result = self.disconnect_modbus_server()
                 return jsonify(result)
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'斷開連接時發生錯誤: {str(e)}'
+                    'message': f'[U+65B7][U+958B][U+9023][U+63A5][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/action', methods=['POST'])
         def execute_action():
-            """執行震動動作"""
+            """[U+57F7][U+884C][U+9707][U+52D5][U+52D5][U+4F5C]"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
                 data = request.get_json()
                 if not data:
                     return jsonify({
                         'success': False,
-                        'message': '無效的請求數據'
+                        'message': '[U+7121][U+6548][U+7684][U+8ACB][U+6C42][U+6578][U+64DA]'
                     })
                 
                 action = data.get('action')
@@ -235,10 +235,10 @@ class VibrationPlateWebApp:
                 if not action or action not in self.action_map:
                     return jsonify({
                         'success': False,
-                        'message': f'未知動作: {action}'
+                        'message': f'[U+672A][U+77E5][U+52D5][U+4F5C]: {action}'
                     })
                 
-                # 發送execute_action指令 (指令5)
+                # [U+767C][U+9001]execute_action[U+6307][U+4EE4] ([U+6307][U+4EE4]5)
                 action_code = self.action_map[action]
                 result = self.send_command('execute_action', action_code, strength)
                 
@@ -246,24 +246,24 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'執行動作時發生錯誤: {str(e)}'
+                    'message': f'[U+57F7][U+884C][U+52D5][U+4F5C][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/execute_action', methods=['POST'])
         def execute_action_alt():
-            """執行震動動作 (備用路徑)"""
+            """[U+57F7][U+884C][U+9707][U+52D5][U+52D5][U+4F5C] ([U+5099][U+7528][U+8DEF][U+5F91])"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
                 data = request.get_json()
                 if not data:
                     return jsonify({
                         'success': False,
-                        'message': '無效的請求數據'
+                        'message': '[U+7121][U+6548][U+7684][U+8ACB][U+6C42][U+6578][U+64DA]'
                     })
                 
                 action = data.get('action')
@@ -272,10 +272,10 @@ class VibrationPlateWebApp:
                 if not action or action not in self.action_map:
                     return jsonify({
                         'success': False,
-                        'message': f'未知動作: {action}'
+                        'message': f'[U+672A][U+77E5][U+52D5][U+4F5C]: {action}'
                     })
                 
-                # 發送execute_action指令 (指令5)
+                # [U+767C][U+9001]execute_action[U+6307][U+4EE4] ([U+6307][U+4EE4]5)
                 action_code = self.action_map[action]
                 result = self.send_command('execute_action', action_code, strength)
                 
@@ -283,75 +283,75 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'執行動作時發生錯誤: {str(e)}'
+                    'message': f'[U+57F7][U+884C][U+52D5][U+4F5C][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/stop', methods=['POST'])
         def stop_action():
-            """停止動作 - 發送停止指令到VP_main"""
+            """[U+505C][U+6B62][U+52D5][U+4F5C] - [U+767C][U+9001][U+505C][U+6B62][U+6307][U+4EE4][U+5230]VP_main"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
-                # 發送stop_all指令 (指令3) 到VP_main
+                # [U+767C][U+9001]stop_all[U+6307][U+4EE4] ([U+6307][U+4EE4]3) [U+5230]VP_main
                 result = self.send_command('stop_all')
                 
                 if result['success']:
-                    result['message'] = '停止指令發送成功'
+                    result['message'] = '[U+505C][U+6B62][U+6307][U+4EE4][U+767C][U+9001][U+6210][U+529F]'
                 else:
-                    result['message'] = '停止指令發送失敗'
+                    result['message'] = '[U+505C][U+6B62][U+6307][U+4EE4][U+767C][U+9001][U+5931][U+6557]'
                 
                 return jsonify(result)
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'停止動作時發生錯誤: {str(e)}'
+                    'message': f'[U+505C][U+6B62][U+52D5][U+4F5C][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/emergency_stop', methods=['POST'])
         def emergency_stop():
-            """緊急停止"""
+            """[U+7DCA][U+6025][U+505C][U+6B62]"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
-                # 發送emergency_stop指令 (指令6) 到VP_main
+                # [U+767C][U+9001]emergency_stop[U+6307][U+4EE4] ([U+6307][U+4EE4]6) [U+5230]VP_main
                 result = self.send_command('emergency_stop')
                 
                 return jsonify(result)
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'緊急停止時發生錯誤: {str(e)}'
+                    'message': f'[U+7DCA][U+6025][U+505C][U+6B62][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/set_brightness', methods=['POST'])
         def set_brightness():
-            """設定背光亮度"""
+            """[U+8A2D][U+5B9A][U+80CC][U+5149][U+4EAE][U+5EA6]"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
                 data = request.get_json()
                 if not data:
                     return jsonify({
                         'success': False,
-                        'message': '無效的請求數據'
+                        'message': '[U+7121][U+6548][U+7684][U+8ACB][U+6C42][U+6578][U+64DA]'
                     })
                 
                 brightness = data.get('brightness', 128)
                 brightness = max(0, min(255, int(brightness)))
                 
-                # 發送set_brightness指令 (指令4)
+                # [U+767C][U+9001]set_brightness[U+6307][U+4EE4] ([U+6307][U+4EE4]4)
                 result = self.send_command('set_brightness', brightness)
                 
                 if result['success']:
@@ -361,29 +361,29 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'設定亮度時發生錯誤: {str(e)}'
+                    'message': f'[U+8A2D][U+5B9A][U+4EAE][U+5EA6][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/set_backlight', methods=['POST'])
         def set_backlight():
-            """設定背光開關"""
+            """[U+8A2D][U+5B9A][U+80CC][U+5149][U+958B][U+95DC]"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
                 data = request.get_json()
                 if not data:
                     return jsonify({
                         'success': False,
-                        'message': '無效的請求數據'
+                        'message': '[U+7121][U+6548][U+7684][U+8ACB][U+6C42][U+6578][U+64DA]'
                     })
                 
                 state = data.get('state', True)
                 
-                # 發送背光控制指令
+                # [U+767C][U+9001][U+80CC][U+5149][U+63A7][U+5236][U+6307][U+4EE4]
                 command = 'enable_device' if state else 'disable_device'
                 result = self.send_command(command)
                 
@@ -391,17 +391,17 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'設定背光時發生錯誤: {str(e)}'
+                    'message': f'[U+8A2D][U+5B9A][U+80CC][U+5149][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/reset_error', methods=['POST'])
         def reset_error():
-            """重置錯誤"""
+            """[U+91CD][U+7F6E][U+932F][U+8AA4]"""
             try:
                 if not self.connected_to_server:
                     return jsonify({
                         'success': False,
-                        'message': '主服務器未連接'
+                        'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                     })
                 
                 result = self.send_command('reset_error')
@@ -409,26 +409,26 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'重置錯誤時發生錯誤: {str(e)}'
+                    'message': f'[U+91CD][U+7F6E][U+932F][U+8AA4][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {str(e)}'
                 })
         
         @self.app.route('/api/get_register_values', methods=['GET'])
         def get_register_values():
-            """獲取寄存器數值"""
+            """[U+7372][U+53D6][U+5BC4][U+5B58][U+5668][U+6578][U+503C]"""
             if not self.connected_to_server:
                 return jsonify({
                     'success': False,
-                    'message': '主服務器未連接'
+                    'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
                 })
             
             try:
-                # 讀取狀態寄存器
+                # [U+8B80][U+53D6][U+72C0][U+614B][U+5BC4][U+5B58][U+5668]
                 status_values = {}
                 for name, addr in self.status_registers.items():
                     value = self.read_register(addr)
                     status_values[name] = value
                 
-                # 讀取指令寄存器
+                # [U+8B80][U+53D6][U+6307][U+4EE4][U+5BC4][U+5B58][U+5668]
                 command_values = {}
                 for name, addr in self.command_registers.items():
                     value = self.read_register(addr)
@@ -443,12 +443,12 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'讀取寄存器失敗: {str(e)}'
+                    'message': f'[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+5931][U+6557]: {str(e)}'
                 })
         
         @self.app.route('/api/debug', methods=['GET'])
         def debug_info():
-            """調試資訊"""
+            """[U+8ABF][U+8A66][U+8CC7][U+8A0A]"""
             try:
                 debug_data = {
                     'success': True,
@@ -469,12 +469,12 @@ class VibrationPlateWebApp:
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'獲取調試資訊失敗: {str(e)}'
+                    'message': f'[U+7372][U+53D6][U+8ABF][U+8A66][U+8CC7][U+8A0A][U+5931][U+6557]: {str(e)}'
                 })
         
         @self.app.route('/api/routes', methods=['GET'])
         def list_routes():
-            """列出所有可用路由"""
+            """[U+5217][U+51FA][U+6240][U+6709][U+53EF][U+7528][U+8DEF][U+7531]"""
             try:
                 routes = []
                 for rule in self.app.url_map.iter_rules():
@@ -488,35 +488,35 @@ class VibrationPlateWebApp:
                 return jsonify({
                     'success': True,
                     'routes': routes,
-                    'message': f'找到 {len(routes)} 個路由'
+                    'message': f'[U+627E][U+5230] {len(routes)} [U+500B][U+8DEF][U+7531]'
                 })
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'獲取路由列表失敗: {str(e)}'
+                    'message': f'[U+7372][U+53D6][U+8DEF][U+7531][U+5217][U+8868][U+5931][U+6557]: {str(e)}'
                 })
     
     def register_socketio_events(self):
-        """註冊SocketIO事件"""
+        """[U+8A3B][U+518A]SocketIO[U+4E8B][U+4EF6]"""
         
         @self.socketio.on('connect')
         def handle_connect():
-            """客戶端連接"""
-            print("Web客戶端已連接")
+            """[U+5BA2][U+6236][U+7AEF][U+9023][U+63A5]"""
+            print("Web[U+5BA2][U+6236][U+7AEF][U+5DF2][U+9023][U+63A5]")
             emit('status_update', self.get_current_status())
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            """客戶端斷開"""
-            print("Web客戶端已斷開")
+            """[U+5BA2][U+6236][U+7AEF][U+65B7][U+958B]"""
+            print("Web[U+5BA2][U+6236][U+7AEF][U+5DF2][U+65B7][U+958B]")
         
         @self.socketio.on('request_status')
         def handle_status_request():
-            """狀態請求"""
+            """[U+72C0][U+614B][U+8ACB][U+6C42]"""
             emit('status_update', self.get_current_status())
     
     def connect_modbus_server(self) -> Dict[str, Any]:
-        """連接到主Modbus TCP服務器"""
+        """[U+9023][U+63A5][U+5230][U+4E3B]Modbus TCP[U+670D][U+52D9][U+5668]"""
         try:
             if self.modbus_client:
                 self.modbus_client.close()
@@ -530,30 +530,30 @@ class VibrationPlateWebApp:
             
             if self.modbus_client.connect():
                 self.connected_to_server = True
-                print(f"連接到主Modbus服務器成功: {server_config['host']}:{server_config['port']}")
+                print(f"[U+9023][U+63A5][U+5230][U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+6210][U+529F]: {server_config['host']}:{server_config['port']}")
                 
                 return {
                     'success': True,
-                    'message': '主Modbus服務器連接成功',
+                    'message': '[U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+9023][U+63A5][U+6210][U+529F]',
                     'server_info': server_config
                 }
             else:
                 self.connected_to_server = False
                 return {
                     'success': False,
-                    'message': '主Modbus服務器連接失敗'
+                    'message': '[U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+9023][U+63A5][U+5931][U+6557]'
                 }
                 
         except Exception as e:
             self.connected_to_server = False
-            print(f"連接主Modbus服務器失敗: {e}")
+            print(f"[U+9023][U+63A5][U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+5931][U+6557]: {e}")
             return {
                 'success': False,
-                'message': f'連接失敗: {str(e)}'
+                'message': f'[U+9023][U+63A5][U+5931][U+6557]: {str(e)}'
             }
     
     def disconnect_modbus_server(self) -> Dict[str, Any]:
-        """斷開Modbus TCP連接"""
+        """[U+65B7][U+958B]Modbus TCP[U+9023][U+63A5]"""
         try:
             self.stop_monitoring()
             
@@ -562,22 +562,22 @@ class VibrationPlateWebApp:
                 self.modbus_client = None
             
             self.connected_to_server = False
-            print("主Modbus服務器連接已斷開")
+            print("[U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+9023][U+63A5][U+5DF2][U+65B7][U+958B]")
             
             return {
                 'success': True,
-                'message': '主Modbus服務器連接已斷開'
+                'message': '[U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+9023][U+63A5][U+5DF2][U+65B7][U+958B]'
             }
             
         except Exception as e:
-            print(f"斷開連接失敗: {e}")
+            print(f"[U+65B7][U+958B][U+9023][U+63A5][U+5931][U+6557]: {e}")
             return {
                 'success': False,
-                'message': f'斷開連接失敗: {str(e)}'
+                'message': f'[U+65B7][U+958B][U+9023][U+63A5][U+5931][U+6557]: {str(e)}'
             }
     
     def read_register(self, address: int) -> Optional[int]:
-        """讀取寄存器"""
+        """[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668]"""
         if not self.connected_to_server or not self.modbus_client:
             return None
         
@@ -596,7 +596,7 @@ class VibrationPlateWebApp:
             return None
     
     def write_register(self, address: int, value: int) -> bool:
-        """寫入寄存器"""
+        """[U+5BEB][U+5165][U+5BC4][U+5B58][U+5668]"""
         if not self.connected_to_server or not self.modbus_client:
             return False
         
@@ -612,24 +612,24 @@ class VibrationPlateWebApp:
             return False
     
     def send_command(self, command: str, param1: int = 0, param2: int = 0) -> Dict[str, Any]:
-        """發送指令到VP_main模組"""
+        """[U+767C][U+9001][U+6307][U+4EE4][U+5230]VP_main[U+6A21][U+7D44]"""
         if not self.connected_to_server:
             return {
                 'success': False,
-                'message': '主服務器未連接'
+                'message': '[U+4E3B][U+670D][U+52D9][U+5668][U+672A][U+9023][U+63A5]'
             }
         
         if command not in self.command_map:
             return {
                 'success': False,
-                'message': f'未知指令: {command}'
+                'message': f'[U+672A][U+77E5][U+6307][U+4EE4]: {command}'
             }
         
         try:
             command_code = self.command_map[command]
             self.command_id_counter += 1
             
-            # 寫入指令寄存器 (狀態機交握)
+            # [U+5BEB][U+5165][U+6307][U+4EE4][U+5BC4][U+5B58][U+5668] ([U+72C0][U+614B][U+6A5F][U+4EA4][U+63E1])
             write_results = []
             write_results.append(self.write_register(self.command_registers['command_code'], command_code))
             write_results.append(self.write_register(self.command_registers['param1'], param1))
@@ -639,10 +639,10 @@ class VibrationPlateWebApp:
             success = all(write_results)
             
             if success:
-                print(f"發送指令成功: {command} (code={command_code}, p1={param1}, p2={param2}, id={self.command_id_counter})")
+                print(f"[U+767C][U+9001][U+6307][U+4EE4][U+6210][U+529F]: {command} (code={command_code}, p1={param1}, p2={param2}, id={self.command_id_counter})")
                 return {
                     'success': True,
-                    'message': f'指令 {command} 發送成功',
+                    'message': f'[U+6307][U+4EE4] {command} [U+767C][U+9001][U+6210][U+529F]',
                     'command': command,
                     'command_code': command_code,
                     'param1': param1,
@@ -653,56 +653,56 @@ class VibrationPlateWebApp:
                 failed_writes = [i for i, result in enumerate(write_results) if not result]
                 return {
                     'success': False,
-                    'message': f'指令 {command} 發送失敗，寫入失敗的寄存器: {failed_writes}'
+                    'message': f'[U+6307][U+4EE4] {command} [U+767C][U+9001][U+5931][U+6557][U+FF0C][U+5BEB][U+5165][U+5931][U+6557][U+7684][U+5BC4][U+5B58][U+5668]: {failed_writes}'
                 }
                 
         except Exception as e:
-            print(f"發送指令異常: {e}")
+            print(f"[U+767C][U+9001][U+6307][U+4EE4][U+7570][U+5E38]: {e}")
             return {
                 'success': False,
-                'message': f'發送指令異常: {str(e)}'
+                'message': f'[U+767C][U+9001][U+6307][U+4EE4][U+7570][U+5E38]: {str(e)}'
             }
     
     def start_monitoring(self):
-        """開始狀態監控"""
+        """[U+958B][U+59CB][U+72C0][U+614B][U+76E3][U+63A7]"""
         if self.monitoring:
             return
         
         self.monitoring = True
         self.status_monitor_thread = threading.Thread(target=self.status_monitor_loop, daemon=True)
         self.status_monitor_thread.start()
-        print("狀態監控已啟動")
+        print("[U+72C0][U+614B][U+76E3][U+63A7][U+5DF2][U+555F][U+52D5]")
     
     def stop_monitoring(self):
-        """停止狀態監控"""
+        """[U+505C][U+6B62][U+72C0][U+614B][U+76E3][U+63A7]"""
         self.monitoring = False
         if self.status_monitor_thread and self.status_monitor_thread.is_alive():
             self.status_monitor_thread.join(timeout=1)
-        print("狀態監控已停止")
+        print("[U+72C0][U+614B][U+76E3][U+63A7][U+5DF2][U+505C][U+6B62]")
     
     def status_monitor_loop(self):
-        """狀態監控循環"""
+        """[U+72C0][U+614B][U+76E3][U+63A7][U+5FAA][U+74B0]"""
         while self.monitoring:
             try:
                 if self.connected_to_server:
-                    # 檢查連接狀態
+                    # [U+6AA2][U+67E5][U+9023][U+63A5][U+72C0][U+614B]
                     test_read = self.read_register(self.status_registers['module_status'])
                     if test_read is None:
                         self.connected_to_server = False
-                        print("主Modbus服務器連接已斷開")
+                        print("[U+4E3B]Modbus[U+670D][U+52D9][U+5668][U+9023][U+63A5][U+5DF2][U+65B7][U+958B]")
                     
-                    # 發送狀態更新
+                    # [U+767C][U+9001][U+72C0][U+614B][U+66F4][U+65B0]
                     status = self.get_current_status()
                     self.socketio.emit('status_update', status)
                 
-                time.sleep(1)  # 1秒更新一次
+                time.sleep(1)  # 1[U+79D2][U+66F4][U+65B0][U+4E00][U+6B21]
                 
             except Exception as e:
-                print(f"狀態監控異常: {e}")
+                print(f"[U+72C0][U+614B][U+76E3][U+63A7][U+7570][U+5E38]: {e}")
                 time.sleep(2)
     
     def get_current_status(self) -> Dict[str, Any]:
-        """獲取當前狀態"""
+        """[U+7372][U+53D6][U+7576][U+524D][U+72C0][U+614B]"""
         status = {
             'connected_to_server': self.connected_to_server,
             'config': self.config,
@@ -717,13 +717,13 @@ class VibrationPlateWebApp:
         
         if self.connected_to_server:
             try:
-                # 讀取VP模組狀態
+                # [U+8B80][U+53D6]VP[U+6A21][U+7D44][U+72C0][U+614B]
                 vp_status = {}
                 for name, addr in self.status_registers.items():
                     value = self.read_register(addr)
                     vp_status[name] = value
                 
-                # 讀取指令寄存器狀態
+                # [U+8B80][U+53D6][U+6307][U+4EE4][U+5BC4][U+5B58][U+5668][U+72C0][U+614B]
                 command_status = {}
                 for name, addr in self.command_registers.items():
                     value = self.read_register(addr)
@@ -733,39 +733,39 @@ class VibrationPlateWebApp:
                 status['command_status'] = command_status
                 
             except Exception as e:
-                print(f"獲取VP模組狀態失敗: {e}")
+                print(f"[U+7372][U+53D6]VP[U+6A21][U+7D44][U+72C0][U+614B][U+5931][U+6557]: {e}")
                 status['connected_to_server'] = False
                 self.connected_to_server = False
         
         return status
     
     def create_templates_directory(self):
-        """創建templates目錄"""
+        """[U+5275][U+5EFA]templates[U+76EE][U+9304]"""
         current_dir = os.path.dirname(os.path.abspath(__file__))
         templates_dir = os.path.join(current_dir, 'templates')
         if not os.path.exists(templates_dir):
             os.makedirs(templates_dir)
-            print(f"已創建templates目錄: {templates_dir}")
+            print(f"[U+5DF2][U+5275][U+5EFA]templates[U+76EE][U+9304]: {templates_dir}")
     
     def run(self):
-        """運行Web應用"""
-        print("震動盤Web控制應用啟動中...")
+        """[U+904B][U+884C]Web[U+61C9][U+7528]"""
+        print("[U+9707][U+52D5][U+76E4]Web[U+63A7][U+5236][U+61C9][U+7528][U+555F][U+52D5][U+4E2D]...")
         
-        # 創建templates目錄
+        # [U+5275][U+5EFA]templates[U+76EE][U+9304]
         self.create_templates_directory()
         
         web_config = self.config['web_server']
-        print(f"Web服務器啟動 - http://{web_config['host']}:{web_config['port']}")
-        print(f"主Modbus服務器: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
-        print(f"VP模組基地址: {self.base_address}")
-        print("架構: VP_app → 主Modbus服務器 → VP_main → 震動盤(192.168.1.7:1000)")
-        print("功能列表:")
-        print("  - VP_main模組寄存器監控")
-        print("  - 震動動作控制 (11種震動模式)")
-        print("  - 停止功能 (指令3→VP_main→震動盤寄存器4)")
-        print("  - 背光控制 (亮度調節/開關)")
-        print("  - 錯誤重置")
-        print("按 Ctrl+C 停止應用")
+        print(f"Web[U+670D][U+52D9][U+5668][U+555F][U+52D5] - http://{web_config['host']}:{web_config['port']}")
+        print(f"[U+4E3B]Modbus[U+670D][U+52D9][U+5668]: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
+        print(f"VP[U+6A21][U+7D44][U+57FA][U+5730][U+5740]: {self.base_address}")
+        print("[U+67B6][U+69CB]: VP_app [U+2192] [U+4E3B]Modbus[U+670D][U+52D9][U+5668] [U+2192] VP_main [U+2192] [U+9707][U+52D5][U+76E4](192.168.1.7:1000)")
+        print("[U+529F][U+80FD][U+5217][U+8868]:")
+        print("  - VP_main[U+6A21][U+7D44][U+5BC4][U+5B58][U+5668][U+76E3][U+63A7]")
+        print("  - [U+9707][U+52D5][U+52D5][U+4F5C][U+63A7][U+5236] (11[U+7A2E][U+9707][U+52D5][U+6A21][U+5F0F])")
+        print("  - [U+505C][U+6B62][U+529F][U+80FD] ([U+6307][U+4EE4]3[U+2192]VP_main[U+2192][U+9707][U+52D5][U+76E4][U+5BC4][U+5B58][U+5668]4)")
+        print("  - [U+80CC][U+5149][U+63A7][U+5236] ([U+4EAE][U+5EA6][U+8ABF][U+7BC0]/[U+958B][U+95DC])")
+        print("  - [U+932F][U+8AA4][U+91CD][U+7F6E]")
+        print("[U+6309] Ctrl+C [U+505C][U+6B62][U+61C9][U+7528]")
         
         try:
             self.socketio.run(
@@ -776,25 +776,25 @@ class VibrationPlateWebApp:
                 allow_unsafe_werkzeug=True
             )
         except Exception as e:
-            print(f"Web服務器啟動失敗: {e}")
+            print(f"Web[U+670D][U+52D9][U+5668][U+555F][U+52D5][U+5931][U+6557]: {e}")
         finally:
             self.cleanup()
     
     def cleanup(self):
-        """清理資源"""
-        print("正在清理資源...")
+        """[U+6E05][U+7406][U+8CC7][U+6E90]"""
+        print("[U+6B63][U+5728][U+6E05][U+7406][U+8CC7][U+6E90]...")
         self.stop_monitoring()
         if self.modbus_client:
             try:
                 self.modbus_client.close()
-                print("主Modbus連接已安全斷開")
+                print("[U+4E3B]Modbus[U+9023][U+63A5][U+5DF2][U+5B89][U+5168][U+65B7][U+958B]")
             except:
                 pass
-        print("資源清理完成")
+        print("[U+8CC7][U+6E90][U+6E05][U+7406][U+5B8C][U+6210]")
 
 
 def create_index_html():
-    """創建index.html檔案 (如果不存在)"""
+    """[U+5275][U+5EFA]index.html[U+6A94][U+6848] ([U+5982][U+679C][U+4E0D][U+5B58][U+5728])"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     templates_dir = os.path.join(current_dir, 'templates')
     index_path = os.path.join(templates_dir, 'index.html')
@@ -803,37 +803,37 @@ def create_index_html():
         os.makedirs(templates_dir)
     
     if not os.path.exists(index_path):
-        print(f"注意: 未找到 {index_path}")
-        print("請確保將 index.html 檔案放置在 templates/ 目錄中")
+        print(f"[U+6CE8][U+610F]: [U+672A][U+627E][U+5230] {index_path}")
+        print("[U+8ACB][U+78BA][U+4FDD][U+5C07] index.html [U+6A94][U+6848][U+653E][U+7F6E][U+5728] templates/ [U+76EE][U+9304][U+4E2D]")
         return False
     
     return True
 
 
 def main():
-    """主函數"""
+    """[U+4E3B][U+51FD][U+6578]"""
     print("=" * 60)
-    print("震動盤Web控制應用 (純Modbus TCP Client)")
+    print("[U+9707][U+52D5][U+76E4]Web[U+63A7][U+5236][U+61C9][U+7528] ([U+7D14]Modbus TCP Client)")
     print("=" * 60)
     
-    # 檢查HTML模板
+    # [U+6AA2][U+67E5]HTML[U+6A21][U+677F]
     if not create_index_html():
-        print("警告: HTML模板檔案缺失，Web介面可能無法正常顯示")
-        print("繼續啟動應用...")
+        print("[U+8B66][U+544A]: HTML[U+6A21][U+677F][U+6A94][U+6848][U+7F3A][U+5931][U+FF0C]Web[U+4ECB][U+9762][U+53EF][U+80FD][U+7121][U+6CD5][U+6B63][U+5E38][U+986F][U+793A]")
+        print("[U+7E7C][U+7E8C][U+555F][U+52D5][U+61C9][U+7528]...")
     
-    # 創建應用實例
+    # [U+5275][U+5EFA][U+61C9][U+7528][U+5BE6][U+4F8B]
     app = VibrationPlateWebApp()
     
     try:
-        # 運行應用
+        # [U+904B][U+884C][U+61C9][U+7528]
         app.run()
     except KeyboardInterrupt:
-        print("\n收到中斷信號，正在關閉...")
+        print("\n[U+6536][U+5230][U+4E2D][U+65B7][U+4FE1][U+865F][U+FF0C][U+6B63][U+5728][U+95DC][U+9589]...")
     except Exception as e:
-        print(f"應用運行異常: {e}")
+        print(f"[U+61C9][U+7528][U+904B][U+884C][U+7570][U+5E38]: {e}")
     finally:
         app.cleanup()
-        print("應用已安全關閉")
+        print("[U+61C9][U+7528][U+5DF2][U+5B89][U+5168][U+95DC][U+9589]")
 
 
 if __name__ == '__main__':

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-XCApp.py - XC100 可視化控制應用 - 修正版本
-基於Flask的Web界面，通過Modbus TCP與XCModule通訊
-修正寄存器地址映射和頁面刷新問題
+XCApp.py - XC100 [U+53EF][U+8996][U+5316][U+63A7][U+5236][U+61C9][U+7528] - [U+4FEE][U+6B63][U+7248][U+672C]
+[U+57FA][U+65BC]Flask[U+7684]Web[U+754C][U+9762][U+FF0C][U+901A][U+904E]Modbus TCP[U+8207]XCModule[U+901A][U+8A0A]
+[U+4FEE][U+6B63][U+5BC4][U+5B58][U+5668][U+5730][U+5740][U+6620][U+5C04][U+548C][U+9801][U+9762][U+5237][U+65B0][U+554F][U+984C]
 """
 
 import json
@@ -16,31 +16,31 @@ from flask_socketio import SocketIO, emit
 from pymodbus.client import ModbusTcpClient
 import logging
 
-# 禁用Flask的日誌輸出
+# [U+7981][U+7528]Flask[U+7684][U+65E5][U+8A8C][U+8F38][U+51FA]
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 class XCApp:
-    """XC100 Web應用 - 修正版本"""
+    """XC100 Web[U+61C9][U+7528] - [U+4FEE][U+6B63][U+7248][U+672C]"""
     
     def __init__(self, config_file="xc_app_config.json"):
-        # 獲取執行檔案目錄
+        # [U+7372][U+53D6][U+57F7][U+884C][U+6A94][U+6848][U+76EE][U+9304]
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.config_file = os.path.join(self.current_dir, config_file)
         self.config = self.load_config()
         
-        # Modbus TCP客戶端
+        # Modbus TCP[U+5BA2][U+6236][U+7AEF]
         self.modbus_client = None
         self.connected = False
         self.connection_retry_count = 0
         self.max_retry_count = 5
         
-        # 修正: 使用正確的基地址
-        self.base_address = 1000  # 與XCModule.py一致
+        # [U+4FEE][U+6B63]: [U+4F7F][U+7528][U+6B63][U+78BA][U+7684][U+57FA][U+5730][U+5740]
+        self.base_address = 1000  # [U+8207]XCModule.py[U+4E00][U+81F4]
         
-        # 設備狀態
+        # [U+8A2D][U+5099][U+72C0][U+614B]
         self.device_status = {
-            "state": "未知",
+            "state": "[U+672A][U+77E5]",
             "servo_status": False,
             "error_code": 0,
             "current_position": 0,
@@ -53,7 +53,7 @@ class XCApp:
             "last_update": datetime.now().strftime("%H:%M:%S")
         }
         
-        # 應用狀態
+        # [U+61C9][U+7528][U+72C0][U+614B]
         self.app_stats = {
             "total_commands": 0,
             "successful_commands": 0,
@@ -62,26 +62,26 @@ class XCApp:
             "communication_errors": 0
         }
         
-        # Flask應用
+        # Flask[U+61C9][U+7528]
         self.app = Flask(__name__)
         self.app.secret_key = 'xc100_app_secret_key_v3'
         
-        # 修正: 添加SocketIO支持
+        # [U+4FEE][U+6B63]: [U+6DFB][U+52A0]SocketIO[U+652F][U+6301]
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
         
         self.setup_routes()
         self.setup_socketio_events()
         
-        # 監控線程控制
+        # [U+76E3][U+63A7][U+7DDA][U+7A0B][U+63A7][U+5236]
         self.monitor_thread = None
         self.monitor_running = False
-        self.auto_refresh_enabled = True  # 新增: 自動刷新控制
-        self.manual_refresh_mode = False  # 新增: 手動刷新模式
+        self.auto_refresh_enabled = True  # [U+65B0][U+589E]: [U+81EA][U+52D5][U+5237][U+65B0][U+63A7][U+5236]
+        self.manual_refresh_mode = False  # [U+65B0][U+589E]: [U+624B][U+52D5][U+5237][U+65B0][U+6A21][U+5F0F]
         
-        print("XCApp初始化完成")
+        print("XCApp[U+521D][U+59CB][U+5316][U+5B8C][U+6210]")
     
     def load_config(self):
-        """載入配置"""
+        """[U+8F09][U+5165][U+914D][U+7F6E]"""
         default_config = {
             "modbus_tcp": {
                 "host": "127.0.0.1",
@@ -97,15 +97,15 @@ class XCApp:
                 "debug": False
             },
             "xc_module": {
-                "base_address": 1000,  # 修正: 明確指定基地址
+                "base_address": 1000,  # [U+4FEE][U+6B63]: [U+660E][U+78BA][U+6307][U+5B9A][U+57FA][U+5730][U+5740]
                 "register_count": 50
             },
             "ui_settings": {
                 "auto_refresh": True,
-                "refresh_interval": 3.0,  # 修正: 增加到3秒
+                "refresh_interval": 3.0,  # [U+4FEE][U+6B63]: [U+589E][U+52A0][U+5230]3[U+79D2]
                 "show_debug_info": True,
                 "command_confirmation": False,
-                "manual_mode": False  # 新增: 手動模式
+                "manual_mode": False  # [U+65B0][U+589E]: [U+624B][U+52D5][U+6A21][U+5F0F]
             }
         }
         
@@ -113,7 +113,7 @@ class XCApp:
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     loaded_config = json.load(f)
-                    # 深度合併配置
+                    # [U+6DF1][U+5EA6][U+5408][U+4F75][U+914D][U+7F6E]
                     for key, value in default_config.items():
                         if key not in loaded_config:
                             loaded_config[key] = value
@@ -126,22 +126,22 @@ class XCApp:
                 self.save_config(default_config)
                 return default_config
         except Exception as e:
-            print(f"載入配置失敗: {e}")
+            print(f"[U+8F09][U+5165][U+914D][U+7F6E][U+5931][U+6557]: {e}")
             
         return default_config
     
     def save_config(self, config=None):
-        """保存配置"""
+        """[U+4FDD][U+5B58][U+914D][U+7F6E]"""
         try:
             config_to_save = config or self.config
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(config_to_save, f, indent=2, ensure_ascii=False)
-            print(f"配置已保存: {self.config_file}")
+            print(f"[U+914D][U+7F6E][U+5DF2][U+4FDD][U+5B58]: {self.config_file}")
         except Exception as e:
-            print(f"保存配置失敗: {e}")
+            print(f"[U+4FDD][U+5B58][U+914D][U+7F6E][U+5931][U+6557]: {e}")
     
     def connect_modbus(self):
-        """連線到XCModule with retry logic"""
+        """[U+9023][U+7DDA][U+5230]XCModule with retry logic"""
         try:
             modbus_config = self.config["modbus_tcp"]
             
@@ -160,39 +160,39 @@ class XCApp:
             if self.modbus_client.connect():
                 self.connected = True
                 self.connection_retry_count = 0
-                print(f"已連線到XCModule: {modbus_config['host']}:{modbus_config['port']}")
+                print(f"[U+5DF2][U+9023][U+7DDA][U+5230]XCModule: {modbus_config['host']}:{modbus_config['port']}")
                 return True
             else:
                 self.connected = False
                 self.connection_retry_count += 1
-                print(f"連線XCModule失敗 (重試 {self.connection_retry_count}/{self.max_retry_count})")
+                print(f"[U+9023][U+7DDA]XCModule[U+5931][U+6557] ([U+91CD][U+8A66] {self.connection_retry_count}/{self.max_retry_count})")
                 return False
                 
         except Exception as e:
             self.connected = False
             self.connection_retry_count += 1
-            print(f"連線XCModule異常 (重試 {self.connection_retry_count}/{self.max_retry_count}): {e}")
+            print(f"[U+9023][U+7DDA]XCModule[U+7570][U+5E38] ([U+91CD][U+8A66] {self.connection_retry_count}/{self.max_retry_count}): {e}")
             return False
     
     def disconnect_modbus(self):
-        """斷開Modbus連線"""
+        """[U+65B7][U+958B]Modbus[U+9023][U+7DDA]"""
         try:
             if self.modbus_client and self.connected:
                 self.modbus_client.close()
                 self.connected = False
-                print("已斷開XCModule連線")
+                print("[U+5DF2][U+65B7][U+958B]XCModule[U+9023][U+7DDA]")
         except Exception as e:
-            print(f"斷開連線異常: {e}")
+            print(f"[U+65B7][U+958B][U+9023][U+7DDA][U+7570][U+5E38]: {e}")
     
     def read_device_status(self):
-        """讀取設備狀態 - 修正寄存器地址"""
+        """[U+8B80][U+53D6][U+8A2D][U+5099][U+72C0][U+614B] - [U+4FEE][U+6B63][U+5BC4][U+5B58][U+5668][U+5730][U+5740]"""
         if not self.connected:
             return False
         
         try:
             unit_id = self.config["modbus_tcp"]["unit_id"]
             
-            # 修正: 使用正確的基地址讀取狀態寄存器 (1000-1014)
+            # [U+4FEE][U+6B63]: [U+4F7F][U+7528][U+6B63][U+78BA][U+7684][U+57FA][U+5730][U+5740][U+8B80][U+53D6][U+72C0][U+614B][U+5BC4][U+5B58][U+5668] (1000-1014)
             result = self.modbus_client.read_holding_registers(
                 address=self.base_address, 
                 count=15, 
@@ -202,48 +202,48 @@ class XCApp:
             if not result.isError():
                 registers = result.registers
                 
-                # 狀態映射
+                # [U+72C0][U+614B][U+6620][U+5C04]
                 state_map = {
-                    0: "離線", 1: "閒置", 2: "移動中", 3: "原點復歸中", 
-                    4: "錯誤", 5: "Servo關閉", 6: "緊急停止"
+                    0: "[U+96E2][U+7DDA]", 1: "[U+9592][U+7F6E]", 2: "[U+79FB][U+52D5][U+4E2D]", 3: "[U+539F][U+9EDE][U+5FA9][U+6B78][U+4E2D]", 
+                    4: "[U+932F][U+8AA4]", 5: "Servo[U+95DC][U+9589]", 6: "[U+7DCA][U+6025][U+505C][U+6B62]"
                 }
                 
-                # 錯誤代碼描述
+                # [U+932F][U+8AA4][U+4EE3][U+78BC][U+63CF][U+8FF0]
                 error_map = {
-                    0: "正常",
-                    1: "在動作中接收動作指令",
-                    2: "上下限錯誤", 
-                    3: "位置錯誤",
-                    4: "格式錯誤",
-                    5: "控制模式錯誤",
-                    6: "斷電重開",
-                    7: "初始化未完成",
-                    8: "Servo ON/OFF 錯誤",
+                    0: "[U+6B63][U+5E38]",
+                    1: "[U+5728][U+52D5][U+4F5C][U+4E2D][U+63A5][U+6536][U+52D5][U+4F5C][U+6307][U+4EE4]",
+                    2: "[U+4E0A][U+4E0B][U+9650][U+932F][U+8AA4]", 
+                    3: "[U+4F4D][U+7F6E][U+932F][U+8AA4]",
+                    4: "[U+683C][U+5F0F][U+932F][U+8AA4]",
+                    5: "[U+63A7][U+5236][U+6A21][U+5F0F][U+932F][U+8AA4]",
+                    6: "[U+65B7][U+96FB][U+91CD][U+958B]",
+                    7: "[U+521D][U+59CB][U+5316][U+672A][U+5B8C][U+6210]",
+                    8: "Servo ON/OFF [U+932F][U+8AA4]",
                     9: "LOCK",
-                    10: "軟體極限",
-                    11: "參數寫入權限不足",
-                    12: "原點復歸未完成",
-                    13: "剎車已解除",
-                    999: "通訊異常"
+                    10: "[U+8EDF][U+9AD4][U+6975][U+9650]",
+                    11: "[U+53C3][U+6578][U+5BEB][U+5165][U+6B0A][U+9650][U+4E0D][U+8DB3]",
+                    12: "[U+539F][U+9EDE][U+5FA9][U+6B78][U+672A][U+5B8C][U+6210]",
+                    13: "[U+524E][U+8ECA][U+5DF2][U+89E3][U+9664]",
+                    999: "[U+901A][U+8A0A][U+7570][U+5E38]"
                 }
                 
                 self.device_status.update({
-                    "state": state_map.get(registers[0], f"未知({registers[0]})"),
-                    "xc_connected": registers[1] == 1,  # 修正: XC設備連接狀態
+                    "state": state_map.get(registers[0], f"[U+672A][U+77E5]({registers[0]})"),
+                    "xc_connected": registers[1] == 1,  # [U+4FEE][U+6B63]: XC[U+8A2D][U+5099][U+9023][U+63A5][U+72C0][U+614B]
                     "servo_status": registers[2] == 1,
                     "error_code": registers[3],
-                    "error_description": error_map.get(registers[3], f"未知錯誤({registers[3]})"),
-                    "current_position": (registers[5] << 16) | registers[4],  # 修正: 32位位置合併
-                    "target_position": (registers[7] << 16) | registers[6],   # 修正: 32位位置合併
+                    "error_description": error_map.get(registers[3], f"[U+672A][U+77E5][U+932F][U+8AA4]({registers[3]})"),
+                    "current_position": (registers[5] << 16) | registers[4],  # [U+4FEE][U+6B63]: 32[U+4F4D][U+4F4D][U+7F6E][U+5408][U+4F75]
+                    "target_position": (registers[7] << 16) | registers[6],   # [U+4FEE][U+6B63]: 32[U+4F4D][U+4F4D][U+7F6E][U+5408][U+4F75]
                     "command_executing": registers[8] == 1,
                     "comm_errors": registers[9],
-                    "position_A": (registers[11] << 16) | registers[10],      # 修正: A點位置
-                    "position_B": (registers[13] << 16) | registers[12],      # 修正: B點位置
-                    "module_connected": True,  # 能讀取到數據說明模組已連接
+                    "position_A": (registers[11] << 16) | registers[10],      # [U+4FEE][U+6B63]: A[U+9EDE][U+4F4D][U+7F6E]
+                    "position_B": (registers[13] << 16) | registers[12],      # [U+4FEE][U+6B63]: B[U+9EDE][U+4F4D][U+7F6E]
+                    "module_connected": True,  # [U+80FD][U+8B80][U+53D6][U+5230][U+6578][U+64DA][U+8AAA][U+660E][U+6A21][U+7D44][U+5DF2][U+9023][U+63A5]
                     "last_update": datetime.now().strftime("%H:%M:%S")
                 })
                 
-                # 計算通訊健康度
+                # [U+8A08][U+7B97][U+901A][U+8A0A][U+5065][U+5EB7][U+5EA6]
                 if self.app_stats["communication_errors"] == 0:
                     self.device_status["communication_health"] = 100
                 else:
@@ -254,12 +254,12 @@ class XCApp:
                 
         except Exception as e:
             self.app_stats["communication_errors"] += 1
-            print(f"讀取設備狀態異常: {e}")
+            print(f"[U+8B80][U+53D6][U+8A2D][U+5099][U+72C0][U+614B][U+7570][U+5E38]: {e}")
             self.device_status["module_connected"] = False
             return False
     
     def send_command(self, command, param1=0, param2=0):
-        """發送指令到XCModule - 修正寄存器地址"""
+        """[U+767C][U+9001][U+6307][U+4EE4][U+5230]XCModule - [U+4FEE][U+6B63][U+5BC4][U+5B58][U+5668][U+5730][U+5740]"""
         if not self.connected:
             self.app_stats["failed_commands"] += 1
             return False
@@ -268,20 +268,20 @@ class XCApp:
             self.app_stats["total_commands"] += 1
             unit_id = self.config["modbus_tcp"]["unit_id"]
             
-            # 先檢查是否有指令正在執行
+            # [U+5148][U+6AA2][U+67E5][U+662F][U+5426][U+6709][U+6307][U+4EE4][U+6B63][U+5728][U+57F7][U+884C]
             status_result = self.modbus_client.read_holding_registers(
                 address=self.base_address + 8, count=1, slave=unit_id
             )
             if not status_result.isError() and status_result.registers[0] == 1:
-                print("有指令正在執行中，請稍候")
+                print("[U+6709][U+6307][U+4EE4][U+6B63][U+5728][U+57F7][U+884C][U+4E2D][U+FF0C][U+8ACB][U+7A0D][U+5019]")
                 self.app_stats["failed_commands"] += 1
                 return False
             
-            # 修正: 使用正確的指令寄存器地址 (1020-1024)
+            # [U+4FEE][U+6B63]: [U+4F7F][U+7528][U+6B63][U+78BA][U+7684][U+6307][U+4EE4][U+5BC4][U+5B58][U+5668][U+5730][U+5740] (1020-1024)
             command_address = self.base_address + 20  # 1020
-            command_id = int(time.time()) % 65536  # 生成唯一ID
+            command_id = int(time.time()) % 65536  # [U+751F][U+6210][U+552F][U+4E00]ID
             
-            # 寫入指令寄存器
+            # [U+5BEB][U+5165][U+6307][U+4EE4][U+5BC4][U+5B58][U+5668]
             values = [command, param1, param2, command_id, 0]
             result = self.modbus_client.write_registers(
                 address=command_address, 
@@ -291,48 +291,48 @@ class XCApp:
             
             if not result.isError():
                 command_names = {
-                    1: 'Servo ON', 2: 'Servo OFF', 3: '原點復歸',
-                    4: '絕對移動', 6: '緊急停止', 7: '錯誤重置'
+                    1: 'Servo ON', 2: 'Servo OFF', 3: '[U+539F][U+9EDE][U+5FA9][U+6B78]',
+                    4: '[U+7D55][U+5C0D][U+79FB][U+52D5]', 6: '[U+7DCA][U+6025][U+505C][U+6B62]', 7: '[U+932F][U+8AA4][U+91CD][U+7F6E]'
                 }
-                print(f"指令發送成功: {command_names.get(command, f'指令{command}')} (ID: {command_id})")
+                print(f"[U+6307][U+4EE4][U+767C][U+9001][U+6210][U+529F]: {command_names.get(command, f'[U+6307][U+4EE4]{command}')} (ID: {command_id})")
                 self.app_stats["successful_commands"] += 1
                 return True
             else:
-                print(f"指令發送失敗: {result}")
+                print(f"[U+6307][U+4EE4][U+767C][U+9001][U+5931][U+6557]: {result}")
                 self.app_stats["failed_commands"] += 1
                 return False
                 
         except Exception as e:
-            print(f"發送指令異常: {e}")
+            print(f"[U+767C][U+9001][U+6307][U+4EE4][U+7570][U+5E38]: {e}")
             self.app_stats["failed_commands"] += 1
             self.app_stats["communication_errors"] += 1
             return False
     
     def update_position(self, pos_type, position):
-        """更新位置設定 - 修正寄存器地址"""
+        """[U+66F4][U+65B0][U+4F4D][U+7F6E][U+8A2D][U+5B9A] - [U+4FEE][U+6B63][U+5BC4][U+5B58][U+5668][U+5730][U+5740]"""
         if not self.connected:
             return False
         
         try:
-            # 位置範圍檢查
+            # [U+4F4D][U+7F6E][U+7BC4][U+570D][U+6AA2][U+67E5]
             if not (-999999 <= position <= 999999):
-                print(f"位置超出範圍: {position}")
+                print(f"[U+4F4D][U+7F6E][U+8D85][U+51FA][U+7BC4][U+570D]: {position}")
                 return False
             
             unit_id = self.config["modbus_tcp"]["unit_id"]
             
-            # 32位位置分解
+            # 32[U+4F4D][U+4F4D][U+7F6E][U+5206][U+89E3]
             pos_low = position & 0xFFFF
             pos_high = (position >> 16) & 0xFFFF
             
             if pos_type == 'A':
-                # 修正: 更新A點位置 (1010-1011)
+                # [U+4FEE][U+6B63]: [U+66F4][U+65B0]A[U+9EDE][U+4F4D][U+7F6E] (1010-1011)
                 address = self.base_address + 10
                 result = self.modbus_client.write_registers(
                     address=address, values=[pos_low, pos_high], slave=unit_id
                 )
             elif pos_type == 'B':
-                # 修正: 更新B點位置 (1012-1013)
+                # [U+4FEE][U+6B63]: [U+66F4][U+65B0]B[U+9EDE][U+4F4D][U+7F6E] (1012-1013)
                 address = self.base_address + 12
                 result = self.modbus_client.write_registers(
                     address=address, values=[pos_low, pos_high], slave=unit_id
@@ -341,24 +341,24 @@ class XCApp:
                 return False
             
             if not result.isError():
-                print(f"{pos_type}點位置已更新為: {position}")
-                # 更新本地狀態
+                print(f"{pos_type}[U+9EDE][U+4F4D][U+7F6E][U+5DF2][U+66F4][U+65B0][U+70BA]: {position}")
+                # [U+66F4][U+65B0][U+672C][U+5730][U+72C0][U+614B]
                 if pos_type == 'A':
                     self.device_status["position_A"] = position
                 else:
                     self.device_status["position_B"] = position
                 return True
             else:
-                print(f"位置更新失敗: {result}")
+                print(f"[U+4F4D][U+7F6E][U+66F4][U+65B0][U+5931][U+6557]: {result}")
                 return False
             
         except Exception as e:
-            print(f"更新位置異常: {e}")
+            print(f"[U+66F4][U+65B0][U+4F4D][U+7F6E][U+7570][U+5E38]: {e}")
             return False
     
     def monitor_loop(self):
-        """監控循環 - 修正刷新頻率"""
-        print("開始設備狀態監控")
+        """[U+76E3][U+63A7][U+5FAA][U+74B0] - [U+4FEE][U+6B63][U+5237][U+65B0][U+983B][U+7387]"""
+        print("[U+958B][U+59CB][U+8A2D][U+5099][U+72C0][U+614B][U+76E3][U+63A7]")
         
         refresh_interval = self.config["ui_settings"]["refresh_interval"]
         
@@ -366,45 +366,45 @@ class XCApp:
             try:
                 if self.connected:
                     if not self.read_device_status():
-                        # 讀取失敗，可能需要重連
+                        # [U+8B80][U+53D6][U+5931][U+6557][U+FF0C][U+53EF][U+80FD][U+9700][U+8981][U+91CD][U+9023]
                         self.connected = False
                 else:
-                    # 嘗試重新連線
+                    # [U+5617][U+8A66][U+91CD][U+65B0][U+9023][U+7DDA]
                     if self.connection_retry_count < self.max_retry_count:
-                        print(f"嘗試重新連線... ({self.connection_retry_count + 1}/{self.max_retry_count})")
+                        print(f"[U+5617][U+8A66][U+91CD][U+65B0][U+9023][U+7DDA]... ({self.connection_retry_count + 1}/{self.max_retry_count})")
                         self.connect_modbus()
                     elif self.connection_retry_count >= self.max_retry_count:
-                        print("達到最大重試次數，停止重連嘗試")
-                        time.sleep(10)  # 等待10秒後重置重試計數
+                        print("[U+9054][U+5230][U+6700][U+5927][U+91CD][U+8A66][U+6B21][U+6578][U+FF0C][U+505C][U+6B62][U+91CD][U+9023][U+5617][U+8A66]")
+                        time.sleep(10)  # [U+7B49][U+5F85]10[U+79D2][U+5F8C][U+91CD][U+7F6E][U+91CD][U+8A66][U+8A08][U+6578]
                         self.connection_retry_count = 0
                 
-                # 修正: 只有在自動刷新模式下才發送更新
+                # [U+4FEE][U+6B63]: [U+53EA][U+6709][U+5728][U+81EA][U+52D5][U+5237][U+65B0][U+6A21][U+5F0F][U+4E0B][U+624D][U+767C][U+9001][U+66F4][U+65B0]
                 if self.auto_refresh_enabled and not self.manual_refresh_mode:
                     self.socketio.emit('status_update', self.get_full_status())
                 
                 time.sleep(refresh_interval)
                 
             except Exception as e:
-                print(f"監控循環異常: {e}")
+                print(f"[U+76E3][U+63A7][U+5FAA][U+74B0][U+7570][U+5E38]: {e}")
                 time.sleep(5)
         
-        print("設備狀態監控停止")
+        print("[U+8A2D][U+5099][U+72C0][U+614B][U+76E3][U+63A7][U+505C][U+6B62]")
     
     def start_monitoring(self):
-        """開始監控"""
+        """[U+958B][U+59CB][U+76E3][U+63A7]"""
         if not self.monitor_running:
             self.monitor_running = True
             self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
             self.monitor_thread.start()
     
     def stop_monitoring(self):
-        """停止監控"""
+        """[U+505C][U+6B62][U+76E3][U+63A7]"""
         self.monitor_running = False
         if self.monitor_thread:
             self.monitor_thread.join(timeout=3)
     
     def get_app_statistics(self):
-        """獲取應用統計"""
+        """[U+7372][U+53D6][U+61C9][U+7528][U+7D71][U+8A08]"""
         uptime = datetime.now() - self.app_stats["uptime_start"]
         success_rate = 0
         if self.app_stats["total_commands"] > 0:
@@ -420,7 +420,7 @@ class XCApp:
         }
     
     def get_full_status(self):
-        """獲取完整狀態"""
+        """[U+7372][U+53D6][U+5B8C][U+6574][U+72C0][U+614B]"""
         return {
             "success": True,
             "connected": self.connected,
@@ -436,126 +436,126 @@ class XCApp:
         }
     
     def setup_socketio_events(self):
-        """設置SocketIO事件 - 新增手動控制功能"""
+        """[U+8A2D][U+7F6E]SocketIO[U+4E8B][U+4EF6] - [U+65B0][U+589E][U+624B][U+52D5][U+63A7][U+5236][U+529F][U+80FD]"""
         
         @self.socketio.on('connect')
         def handle_connect():
-            """客戶端連接"""
-            print("Web客戶端已連接")
+            """[U+5BA2][U+6236][U+7AEF][U+9023][U+63A5]"""
+            print("Web[U+5BA2][U+6236][U+7AEF][U+5DF2][U+9023][U+63A5]")
             emit('status_update', self.get_full_status())
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            """客戶端斷開"""
-            print("Web客戶端已斷開")
+            """[U+5BA2][U+6236][U+7AEF][U+65B7][U+958B]"""
+            print("Web[U+5BA2][U+6236][U+7AEF][U+5DF2][U+65B7][U+958B]")
         
         @self.socketio.on('request_status')
         def handle_status_request():
-            """手動請求狀態更新"""
+            """[U+624B][U+52D5][U+8ACB][U+6C42][U+72C0][U+614B][U+66F4][U+65B0]"""
             emit('status_update', self.get_full_status())
         
         @self.socketio.on('toggle_auto_refresh')
         def handle_toggle_auto_refresh(data):
-            """切換自動刷新"""
+            """[U+5207][U+63DB][U+81EA][U+52D5][U+5237][U+65B0]"""
             self.auto_refresh_enabled = data.get('enabled', True)
-            print(f"自動刷新: {'開啟' if self.auto_refresh_enabled else '關閉'}")
+            print(f"[U+81EA][U+52D5][U+5237][U+65B0]: {'[U+958B][U+555F]' if self.auto_refresh_enabled else '[U+95DC][U+9589]'}")
             emit('auto_refresh_status', {'enabled': self.auto_refresh_enabled})
         
         @self.socketio.on('set_manual_mode')
         def handle_manual_mode(data):
-            """設置手動模式"""
+            """[U+8A2D][U+7F6E][U+624B][U+52D5][U+6A21][U+5F0F]"""
             self.manual_refresh_mode = data.get('manual', False)
-            print(f"手動模式: {'開啟' if self.manual_refresh_mode else '關閉'}")
+            print(f"[U+624B][U+52D5][U+6A21][U+5F0F]: {'[U+958B][U+555F]' if self.manual_refresh_mode else '[U+95DC][U+9589]'}")
             emit('manual_mode_status', {'manual': self.manual_refresh_mode})
     
     def setup_routes(self):
-        """設置Flask路由 - 增強功能"""
+        """[U+8A2D][U+7F6E]Flask[U+8DEF][U+7531] - [U+589E][U+5F37][U+529F][U+80FD]"""
         
         @self.app.route('/')
         def index():
-            """主頁"""
+            """[U+4E3B][U+9801]"""
             return render_template('index.html')
         
         @self.app.route('/api/status')
         def get_status():
-            """獲取設備狀態API"""
+            """[U+7372][U+53D6][U+8A2D][U+5099][U+72C0][U+614B]API"""
             return jsonify(self.get_full_status())
         
         @self.app.route('/api/command', methods=['POST'])
         def send_command_api():
-            """發送指令API"""
+            """[U+767C][U+9001][U+6307][U+4EE4]API"""
             try:
                 data = request.get_json()
                 command = data.get('command', 0)
                 param1 = data.get('param1', 0)
                 param2 = data.get('param2', 0)
                 
-                # 指令驗證
+                # [U+6307][U+4EE4][U+9A57][U+8B49]
                 valid_commands = [1, 2, 3, 4, 6, 7]
                 if command not in valid_commands:
-                    return jsonify({"success": False, "message": f"無效的指令代碼: {command}"})
+                    return jsonify({"success": False, "message": f"[U+7121][U+6548][U+7684][U+6307][U+4EE4][U+4EE3][U+78BC]: {command}"})
                 
                 if self.send_command(command, param1, param2):
-                    # 指令發送後立即更新狀態
+                    # [U+6307][U+4EE4][U+767C][U+9001][U+5F8C][U+7ACB][U+5373][U+66F4][U+65B0][U+72C0][U+614B]
                     time.sleep(0.1)
                     self.read_device_status()
-                    return jsonify({"success": True, "message": "指令發送成功"})
+                    return jsonify({"success": True, "message": "[U+6307][U+4EE4][U+767C][U+9001][U+6210][U+529F]"})
                 else:
-                    return jsonify({"success": False, "message": "指令發送失敗"})
+                    return jsonify({"success": False, "message": "[U+6307][U+4EE4][U+767C][U+9001][U+5931][U+6557]"})
                     
             except Exception as e:
-                return jsonify({"success": False, "message": f"發送指令異常: {e}"})
+                return jsonify({"success": False, "message": f"[U+767C][U+9001][U+6307][U+4EE4][U+7570][U+5E38]: {e}"})
         
         @self.app.route('/api/position', methods=['POST'])
         def update_position_api():
-            """更新位置API"""
+            """[U+66F4][U+65B0][U+4F4D][U+7F6E]API"""
             try:
                 data = request.get_json()
                 pos_type = data.get('type')  # 'A' or 'B'
                 position = int(data.get('position', 0))
                 
                 if pos_type not in ['A', 'B']:
-                    return jsonify({"success": False, "message": "無效的位置類型"})
+                    return jsonify({"success": False, "message": "[U+7121][U+6548][U+7684][U+4F4D][U+7F6E][U+985E][U+578B]"})
                 
                 if self.update_position(pos_type, position):
-                    # 位置更新後立即刷新狀態
+                    # [U+4F4D][U+7F6E][U+66F4][U+65B0][U+5F8C][U+7ACB][U+5373][U+5237][U+65B0][U+72C0][U+614B]
                     time.sleep(0.1)
                     self.read_device_status()
-                    return jsonify({"success": True, "message": f"{pos_type}點位置更新成功"})
+                    return jsonify({"success": True, "message": f"{pos_type}[U+9EDE][U+4F4D][U+7F6E][U+66F4][U+65B0][U+6210][U+529F]"})
                 else:
-                    return jsonify({"success": False, "message": "位置更新失敗"})
+                    return jsonify({"success": False, "message": "[U+4F4D][U+7F6E][U+66F4][U+65B0][U+5931][U+6557]"})
                     
             except ValueError:
-                return jsonify({"success": False, "message": "位置必須是數字"})
+                return jsonify({"success": False, "message": "[U+4F4D][U+7F6E][U+5FC5][U+9808][U+662F][U+6578][U+5B57]"})
             except Exception as e:
-                return jsonify({"success": False, "message": f"更新位置異常: {e}"})
+                return jsonify({"success": False, "message": f"[U+66F4][U+65B0][U+4F4D][U+7F6E][U+7570][U+5E38]: {e}"})
         
         @self.app.route('/api/connect', methods=['POST'])
         def connect_api():
-            """連線API"""
+            """[U+9023][U+7DDA]API"""
             self.connection_retry_count = 0
             if self.connect_modbus():
-                return jsonify({"success": True, "message": "連線成功"})
+                return jsonify({"success": True, "message": "[U+9023][U+7DDA][U+6210][U+529F]"})
             else:
-                return jsonify({"success": False, "message": "連線失敗"})
+                return jsonify({"success": False, "message": "[U+9023][U+7DDA][U+5931][U+6557]"})
         
         @self.app.route('/api/disconnect', methods=['POST'])
         def disconnect_api():
-            """斷開連線API"""
+            """[U+65B7][U+958B][U+9023][U+7DDA]API"""
             self.disconnect_modbus()
-            return jsonify({"success": True, "message": "已斷開連線"})
+            return jsonify({"success": True, "message": "[U+5DF2][U+65B7][U+958B][U+9023][U+7DDA]"})
         
         @self.app.route('/api/manual_refresh', methods=['POST'])
         def manual_refresh():
-            """手動刷新狀態"""
+            """[U+624B][U+52D5][U+5237][U+65B0][U+72C0][U+614B]"""
             if self.read_device_status():
                 return jsonify(self.get_full_status())
             else:
-                return jsonify({"success": False, "message": "讀取狀態失敗"})
+                return jsonify({"success": False, "message": "[U+8B80][U+53D6][U+72C0][U+614B][U+5931][U+6557]"})
         
         @self.app.route('/api/settings', methods=['GET', 'POST'])
         def settings_api():
-            """設置API"""
+            """[U+8A2D][U+7F6E]API"""
             if request.method == 'GET':
                 return jsonify({
                     "success": True,
@@ -565,7 +565,7 @@ class XCApp:
                 try:
                     data = request.get_json()
                     
-                    # 更新設置
+                    # [U+66F4][U+65B0][U+8A2D][U+7F6E]
                     if 'auto_refresh' in data:
                         self.config["ui_settings"]["auto_refresh"] = data['auto_refresh']
                         self.auto_refresh_enabled = data['auto_refresh']
@@ -578,14 +578,14 @@ class XCApp:
                         self.manual_refresh_mode = data['manual_mode']
                     
                     self.save_config()
-                    return jsonify({"success": True, "message": "設置已更新"})
+                    return jsonify({"success": True, "message": "[U+8A2D][U+7F6E][U+5DF2][U+66F4][U+65B0]"})
                     
                 except Exception as e:
-                    return jsonify({"success": False, "message": f"更新設置失敗: {e}"})
+                    return jsonify({"success": False, "message": f"[U+66F4][U+65B0][U+8A2D][U+7F6E][U+5931][U+6557]: {e}"})
         
         @self.app.route('/api/debug')
         def debug_info():
-            """調試信息API"""
+            """[U+8ABF][U+8A66][U+4FE1][U+606F]API"""
             return jsonify({
                 "success": True,
                 "debug_info": {
@@ -600,52 +600,52 @@ class XCApp:
             })
     
     def run(self):
-        """運行Web應用"""
-        # 檢查XCModule是否在運行
+        """[U+904B][U+884C]Web[U+61C9][U+7528]"""
+        # [U+6AA2][U+67E5]XCModule[U+662F][U+5426][U+5728][U+904B][U+884C]
         if not self.connect_modbus():
-            print("無法連線到XCModule")
-            print("請確保XCModule.py正在運行，然後重試")
-            print("\n故障排除步驟：")
-            print("1. 確認XCModule.py已啟動並顯示'模組啟動成功'")
-            print("2. 檢查Modbus TCP Server是否在127.0.0.1:502運行")
-            print("3. 確認防火牆沒有阻擋端口502")
-            print("4. 檢查XC100設備是否正確連接")
-            print("\n將以離線模式啟動Web界面...")
+            print("[U+7121][U+6CD5][U+9023][U+7DDA][U+5230]XCModule")
+            print("[U+8ACB][U+78BA][U+4FDD]XCModule.py[U+6B63][U+5728][U+904B][U+884C][U+FF0C][U+7136][U+5F8C][U+91CD][U+8A66]")
+            print("\n[U+6545][U+969C][U+6392][U+9664][U+6B65][U+9A5F][U+FF1A]")
+            print("1. [U+78BA][U+8A8D]XCModule.py[U+5DF2][U+555F][U+52D5][U+4E26][U+986F][U+793A]'[U+6A21][U+7D44][U+555F][U+52D5][U+6210][U+529F]'")
+            print("2. [U+6AA2][U+67E5]Modbus TCP Server[U+662F][U+5426][U+5728]127.0.0.1:502[U+904B][U+884C]")
+            print("3. [U+78BA][U+8A8D][U+9632][U+706B][U+7246][U+6C92][U+6709][U+963B][U+64CB][U+7AEF][U+53E3]502")
+            print("4. [U+6AA2][U+67E5]XC100[U+8A2D][U+5099][U+662F][U+5426][U+6B63][U+78BA][U+9023][U+63A5]")
+            print("\n[U+5C07][U+4EE5][U+96E2][U+7DDA][U+6A21][U+5F0F][U+555F][U+52D5]Web[U+754C][U+9762]...")
         
-        # 檢查templates目錄
+        # [U+6AA2][U+67E5]templates[U+76EE][U+9304]
         templates_dir = os.path.join(self.current_dir, 'templates')
         if not os.path.exists(templates_dir):
-            print("找不到templates目錄")
-            print(f"請在 {self.current_dir} 目錄下創建templates文件夾")
+            print("[U+627E][U+4E0D][U+5230]templates[U+76EE][U+9304]")
+            print(f"[U+8ACB][U+5728] {self.current_dir} [U+76EE][U+9304][U+4E0B][U+5275][U+5EFA]templates[U+6587][U+4EF6][U+593E]")
             return
         
         index_file = os.path.join(templates_dir, 'index.html')
         if not os.path.exists(index_file):
-            print("找不到templates/index.html文件")
-            print("請將index.html放置在templates目錄中")
+            print("[U+627E][U+4E0D][U+5230]templates/index.html[U+6587][U+4EF6]")
+            print("[U+8ACB][U+5C07]index.html[U+653E][U+7F6E][U+5728]templates[U+76EE][U+9304][U+4E2D]")
             return
         
-        # 開始監控
+        # [U+958B][U+59CB][U+76E3][U+63A7]
         self.start_monitoring()
         
         try:
             web_config = self.config["web_server"]
-            print(f"\nXCApp啟動")
-            print(f"Web界面: http://localhost:{web_config['port']}")
-            print(f"配置文件: {self.config_file}")
-            print(f"刷新間隔: {self.config['ui_settings']['refresh_interval']}秒")
-            print(f"寄存器基地址: {self.base_address}")
-            print(f"模板目錄: {templates_dir}")
-            print("\n修正功能:")
-            print("  修正寄存器地址映射")
-            print("  優化頁面刷新頻率")
-            print("  新增手動刷新模式")
-            print("  改善位置輸入體驗")
-            print("  SocketIO即時通訊")
-            print("  配置文件自動保存")
-            print("\n按 Ctrl+C 停止應用")
+            print(f"\nXCApp[U+555F][U+52D5]")
+            print(f"Web[U+754C][U+9762]: http://localhost:{web_config['port']}")
+            print(f"[U+914D][U+7F6E][U+6587][U+4EF6]: {self.config_file}")
+            print(f"[U+5237][U+65B0][U+9593][U+9694]: {self.config['ui_settings']['refresh_interval']}[U+79D2]")
+            print(f"[U+5BC4][U+5B58][U+5668][U+57FA][U+5730][U+5740]: {self.base_address}")
+            print(f"[U+6A21][U+677F][U+76EE][U+9304]: {templates_dir}")
+            print("\n[U+4FEE][U+6B63][U+529F][U+80FD]:")
+            print("  [U+4FEE][U+6B63][U+5BC4][U+5B58][U+5668][U+5730][U+5740][U+6620][U+5C04]")
+            print("  [U+512A][U+5316][U+9801][U+9762][U+5237][U+65B0][U+983B][U+7387]")
+            print("  [U+65B0][U+589E][U+624B][U+52D5][U+5237][U+65B0][U+6A21][U+5F0F]")
+            print("  [U+6539][U+5584][U+4F4D][U+7F6E][U+8F38][U+5165][U+9AD4][U+9A57]")
+            print("  SocketIO[U+5373][U+6642][U+901A][U+8A0A]")
+            print("  [U+914D][U+7F6E][U+6587][U+4EF6][U+81EA][U+52D5][U+4FDD][U+5B58]")
+            print("\n[U+6309] Ctrl+C [U+505C][U+6B62][U+61C9][U+7528]")
             
-            # 啟動Flask應用
+            # [U+555F][U+52D5]Flask[U+61C9][U+7528]
             self.socketio.run(
                 self.app,
                 host=web_config["host"],
@@ -655,34 +655,34 @@ class XCApp:
             )
             
         except KeyboardInterrupt:
-            print("\n正在停止應用...")
+            print("\n[U+6B63][U+5728][U+505C][U+6B62][U+61C9][U+7528]...")
         except Exception as e:
-            print(f"\nWeb應用運行異常: {e}")
+            print(f"\nWeb[U+61C9][U+7528][U+904B][U+884C][U+7570][U+5E38]: {e}")
         finally:
             self.stop_monitoring()
             self.disconnect_modbus()
-            print("XCApp已停止")
+            print("XCApp[U+5DF2][U+505C][U+6B62]")
 
 def main():
-    """主函數"""
+    """[U+4E3B][U+51FD][U+6578]"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='XC100 Web控制應用')
-    parser.add_argument('--config', type=str, default="xc_app_config.json", help='配置文件路徑')
-    parser.add_argument('--port', type=int, help='Web服務器端口')
-    parser.add_argument('--host', type=str, help='Web服務器主機')
-    parser.add_argument('--modbus-host', type=str, help='XCModule主機地址')
-    parser.add_argument('--modbus-port', type=int, help='XCModule端口')
-    parser.add_argument('--debug', action='store_true', help='啟用調試模式')
+    parser = argparse.ArgumentParser(description='XC100 Web[U+63A7][U+5236][U+61C9][U+7528]')
+    parser.add_argument('--config', type=str, default="xc_app_config.json", help='[U+914D][U+7F6E][U+6587][U+4EF6][U+8DEF][U+5F91]')
+    parser.add_argument('--port', type=int, help='Web[U+670D][U+52D9][U+5668][U+7AEF][U+53E3]')
+    parser.add_argument('--host', type=str, help='Web[U+670D][U+52D9][U+5668][U+4E3B][U+6A5F]')
+    parser.add_argument('--modbus-host', type=str, help='XCModule[U+4E3B][U+6A5F][U+5730][U+5740]')
+    parser.add_argument('--modbus-port', type=int, help='XCModule[U+7AEF][U+53E3]')
+    parser.add_argument('--debug', action='store_true', help='[U+555F][U+7528][U+8ABF][U+8A66][U+6A21][U+5F0F]')
     args = parser.parse_args()
     
-    print("XCApp - XC100 Web控制應用 修正版本")
+    print("XCApp - XC100 Web[U+63A7][U+5236][U+61C9][U+7528] [U+4FEE][U+6B63][U+7248][U+672C]")
     print("=" * 50)
     
-    # 創建應用實例
+    # [U+5275][U+5EFA][U+61C9][U+7528][U+5BE6][U+4F8B]
     app = XCApp(args.config)
     
-    # 覆蓋命令行參數
+    # [U+8986][U+84CB][U+547D][U+4EE4][U+884C][U+53C3][U+6578]
     if args.port:
         app.config["web_server"]["port"] = args.port
     if args.host:
@@ -694,10 +694,10 @@ def main():
     if args.debug:
         app.config["web_server"]["debug"] = True
     
-    # 保存更新後的配置
+    # [U+4FDD][U+5B58][U+66F4][U+65B0][U+5F8C][U+7684][U+914D][U+7F6E]
     app.save_config()
     
-    # 運行應用
+    # [U+904B][U+884C][U+61C9][U+7528]
     app.run()
 
 if __name__ == "__main__":

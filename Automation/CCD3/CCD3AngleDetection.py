@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import time
@@ -28,7 +29,7 @@ opencv_module_path = os.path.join(current_dir, '..', '..')
 sys.path.append(opencv_module_path)
 from opencv_detect_module import get_obj_angle, get_pre_treatment_image
 
-# 設置logger
+# [U+8A2D][U+7F6E]logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class AngleResult:
 
 class SystemStateMachine:
     def __init__(self):
-        self.status_register = 0b0001  # 初始狀態: Ready=1
+        self.status_register = 0b0001  # [U+521D][U+59CB][U+72C0][U+614B]: Ready=1
         self.lock = threading.Lock()
     
     def set_bit(self, bit_pos: StatusBits, value: bool):
@@ -106,7 +107,7 @@ class AngleDetector:
         self.manual_threshold = 127
     
     def update_params(self, **kwargs):
-        """更新檢測參數"""
+        """[U+66F4][U+65B0][U+6AA2][U+6E2C][U+53C3][U+6578]"""
         if 'min_area_rate' in kwargs:
             self.min_area_rate = kwargs['min_area_rate'] / 1000.0
         if 'sequence_mode' in kwargs:
@@ -119,53 +120,53 @@ class AngleDetector:
             self.manual_threshold = kwargs['manual_threshold']
     
     def get_pre_treatment_image_enhanced(self, image):
-        """增強版影像前處理"""
+        """[U+589E][U+5F37][U+7248][U+5F71][U+50CF][U+524D][U+8655][U+7406]"""
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, (self.gaussian_kernel, self.gaussian_kernel), 0)
         
         if self.threshold_mode == 0:
-            # OTSU自動閾值
+            # OTSU[U+81EA][U+52D5][U+95BE][U+503C]
             _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         else:
-            # 手動閾值
+            # [U+624B][U+52D5][U+95BE][U+503C]
             _, thresh = cv2.threshold(blur, self.manual_threshold, 255, cv2.THRESH_BINARY)
         
         return thresh
     
     def detect_angle(self, image, mode=0) -> AngleResult:
         """
-        角度檢測主函數
-        mode: 0=橢圓擬合模式, 1=最小外接矩形模式
+        [U+89D2][U+5EA6][U+6AA2][U+6E2C][U+4E3B][U+51FD][U+6578]
+        mode: 0=[U+6A62][U+5713][U+64EC][U+5408][U+6A21][U+5F0F], 1=[U+6700][U+5C0F][U+5916][U+63A5][U+77E9][U+5F62][U+6A21][U+5F0F]
         """
         start_time = time.time()
         
         try:
-            print(f"開始角度檢測，模式: {mode}, 圖像尺寸: {image.shape}")
+            print(f"[U+958B][U+59CB][U+89D2][U+5EA6][U+6AA2][U+6E2C][U+FF0C][U+6A21][U+5F0F]: {mode}, [U+5716][U+50CF][U+5C3A][U+5BF8]: {image.shape}")
             
-            # 檢查圖像格式並轉換為OpenCV算法所需的BGR格式
+            # [U+6AA2][U+67E5][U+5716][U+50CF][U+683C][U+5F0F][U+4E26][U+8F49][U+63DB][U+70BA]OpenCV[U+7B97][U+6CD5][U+6240][U+9700][U+7684]BGR[U+683C][U+5F0F]
             if len(image.shape) == 2:
-                # 灰度圖像，轉換為BGR
-                print("檢測到灰度圖像，轉換為BGR格式")
+                # [U+7070][U+5EA6][U+5716][U+50CF][U+FF0C][U+8F49][U+63DB][U+70BA]BGR
+                print("[U+6AA2][U+6E2C][U+5230][U+7070][U+5EA6][U+5716][U+50CF][U+FF0C][U+8F49][U+63DB][U+70BA]BGR[U+683C][U+5F0F]")
                 bgr_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
             elif len(image.shape) == 3 and image.shape[2] == 1:
-                # 單通道圖像，轉換為BGR
-                print("檢測到單通道圖像，轉換為BGR格式")
+                # [U+55AE][U+901A][U+9053][U+5716][U+50CF][U+FF0C][U+8F49][U+63DB][U+70BA]BGR
+                print("[U+6AA2][U+6E2C][U+5230][U+55AE][U+901A][U+9053][U+5716][U+50CF][U+FF0C][U+8F49][U+63DB][U+70BA]BGR[U+683C][U+5F0F]")
                 gray_image = image.squeeze()
                 bgr_image = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
             elif len(image.shape) == 3 and image.shape[2] == 3:
-                # 已經是3通道圖像
-                print("檢測到3通道圖像，直接使用")
+                # [U+5DF2][U+7D93][U+662F]3[U+901A][U+9053][U+5716][U+50CF]
+                print("[U+6AA2][U+6E2C][U+5230]3[U+901A][U+9053][U+5716][U+50CF][U+FF0C][U+76F4][U+63A5][U+4F7F][U+7528]")
                 bgr_image = image
             else:
-                raise Exception(f"不支援的圖像格式: {image.shape}")
+                raise Exception(f"[U+4E0D][U+652F][U+63F4][U+7684][U+5716][U+50CF][U+683C][U+5F0F]: {image.shape}")
             
-            print(f"轉換後圖像尺寸: {bgr_image.shape}")
+            print(f"[U+8F49][U+63DB][U+5F8C][U+5716][U+50CF][U+5C3A][U+5BF8]: {bgr_image.shape}")
             
-            # 調用核心算法 - 傳入BGR格式圖像
+            # [U+8ABF][U+7528][U+6838][U+5FC3][U+7B97][U+6CD5] - [U+50B3][U+5165]BGR[U+683C][U+5F0F][U+5716][U+50CF]
             result = get_obj_angle(bgr_image.copy(), mode=mode)
             
             if result is None:
-                print("角度檢測失敗: 未檢測到有效物體")
+                print("[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+5931][U+6557]: [U+672A][U+6AA2][U+6E2C][U+5230][U+6709][U+6548][U+7269][U+9AD4]")
                 return AngleResult(
                     success=False,
                     center=None,
@@ -178,33 +179,33 @@ class AngleDetector:
                     processing_time=0,
                     capture_time=0,
                     total_time=time.time() - start_time,
-                    error_message="未檢測到有效物體"
+                    error_message="[U+672A][U+6AA2][U+6E2C][U+5230][U+6709][U+6548][U+7269][U+9AD4]"
                 )
             
             center, angle = result
             processing_time = (time.time() - start_time) * 1000
             
-            print(f"角度檢測成功: 中心座標({center[0]}, {center[1]}), 角度{angle:.2f}度, 處理時間{processing_time:.2f}ms")
+            print(f"[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+6210][U+529F]: [U+4E2D][U+5FC3][U+5EA7][U+6A19]({center[0]}, {center[1]}), [U+89D2][U+5EA6]{angle:.2f}[U+5EA6], [U+8655][U+7406][U+6642][U+9593]{processing_time:.2f}ms")
             
-            # 從opencv_detect_module.py獲取額外資訊需要增強算法
-            # 目前先返回基本結果，後續整合內外徑算法時擴展
+            # [U+5F9E]opencv_detect_module.py[U+7372][U+53D6][U+984D][U+5916][U+8CC7][U+8A0A][U+9700][U+8981][U+589E][U+5F37][U+7B97][U+6CD5]
+            # [U+76EE][U+524D][U+5148][U+8FD4][U+56DE][U+57FA][U+672C][U+7D50][U+679C][U+FF0C][U+5F8C][U+7E8C][U+6574][U+5408][U+5167][U+5916][U+5F91][U+7B97][U+6CD5][U+6642][U+64F4][U+5C55]
             
             return AngleResult(
                 success=True,
                 center=center,
                 angle=angle,
-                major_axis=None,  # 待整合
-                minor_axis=None,  # 待整合
-                rect_width=None,  # 待整合
-                rect_height=None, # 待整合
-                contour_area=None, # 待整合
+                major_axis=None,  # [U+5F85][U+6574][U+5408]
+                minor_axis=None,  # [U+5F85][U+6574][U+5408]
+                rect_width=None,  # [U+5F85][U+6574][U+5408]
+                rect_height=None, # [U+5F85][U+6574][U+5408]
+                contour_area=None, # [U+5F85][U+6574][U+5408]
                 processing_time=processing_time,
                 capture_time=0,
                 total_time=processing_time
             )
             
         except Exception as e:
-            print(f"角度檢測異常: {str(e)}")
+            print(f"[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+7570][U+5E38]: {str(e)}")
             return AngleResult(
                 success=False,
                 center=None,
@@ -227,29 +228,29 @@ class CCD3AngleDetectionService:
         self.server_ip = "127.0.0.1"
         self.server_port = 502
         
-        # 組件初始化
+        # [U+7D44][U+4EF6][U+521D][U+59CB][U+5316]
         self.state_machine = SystemStateMachine()
         self.angle_detector = AngleDetector()
         self.camera = None
         
-        # 控制變量
+        # [U+63A7][U+5236][U+8B8A][U+91CF]
         self.last_control_command = 0
         self.command_processing = False
         self.handshake_thread = None
         self.stop_handshake = False
         
-        # 統計資訊
+        # [U+7D71][U+8A08][U+8CC7][U+8A0A]
         self.operation_count = 0
         self.error_count = 0
         self.connection_count = 0
         self.start_time = time.time()
         
-        # 配置檔案
+        # [U+914D][U+7F6E][U+6A94][U+6848]
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ccd3_config.json')
         self.load_config()
     
     def load_config(self):
-        """載入配置檔案"""
+        """[U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848]"""
         default_config = {
             "module_id": "CCD3_Angle_Detection",
             "camera_config": {
@@ -287,18 +288,18 @@ class CCD3AngleDetectionService:
                 with open(self.config_file, 'w', encoding='utf-8') as f:
                     json.dump(config, f, indent=2, ensure_ascii=False)
             
-            # 應用配置
+            # [U+61C9][U+7528][U+914D][U+7F6E]
             self.server_ip = config['tcp_server']['host']
             self.server_port = config['tcp_server']['port']
             self.base_address = config['modbus_mapping']['base_address']
             
         except Exception as e:
-            print(f"配置檔案載入錯誤: {e}")
+            print(f"[U+914D][U+7F6E][U+6A94][U+6848][U+8F09][U+5165][U+932F][U+8AA4]: {e}")
     
     def connect_modbus(self) -> bool:
-        """連接Modbus TCP服務器"""
+        """[U+9023][U+63A5]Modbus TCP[U+670D][U+52D9][U+5668]"""
         try:
-            print("正在連接Modbus TCP服務器...")
+            print("[U+6B63][U+5728][U+9023][U+63A5]Modbus TCP[U+670D][U+52D9][U+5668]...")
             
             if self.modbus_client:
                 self.modbus_client.close()
@@ -311,29 +312,29 @@ class CCD3AngleDetectionService:
             
             if self.modbus_client.connect():
                 self.connection_count += 1
-                print(f"CCD3角度檢測模組已連接到Modbus服務器: {self.server_ip}:{self.server_port}")
+                print(f"CCD3[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+6A21][U+7D44][U+5DF2][U+9023][U+63A5][U+5230]Modbus[U+670D][U+52D9][U+5668]: {self.server_ip}:{self.server_port}")
                 return True
             else:
-                print(f"Modbus連接失敗: 無法連接到 {self.server_ip}:{self.server_port}")
+                print(f"Modbus[U+9023][U+63A5][U+5931][U+6557]: [U+7121][U+6CD5][U+9023][U+63A5][U+5230] {self.server_ip}:{self.server_port}")
                 self.state_machine.set_alarm(True)
                 return False
                 
         except Exception as e:
-            print(f"Modbus連接錯誤: {e}")
+            print(f"Modbus[U+9023][U+63A5][U+932F][U+8AA4]: {e}")
             self.state_machine.set_alarm(True)
             return False
     
     def initialize_camera(self, ip_address: str = "192.168.1.10") -> bool:
-        """初始化相機"""
+        """[U+521D][U+59CB][U+5316][U+76F8][U+6A5F]"""
         try:
-            print(f"正在初始化相機，IP地址: {ip_address}")
+            print(f"[U+6B63][U+5728][U+521D][U+59CB][U+5316][U+76F8][U+6A5F][U+FF0C]IP[U+5730][U+5740]: {ip_address}")
             
             if self.camera:
-                print("關閉現有相機連接...")
+                print("[U+95DC][U+9589][U+73FE][U+6709][U+76F8][U+6A5F][U+9023][U+63A5]...")
                 self.camera.disconnect()
                 self.camera = None
             
-            # 使用camera_manager.py，需要提供logger參數
+            # [U+4F7F][U+7528]camera_manager.py[U+FF0C][U+9700][U+8981][U+63D0][U+4F9B]logger[U+53C3][U+6578]
             config = CameraConfig(
                 name="ccd3_camera",
                 ip=ip_address,
@@ -344,121 +345,121 @@ class CCD3AngleDetectionService:
                 height=1944
             )
             
-            print(f"相機配置: 曝光時間={config.exposure_time}, 增益={config.gain}, 分辨率={config.width}x{config.height}")
+            print(f"[U+76F8][U+6A5F][U+914D][U+7F6E]: [U+66DD][U+5149][U+6642][U+9593]={config.exposure_time}, [U+589E][U+76CA]={config.gain}, [U+5206][U+8FA8][U+7387]={config.width}x{config.height}")
             
             self.camera = OptimizedCamera(config, logger)
             
-            print("正在連接相機...")
+            print("[U+6B63][U+5728][U+9023][U+63A5][U+76F8][U+6A5F]...")
             if self.camera.connect():
-                print(f"CCD3相機已成功連接: {ip_address}")
+                print(f"CCD3[U+76F8][U+6A5F][U+5DF2][U+6210][U+529F][U+9023][U+63A5]: {ip_address}")
                 
-                # 先啟動串流
-                print("啟動相機串流...")
+                # [U+5148][U+555F][U+52D5][U+4E32][U+6D41]
+                print("[U+555F][U+52D5][U+76F8][U+6A5F][U+4E32][U+6D41]...")
                 if self.camera.start_streaming():
-                    print("相機串流啟動成功")
+                    print("[U+76F8][U+6A5F][U+4E32][U+6D41][U+555F][U+52D5][U+6210][U+529F]")
                     
-                    # 測試圖像捕獲能力來驗證相機是否真正可用
-                    print("測試相機圖像捕獲能力...")
+                    # [U+6E2C][U+8A66][U+5716][U+50CF][U+6355][U+7372][U+80FD][U+529B][U+4F86][U+9A57][U+8B49][U+76F8][U+6A5F][U+662F][U+5426][U+771F][U+6B63][U+53EF][U+7528]
+                    print("[U+6E2C][U+8A66][U+76F8][U+6A5F][U+5716][U+50CF][U+6355][U+7372][U+80FD][U+529B]...")
                     try:
                         test_image = self.camera.capture_frame()
                         if test_image is not None:
-                            print(f"相機測試成功，可以捕獲圖像，測試圖像尺寸: {test_image.data.shape}")
+                            print(f"[U+76F8][U+6A5F][U+6E2C][U+8A66][U+6210][U+529F][U+FF0C][U+53EF][U+4EE5][U+6355][U+7372][U+5716][U+50CF][U+FF0C][U+6E2C][U+8A66][U+5716][U+50CF][U+5C3A][U+5BF8]: {test_image.data.shape}")
                             self.state_machine.set_initialized(True)
                             self.state_machine.set_alarm(False)
                             return True
                         else:
-                            print("相機測試失敗: 無法捕獲圖像")
+                            print("[U+76F8][U+6A5F][U+6E2C][U+8A66][U+5931][U+6557]: [U+7121][U+6CD5][U+6355][U+7372][U+5716][U+50CF]")
                             self.state_machine.set_alarm(True)
                             self.state_machine.set_initialized(False)
                             return False
                     except Exception as e:
-                        print(f"相機測試異常: {e}")
+                        print(f"[U+76F8][U+6A5F][U+6E2C][U+8A66][U+7570][U+5E38]: {e}")
                         self.state_machine.set_alarm(True)
                         self.state_machine.set_initialized(False)
                         return False
                 else:
-                    print("相機串流啟動失敗")
+                    print("[U+76F8][U+6A5F][U+4E32][U+6D41][U+555F][U+52D5][U+5931][U+6557]")
                     self.state_machine.set_alarm(True)
                     self.state_machine.set_initialized(False)
                     return False
             else:
-                print(f"相機連接失敗: {ip_address}")
+                print(f"[U+76F8][U+6A5F][U+9023][U+63A5][U+5931][U+6557]: {ip_address}")
                 self.state_machine.set_alarm(True)
                 self.state_machine.set_initialized(False)
                 return False
                 
         except Exception as e:
-            print(f"相機初始化錯誤: {e}")
+            print(f"[U+76F8][U+6A5F][U+521D][U+59CB][U+5316][U+932F][U+8AA4]: {e}")
             self.state_machine.set_alarm(True)
             self.state_machine.set_initialized(False)
             return False
     
     def capture_and_detect_angle(self, mode: int = 0) -> AngleResult:
-        """拍照並檢測角度"""
-        print(f"開始拍照+角度檢測，檢測模式: {mode}")
+        """[U+62CD][U+7167][U+4E26][U+6AA2][U+6E2C][U+89D2][U+5EA6]"""
+        print(f"[U+958B][U+59CB][U+62CD][U+7167]+[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+FF0C][U+6AA2][U+6E2C][U+6A21][U+5F0F]: {mode}")
         
         if not self.camera:
-            print("錯誤: 相機未初始化")
+            print("[U+932F][U+8AA4]: [U+76F8][U+6A5F][U+672A][U+521D][U+59CB][U+5316]")
             return AngleResult(
                 success=False, center=None, angle=None,
                 major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
                 contour_area=None, processing_time=0, capture_time=0, total_time=0,
-                error_message="相機未初始化"
+                error_message="[U+76F8][U+6A5F][U+672A][U+521D][U+59CB][U+5316]"
             )
         
-        # 檢查相機狀態 - 使用實際捕獲測試而不是device屬性
+        # [U+6AA2][U+67E5][U+76F8][U+6A5F][U+72C0][U+614B] - [U+4F7F][U+7528][U+5BE6][U+969B][U+6355][U+7372][U+6E2C][U+8A66][U+800C][U+4E0D][U+662F]device[U+5C6C][U+6027]
         if not self.camera:
-            print("錯誤: 相機未初始化")
+            print("[U+932F][U+8AA4]: [U+76F8][U+6A5F][U+672A][U+521D][U+59CB][U+5316]")
             return AngleResult(
                 success=False, center=None, angle=None,
                 major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
                 contour_area=None, processing_time=0, capture_time=0, total_time=0,
-                error_message="相機未初始化"
+                error_message="[U+76F8][U+6A5F][U+672A][U+521D][U+59CB][U+5316]"
             )
         
         capture_start = time.time()
         
         try:
-            # 拍照
-            print("正在捕獲圖像...")
+            # [U+62CD][U+7167]
+            print("[U+6B63][U+5728][U+6355][U+7372][U+5716][U+50CF]...")
             frame_data = self.camera.capture_frame()
             
             if frame_data is None:
-                print("錯誤: 圖像捕獲失敗，返回None")
-                raise Exception("圖像捕獲失敗")
+                print("[U+932F][U+8AA4]: [U+5716][U+50CF][U+6355][U+7372][U+5931][U+6557][U+FF0C][U+8FD4][U+56DE]None")
+                raise Exception("[U+5716][U+50CF][U+6355][U+7372][U+5931][U+6557]")
             
             image = frame_data.data
             capture_time = (time.time() - capture_start) * 1000
-            print(f"圖像捕獲成功，耗時: {capture_time:.2f}ms, 圖像尺寸: {image.shape}")
+            print(f"[U+5716][U+50CF][U+6355][U+7372][U+6210][U+529F][U+FF0C][U+8017][U+6642]: {capture_time:.2f}ms, [U+5716][U+50CF][U+5C3A][U+5BF8]: {image.shape}")
             
-            # 更新檢測參數
+            # [U+66F4][U+65B0][U+6AA2][U+6E2C][U+53C3][U+6578]
             detection_params = self.read_detection_parameters()
             if detection_params:
-                print(f"檢測參數: {detection_params}")
+                print(f"[U+6AA2][U+6E2C][U+53C3][U+6578]: {detection_params}")
                 self.angle_detector.update_params(**detection_params)
             else:
-                print("使用預設檢測參數")
+                print("[U+4F7F][U+7528][U+9810][U+8A2D][U+6AA2][U+6E2C][U+53C3][U+6578]")
             
-            # 角度檢測
+            # [U+89D2][U+5EA6][U+6AA2][U+6E2C]
             detect_start = time.time()
-            print("開始角度檢測...")
+            print("[U+958B][U+59CB][U+89D2][U+5EA6][U+6AA2][U+6E2C]...")
             result = self.angle_detector.detect_angle(image, mode)
             result.capture_time = capture_time
             result.total_time = (time.time() - capture_start) * 1000
             
             if result.success:
                 self.operation_count += 1
-                print(f"角度檢測完成 - 總耗時: {result.total_time:.2f}ms")
+                print(f"[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+5B8C][U+6210] - [U+7E3D][U+8017][U+6642]: {result.total_time:.2f}ms")
             else:
                 self.error_count += 1
-                print(f"角度檢測失敗: {result.error_message}")
+                print(f"[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+5931][U+6557]: {result.error_message}")
             
             return result
             
         except Exception as e:
             self.error_count += 1
             error_msg = str(e)
-            print(f"捕獲或檢測過程異常: {error_msg}")
+            print(f"[U+6355][U+7372][U+6216][U+6AA2][U+6E2C][U+904E][U+7A0B][U+7570][U+5E38]: {error_msg}")
             return AngleResult(
                 success=False, center=None, angle=None,
                 major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
@@ -469,7 +470,7 @@ class CCD3AngleDetectionService:
             )
     
     def read_detection_parameters(self) -> Dict[str, Any]:
-        """讀取檢測參數寄存器"""
+        """[U+8B80][U+53D6][U+6AA2][U+6E2C][U+53C3][U+6578][U+5BC4][U+5B58][U+5668]"""
         params = {}
         try:
             if self.modbus_client and self.modbus_client.connected:
@@ -485,33 +486,33 @@ class CCD3AngleDetectionService:
                     params['threshold_mode'] = registers[4]
                     params['manual_threshold'] = registers[5]
         except Exception as e:
-            print(f"讀取檢測參數錯誤: {e}")
+            print(f"[U+8B80][U+53D6][U+6AA2][U+6E2C][U+53C3][U+6578][U+932F][U+8AA4]: {e}")
         
         return params
     
     def write_detection_result(self, result: AngleResult):
-        """寫入檢測結果到寄存器"""
+        """[U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C][U+5230][U+5BC4][U+5B58][U+5668]"""
         try:
             if not self.modbus_client or not self.modbus_client.connected:
-                print("警告: Modbus未連接，無法寫入檢測結果")
+                print("[U+8B66][U+544A]: Modbus[U+672A][U+9023][U+63A5][U+FF0C][U+7121][U+6CD5][U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C]")
                 return
             
-            # 檢測結果寄存器 (840-859)
+            # [U+6AA2][U+6E2C][U+7D50][U+679C][U+5BC4][U+5B58][U+5668] (840-859)
             result_registers = [0] * 20
             
             if result.success and result.center and result.angle is not None:
-                result_registers[0] = 1  # 檢測成功標誌
-                result_registers[1] = int(result.center[0])  # 中心X座標
-                result_registers[2] = int(result.center[1])  # 中心Y座標
+                result_registers[0] = 1  # [U+6AA2][U+6E2C][U+6210][U+529F][U+6A19][U+8A8C]
+                result_registers[1] = int(result.center[0])  # [U+4E2D][U+5FC3]X[U+5EA7][U+6A19]
+                result_registers[2] = int(result.center[1])  # [U+4E2D][U+5FC3]Y[U+5EA7][U+6A19]
                 
-                # 角度32位存儲 (高低位)
-                angle_int = int(result.angle * 100)  # 保留2位小數
-                result_registers[3] = (angle_int >> 16) & 0xFFFF  # 角度高位
-                result_registers[4] = angle_int & 0xFFFF          # 角度低位
+                # [U+89D2][U+5EA6]32[U+4F4D][U+5B58][U+5132] ([U+9AD8][U+4F4E][U+4F4D])
+                angle_int = int(result.angle * 100)  # [U+4FDD][U+7559]2[U+4F4D][U+5C0F][U+6578]
+                result_registers[3] = (angle_int >> 16) & 0xFFFF  # [U+89D2][U+5EA6][U+9AD8][U+4F4D]
+                result_registers[4] = angle_int & 0xFFFF          # [U+89D2][U+5EA6][U+4F4E][U+4F4D]
                 
-                print(f"寫入檢測結果: 成功標誌=1, 中心=({result_registers[1]}, {result_registers[2]}), 角度={result.angle:.2f}度")
+                print(f"[U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C]: [U+6210][U+529F][U+6A19][U+8A8C]=1, [U+4E2D][U+5FC3]=({result_registers[1]}, {result_registers[2]}), [U+89D2][U+5EA6]={result.angle:.2f}[U+5EA6]")
                 
-                # 其他參數 (待整合內外徑算法時實現)
+                # [U+5176][U+4ED6][U+53C3][U+6578] ([U+5F85][U+6574][U+5408][U+5167][U+5916][U+5F91][U+7B97][U+6CD5][U+6642][U+5BE6][U+73FE])
                 if result.major_axis:
                     result_registers[5] = int(result.major_axis)
                 if result.minor_axis:
@@ -523,63 +524,63 @@ class CCD3AngleDetectionService:
                 if result.contour_area:
                     result_registers[9] = int(result.contour_area)
             else:
-                print("寫入檢測結果: 檢測失敗")
+                print("[U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C]: [U+6AA2][U+6E2C][U+5931][U+6557]")
             
-            # 寫入檢測結果 (840-859)
+            # [U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C] (840-859)
             self.modbus_client.write_registers(
                 address=self.base_address + 40, values=result_registers, slave=1
             )
             
-            # 寫入統計資訊 (880-899)
+            # [U+5BEB][U+5165][U+7D71][U+8A08][U+8CC7][U+8A0A] (880-899)
             stats_registers = [
-                int(result.capture_time),      # 880: 拍照耗時
-                int(result.processing_time),   # 881: 處理耗時
-                int(result.total_time),        # 882: 總耗時
-                self.operation_count,          # 883: 操作計數
-                self.error_count,              # 884: 錯誤計數
-                self.connection_count,         # 885: 連接計數
-                0, 0, 0, 0,                   # 886-889: 保留
-                3,                            # 890: 軟體版本主號
-                0,                            # 891: 軟體版本次號
-                int((time.time() - self.start_time) // 3600),  # 892: 運行小時
-                int((time.time() - self.start_time) % 3600 // 60), # 893: 運行分鐘
-                0, 0, 0, 0, 0, 0             # 894-899: 保留
+                int(result.capture_time),      # 880: [U+62CD][U+7167][U+8017][U+6642]
+                int(result.processing_time),   # 881: [U+8655][U+7406][U+8017][U+6642]
+                int(result.total_time),        # 882: [U+7E3D][U+8017][U+6642]
+                self.operation_count,          # 883: [U+64CD][U+4F5C][U+8A08][U+6578]
+                self.error_count,              # 884: [U+932F][U+8AA4][U+8A08][U+6578]
+                self.connection_count,         # 885: [U+9023][U+63A5][U+8A08][U+6578]
+                0, 0, 0, 0,                   # 886-889: [U+4FDD][U+7559]
+                3,                            # 890: [U+8EDF][U+9AD4][U+7248][U+672C][U+4E3B][U+865F]
+                0,                            # 891: [U+8EDF][U+9AD4][U+7248][U+672C][U+6B21][U+865F]
+                int((time.time() - self.start_time) // 3600),  # 892: [U+904B][U+884C][U+5C0F][U+6642]
+                int((time.time() - self.start_time) % 3600 // 60), # 893: [U+904B][U+884C][U+5206][U+9418]
+                0, 0, 0, 0, 0, 0             # 894-899: [U+4FDD][U+7559]
             ]
             
             self.modbus_client.write_registers(
                 address=self.base_address + 80, values=stats_registers, slave=1
             )
             
-            print(f"統計資訊已更新: 成功次數={self.operation_count}, 錯誤次數={self.error_count}")
+            print(f"[U+7D71][U+8A08][U+8CC7][U+8A0A][U+5DF2][U+66F4][U+65B0]: [U+6210][U+529F][U+6B21][U+6578]={self.operation_count}, [U+932F][U+8AA4][U+6B21][U+6578]={self.error_count}")
             
         except Exception as e:
-            print(f"寫入檢測結果錯誤: {e}")
+            print(f"[U+5BEB][U+5165][U+6AA2][U+6E2C][U+7D50][U+679C][U+932F][U+8AA4]: {e}")
     
     def _handshake_sync_loop(self):
-        """握手同步循環"""
-        print("CCD3握手同步線程啟動")
+        """[U+63E1][U+624B][U+540C][U+6B65][U+5FAA][U+74B0]"""
+        print("CCD3[U+63E1][U+624B][U+540C][U+6B65][U+7DDA][U+7A0B][U+555F][U+52D5]")
         
         while not self.stop_handshake:
             try:
                 if self.modbus_client and self.modbus_client.connected:
-                    # 更新狀態寄存器
+                    # [U+66F4][U+65B0][U+72C0][U+614B][U+5BC4][U+5B58][U+5668]
                     self._update_status_register()
                     
-                    # 處理控制指令
+                    # [U+8655][U+7406][U+63A7][U+5236][U+6307][U+4EE4]
                     self._process_control_commands()
                 
-                time.sleep(0.05)  # 50ms循環
+                time.sleep(0.05)  # 50ms[U+5FAA][U+74B0]
                 
             except Exception as e:
-                print(f"握手同步錯誤: {e}")
+                print(f"[U+63E1][U+624B][U+540C][U+6B65][U+932F][U+8AA4]: {e}")
                 time.sleep(1)
         
-        print("CCD3握手同步線程停止")
+        print("CCD3[U+63E1][U+624B][U+540C][U+6B65][U+7DDA][U+7A0B][U+505C][U+6B62]")
     
     def _update_status_register(self):
-        """更新狀態寄存器"""
+        """[U+66F4][U+65B0][U+72C0][U+614B][U+5BC4][U+5B58][U+5668]"""
         try:
-            # 更新初始化狀態 - 檢查相機串流狀態
+            # [U+66F4][U+65B0][U+521D][U+59CB][U+5316][U+72C0][U+614B] - [U+6AA2][U+67E5][U+76F8][U+6A5F][U+4E32][U+6D41][U+72C0][U+614B]
             camera_ok = self.camera is not None and getattr(self.camera, 'is_streaming', False)
             modbus_ok = self.modbus_client is not None and self.modbus_client.connected
             
@@ -587,9 +588,9 @@ class CCD3AngleDetectionService:
             if not (camera_ok and modbus_ok):
                 if not camera_ok:
                     self.state_machine.set_alarm(True)
-                    # print("狀態更新: 相機未正確初始化")  # 避免過多輸出
+                    # print("[U+72C0][U+614B][U+66F4][U+65B0]: [U+76F8][U+6A5F][U+672A][U+6B63][U+78BA][U+521D][U+59CB][U+5316]")  # [U+907F][U+514D][U+904E][U+591A][U+8F38][U+51FA]
             
-            # 寫入狀態寄存器 (801)
+            # [U+5BEB][U+5165][U+72C0][U+614B][U+5BC4][U+5B58][U+5668] (801)
             self.modbus_client.write_register(
                 address=self.base_address + 1,
                 value=self.state_machine.status_register,
@@ -597,12 +598,12 @@ class CCD3AngleDetectionService:
             )
             
         except Exception as e:
-            print(f"狀態寄存器更新錯誤: {e}")
+            print(f"[U+72C0][U+614B][U+5BC4][U+5B58][U+5668][U+66F4][U+65B0][U+932F][U+8AA4]: {e}")
     
     def _process_control_commands(self):
-        """處理控制指令"""
+        """[U+8655][U+7406][U+63A7][U+5236][U+6307][U+4EE4]"""
         try:
-            # 讀取控制指令 (800)
+            # [U+8B80][U+53D6][U+63A7][U+5236][U+6307][U+4EE4] (800)
             result = self.modbus_client.read_holding_registers(
                 address=self.base_address, count=1, slave=1
             )
@@ -612,58 +613,58 @@ class CCD3AngleDetectionService:
             
             control_command = result.registers[0]
             
-            # 檢查新指令
+            # [U+6AA2][U+67E5][U+65B0][U+6307][U+4EE4]
             if control_command != self.last_control_command and control_command != 0:
                 if not self.command_processing:
-                    print(f"收到新控制指令: {control_command} (上次: {self.last_control_command})")
+                    print(f"[U+6536][U+5230][U+65B0][U+63A7][U+5236][U+6307][U+4EE4]: {control_command} ([U+4E0A][U+6B21]: {self.last_control_command})")
                     self._handle_control_command(control_command)
                     self.last_control_command = control_command
             
-            # PLC清零指令後恢復Ready
+            # PLC[U+6E05][U+96F6][U+6307][U+4EE4][U+5F8C][U+6062][U+5FA9]Ready
             elif control_command == 0 and self.last_control_command != 0:
-                print("PLC已清零指令，恢復Ready狀態")
+                print("PLC[U+5DF2][U+6E05][U+96F6][U+6307][U+4EE4][U+FF0C][U+6062][U+5FA9]Ready[U+72C0][U+614B]")
                 self.state_machine.set_ready(True)
                 self.last_control_command = 0
                 
         except Exception as e:
-            print(f"控制指令處理錯誤: {e}")
+            print(f"[U+63A7][U+5236][U+6307][U+4EE4][U+8655][U+7406][U+932F][U+8AA4]: {e}")
     
     def _handle_control_command(self, command: int):
-        """處理控制指令"""
+        """[U+8655][U+7406][U+63A7][U+5236][U+6307][U+4EE4]"""
         if not self.state_machine.is_ready():
-            print(f"系統未Ready，無法執行指令 {command}")
+            print(f"[U+7CFB][U+7D71][U+672A]Ready[U+FF0C][U+7121][U+6CD5][U+57F7][U+884C][U+6307][U+4EE4] {command}")
             return
         
-        print(f"開始處理控制指令: {command}")
+        print(f"[U+958B][U+59CB][U+8655][U+7406][U+63A7][U+5236][U+6307][U+4EE4]: {command}")
         self.command_processing = True
         self.state_machine.set_ready(False)
         self.state_machine.set_running(True)
         
-        # 異步執行指令
+        # [U+7570][U+6B65][U+57F7][U+884C][U+6307][U+4EE4]
         threading.Thread(target=self._execute_command_async, args=(command,), daemon=True).start()
     
     def _execute_command_async(self, command: int):
-        """異步執行指令"""
+        """[U+7570][U+6B65][U+57F7][U+884C][U+6307][U+4EE4]"""
         try:
             if command == 8:
-                # 單純拍照
-                print("執行拍照指令")
+                # [U+55AE][U+7D14][U+62CD][U+7167]
+                print("[U+57F7][U+884C][U+62CD][U+7167][U+6307][U+4EE4]")
                 if self.camera and getattr(self.camera, 'is_streaming', False):
                     frame_data = self.camera.capture_frame()
                     if frame_data is not None:
-                        print(f"拍照完成，圖像尺寸: {frame_data.data.shape}")
+                        print(f"[U+62CD][U+7167][U+5B8C][U+6210][U+FF0C][U+5716][U+50CF][U+5C3A][U+5BF8]: {frame_data.data.shape}")
                     else:
-                        print("拍照失敗: 無法捕獲圖像")
+                        print("[U+62CD][U+7167][U+5931][U+6557]: [U+7121][U+6CD5][U+6355][U+7372][U+5716][U+50CF]")
                         self.error_count += 1
                 else:
-                    print("拍照失敗: 相機未初始化或串流未啟動")
+                    print("[U+62CD][U+7167][U+5931][U+6557]: [U+76F8][U+6A5F][U+672A][U+521D][U+59CB][U+5316][U+6216][U+4E32][U+6D41][U+672A][U+555F][U+52D5]")
                     self.error_count += 1
                         
             elif command == 16:
-                # 拍照+角度檢測
-                print("執行拍照+角度檢測指令")
+                # [U+62CD][U+7167]+[U+89D2][U+5EA6][U+6AA2][U+6E2C]
+                print("[U+57F7][U+884C][U+62CD][U+7167]+[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+6307][U+4EE4]")
                 
-                # 讀取檢測模式 (810)
+                # [U+8B80][U+53D6][U+6AA2][U+6E2C][U+6A21][U+5F0F] (810)
                 mode_result = self.modbus_client.read_holding_registers(
                     address=self.base_address + 10, count=1, slave=1
                 )
@@ -671,81 +672,81 @@ class CCD3AngleDetectionService:
                 if not mode_result.isError():
                     detection_mode = mode_result.registers[0]
                 
-                print(f"檢測模式: {detection_mode}")
+                print(f"[U+6AA2][U+6E2C][U+6A21][U+5F0F]: {detection_mode}")
                 
                 result = self.capture_and_detect_angle(detection_mode)
                 self.write_detection_result(result)
                 
                 if result.success:
-                    print(f"角度檢測完成: 中心{result.center}, 角度{result.angle:.2f}度")
+                    print(f"[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+5B8C][U+6210]: [U+4E2D][U+5FC3]{result.center}, [U+89D2][U+5EA6]{result.angle:.2f}[U+5EA6]")
                 else:
-                    print(f"角度檢測失敗: {result.error_message}")
+                    print(f"[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+5931][U+6557]: {result.error_message}")
                     
             elif command == 32:
-                # 重新初始化
-                print("執行重新初始化指令")
+                # [U+91CD][U+65B0][U+521D][U+59CB][U+5316]
+                print("[U+57F7][U+884C][U+91CD][U+65B0][U+521D][U+59CB][U+5316][U+6307][U+4EE4]")
                 success = self.initialize_camera()
                 if success:
-                    print("重新初始化成功")
+                    print("[U+91CD][U+65B0][U+521D][U+59CB][U+5316][U+6210][U+529F]")
                 else:
-                    print("重新初始化失敗")
+                    print("[U+91CD][U+65B0][U+521D][U+59CB][U+5316][U+5931][U+6557]")
             
             else:
-                print(f"未知指令: {command}")
+                print(f"[U+672A][U+77E5][U+6307][U+4EE4]: {command}")
                 
         except Exception as e:
-            print(f"指令執行錯誤: {e}")
+            print(f"[U+6307][U+4EE4][U+57F7][U+884C][U+932F][U+8AA4]: {e}")
             self.error_count += 1
             self.state_machine.set_alarm(True)
         
         finally:
-            print(f"控制指令 {command} 執行完成")
+            print(f"[U+63A7][U+5236][U+6307][U+4EE4] {command} [U+57F7][U+884C][U+5B8C][U+6210]")
             self.command_processing = False
             self.state_machine.set_running(False)
     
     def start_handshake_service(self):
-        """啟動握手服務"""
+        """[U+555F][U+52D5][U+63E1][U+624B][U+670D][U+52D9]"""
         if not self.handshake_thread or not self.handshake_thread.is_alive():
             self.stop_handshake = False
             self.handshake_thread = threading.Thread(target=self._handshake_sync_loop, daemon=True)
             self.handshake_thread.start()
-            print("握手服務已啟動")
+            print("[U+63E1][U+624B][U+670D][U+52D9][U+5DF2][U+555F][U+52D5]")
     
     def stop_handshake_service(self):
-        """停止握手服務"""
-        print("正在停止握手服務...")
+        """[U+505C][U+6B62][U+63E1][U+624B][U+670D][U+52D9]"""
+        print("[U+6B63][U+5728][U+505C][U+6B62][U+63E1][U+624B][U+670D][U+52D9]...")
         self.stop_handshake = True
         if self.handshake_thread:
             self.handshake_thread.join(timeout=2)
     
     def disconnect(self):
-        """斷開連接"""
-        print("正在斷開所有連接...")
+        """[U+65B7][U+958B][U+9023][U+63A5]"""
+        print("[U+6B63][U+5728][U+65B7][U+958B][U+6240][U+6709][U+9023][U+63A5]...")
         self.stop_handshake_service()
         
         if self.camera:
-            print("正在關閉相機連接...")
-            # 先停止串流
+            print("[U+6B63][U+5728][U+95DC][U+9589][U+76F8][U+6A5F][U+9023][U+63A5]...")
+            # [U+5148][U+505C][U+6B62][U+4E32][U+6D41]
             if getattr(self.camera, 'is_streaming', False):
-                print("停止相機串流...")
+                print("[U+505C][U+6B62][U+76F8][U+6A5F][U+4E32][U+6D41]...")
                 self.camera.stop_streaming()
-            # 然後斷開連接
+            # [U+7136][U+5F8C][U+65B7][U+958B][U+9023][U+63A5]
             self.camera.disconnect()
             self.camera = None
         
         if self.modbus_client:
-            print("正在關閉Modbus連接...")
+            print("[U+6B63][U+5728][U+95DC][U+9589]Modbus[U+9023][U+63A5]...")
             self.modbus_client.close()
             self.modbus_client = None
         
-        print("CCD3角度檢測模組已斷開連接")
+        print("CCD3[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+6A21][U+7D44][U+5DF2][U+65B7][U+958B][U+9023][U+63A5]")
 
-# Flask Web應用
+# Flask Web[U+61C9][U+7528]
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'ccd3_angle_detection_secret'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# 全局服務實例
+# [U+5168][U+5C40][U+670D][U+52D9][U+5BE6][U+4F8B]
 ccd3_service = CCD3AngleDetectionService()
 
 @app.route('/')
@@ -761,16 +762,16 @@ def set_modbus_server():
     ccd3_service.server_ip = ip
     ccd3_service.server_port = port
     
-    return jsonify({'success': True, 'message': f'Modbus服務器設置為 {ip}:{port}'})
+    return jsonify({'success': True, 'message': f'Modbus[U+670D][U+52D9][U+5668][U+8A2D][U+7F6E][U+70BA] {ip}:{port}'})
 
 @app.route('/api/modbus/connect', methods=['POST'])
 def connect_modbus():
     success = ccd3_service.connect_modbus()
     if success:
         ccd3_service.start_handshake_service()
-        return jsonify({'success': True, 'message': 'Modbus連接成功，握手服務已啟動'})
+        return jsonify({'success': True, 'message': 'Modbus[U+9023][U+63A5][U+6210][U+529F][U+FF0C][U+63E1][U+624B][U+670D][U+52D9][U+5DF2][U+555F][U+52D5]'})
     else:
-        return jsonify({'success': False, 'message': 'Modbus連接失敗'})
+        return jsonify({'success': False, 'message': 'Modbus[U+9023][U+63A5][U+5931][U+6557]'})
 
 @app.route('/api/initialize', methods=['POST'])
 def initialize_camera():
@@ -778,7 +779,7 @@ def initialize_camera():
     ip = data.get('ip', '192.168.1.10')
     
     success = ccd3_service.initialize_camera(ip)
-    message = f'相機初始化{"成功" if success else "失敗"}'
+    message = f'[U+76F8][U+6A5F][U+521D][U+59CB][U+5316]{"[U+6210][U+529F]" if success else "[U+5931][U+6557]"}'
     
     return jsonify({'success': success, 'message': message})
 
@@ -789,7 +790,7 @@ def capture_and_detect():
     
     result = ccd3_service.capture_and_detect_angle(mode)
     
-    # 將numpy類型轉換為Python原生類型以支援JSON序列化
+    # [U+5C07]numpy[U+985E][U+578B][U+8F49][U+63DB][U+70BA]Python[U+539F][U+751F][U+985E][U+578B][U+4EE5][U+652F][U+63F4]JSON[U+5E8F][U+5217][U+5316]
     response_data = {
         'success': result.success,
         'center': [int(result.center[0]), int(result.center[1])] if result.center else None,
@@ -819,12 +820,12 @@ def get_status():
 
 @app.route('/api/modbus/registers', methods=['GET'])
 def get_registers():
-    """讀取所有寄存器數值"""
+    """[U+8B80][U+53D6][U+6240][U+6709][U+5BC4][U+5B58][U+5668][U+6578][U+503C]"""
     registers = {}
     
     try:
         if ccd3_service.modbus_client and ccd3_service.modbus_client.connected:
-            # 讀取握手寄存器 (800-801)
+            # [U+8B80][U+53D6][U+63E1][U+624B][U+5BC4][U+5B58][U+5668] (800-801)
             result = ccd3_service.modbus_client.read_holding_registers(
                 address=ccd3_service.base_address, count=2, slave=1
             )
@@ -832,21 +833,21 @@ def get_registers():
                 registers['control_command'] = result.registers[0]
                 registers['status_register'] = result.registers[1]
             
-            # 讀取檢測參數 (810-819)
+            # [U+8B80][U+53D6][U+6AA2][U+6E2C][U+53C3][U+6578] (810-819)
             result = ccd3_service.modbus_client.read_holding_registers(
                 address=ccd3_service.base_address + 10, count=10, slave=1
             )
             if not result.isError():
                 registers['detection_params'] = result.registers
             
-            # 讀取檢測結果 (840-859)
+            # [U+8B80][U+53D6][U+6AA2][U+6E2C][U+7D50][U+679C] (840-859)
             result = ccd3_service.modbus_client.read_holding_registers(
                 address=ccd3_service.base_address + 40, count=20, slave=1
             )
             if not result.isError():
                 registers['detection_results'] = result.registers
             
-            # 讀取統計資訊 (880-899)
+            # [U+8B80][U+53D6][U+7D71][U+8A08][U+8CC7][U+8A0A] (880-899)
             result = ccd3_service.modbus_client.read_holding_registers(
                 address=ccd3_service.base_address + 80, count=20, slave=1
             )
@@ -854,13 +855,13 @@ def get_registers():
                 registers['statistics'] = result.registers
                 
     except Exception as e:
-        print(f"寄存器讀取錯誤: {e}")
+        print(f"[U+5BC4][U+5B58][U+5668][U+8B80][U+53D6][U+932F][U+8AA4]: {e}")
     
     return jsonify(registers)
 
 @socketio.on('connect')
 def handle_connect():
-    emit('status_update', {'message': 'CCD3角度檢測系統已連接'})
+    emit('status_update', {'message': 'CCD3[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+7CFB][U+7D71][U+5DF2][U+9023][U+63A5]'})
 
 @socketio.on('get_status')
 def handle_get_status():
@@ -868,17 +869,17 @@ def handle_get_status():
     emit('status_update', status)
 
 if __name__ == '__main__':
-    print("CCD3角度辨識系統啟動中...")
-    print(f"系統架構: Modbus TCP Client - 運動控制握手模式")
-    print(f"基地址: {ccd3_service.base_address}")
-    print(f"相機IP: 192.168.1.10")
-    print(f"Web介面啟動中... http://localhost:5052")
+    print("CCD3[U+89D2][U+5EA6][U+8FA8][U+8B58][U+7CFB][U+7D71][U+555F][U+52D5][U+4E2D]...")
+    print(f"[U+7CFB][U+7D71][U+67B6][U+69CB]: Modbus TCP Client - [U+904B][U+52D5][U+63A7][U+5236][U+63E1][U+624B][U+6A21][U+5F0F]")
+    print(f"[U+57FA][U+5730][U+5740]: {ccd3_service.base_address}")
+    print(f"[U+76F8][U+6A5F]IP: 192.168.1.10")
+    print(f"Web[U+4ECB][U+9762][U+555F][U+52D5][U+4E2D]... http://localhost:5052")
     
     try:
         socketio.run(app, host='0.0.0.0', port=5052, debug=False)
     except KeyboardInterrupt:
-        print("\n正在關閉CCD3角度檢測系統...")
+        print("\n[U+6B63][U+5728][U+95DC][U+9589]CCD3[U+89D2][U+5EA6][U+6AA2][U+6E2C][U+7CFB][U+7D71]...")
         ccd3_service.disconnect()
     except Exception as e:
-        print(f"系統錯誤: {e}")
+        print(f"[U+7CFB][U+7D71][U+932F][U+8AA4]: {e}")
         ccd3_service.disconnect()

@@ -20,8 +20,8 @@ class ConfigManager:
         self.config_file = config_file
         self.default_config = {
             "connection": {
-                "baudrate": 115200,
-                "unit_id": 3,
+                "baudrate": 19200,
+                "unit_id": 2,
                 "timeout": 0.2,
                 "last_port": ""
             },
@@ -131,7 +131,7 @@ class XC100ControlTool:
         
         # MODBUS連線參數
         self.selected_port = tk.StringVar()
-        self.baudrate = self.config_manager.get("connection.baudrate", 115200)
+        self.baudrate = self.config_manager.get("connection.baudrate", 19200)
         self.unit_id = self.config_manager.get("connection.unit_id", 2)
         self.timeout = self.config_manager.get("connection.timeout", 0.2)
         self.client: Optional[ModbusSerialClient] = None

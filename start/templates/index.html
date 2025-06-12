@@ -785,8 +785,8 @@
             currentStatus = data;
             
             // 更新ModbusTCP服務器狀態
-            if (data.modbus_server) {
-                const isRunning = data.modbus_server.running || data.modbus_server.port_active;
+            if (data.modbus_server !== undefined) {
+                const isRunning = data.modbus_server;
                 modbusStatusDot.classList.toggle('active', isRunning);
                 modbusStatusText.textContent = `ModbusTCP服務器 (端口502) - ${isRunning ? '運行中' : '停止'}`;
             }
@@ -809,6 +809,13 @@
             if (data.com_ports) {
                 updateComPortSelects(data.com_ports);
             }
+            
+            // 調試輸出
+            console.log('狀態更新:', {
+                modbus_server: data.modbus_server,
+                modules: data.modules,
+                web_apps: data.web_apps
+            });
         }
 
         function updateModuleStatus(moduleName, isRunning) {

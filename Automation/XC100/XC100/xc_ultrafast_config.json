@@ -1,0 +1,33 @@
+{
+  "module_id": "XC100_FAST",
+  "description": "XC100[U+8D85][U+9AD8][U+901F][U+6A21][U+7D44]",
+  "xc_connection": {
+    "port": "COM5",
+    "baudrate": 115200,
+    "unit_id": 2,
+    "timeout": 0.2,
+    "retry_count": 2,
+    "retry_delay": 0.01
+  },
+  "tcp_server": {
+    "host": "127.0.0.1",
+    "port": 502,
+    "unit_id": 1,
+    "timeout": 1.0
+  },
+  "modbus_mapping": {
+    "base_address": 1000,
+    "register_count": 50
+  },
+  "positions": {
+    "A": 400,
+    "B": 2682
+  },
+  "timing": {
+    "fast_loop_interval": 0.02,
+    "movement_delay": 0.1,
+    "command_delay": 0.02,
+    "register_delay": 0.01,
+    "no_wait_mode": true
+  }
+}

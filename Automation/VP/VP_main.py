@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-VP_main.py - 震動盤Modbus TCP Client主程序
-實現震動盤RTU轉TCP橋接，狀態機交握，自動重連
-適用於自動化設備對接流程
+VP_main.py - [U+9707][U+52D5][U+76E4]Modbus TCP Client[U+4E3B][U+7A0B][U+5E8F]
+[U+5BE6][U+73FE][U+9707][U+52D5][U+76E4]RTU[U+8F49]TCP[U+6A4B][U+63A5][U+FF0C][U+72C0][U+614B][U+6A5F][U+4EA4][U+63E1][U+FF0C][U+81EA][U+52D5][U+91CD][U+9023]
+[U+9069][U+7528][U+65BC][U+81EA][U+52D5][U+5316][U+8A2D][U+5099][U+5C0D][U+63A5][U+6D41][U+7A0B]
 """
 
 import sys
@@ -20,41 +20,41 @@ from vibration_plate import VibrationPlate
 logger = logging.getLogger(__name__)
 
 class VibrationPlateModbusClient:
-    """震動盤Modbus TCP Client - RTU轉TCP橋接模組"""
+    """[U+9707][U+52D5][U+76E4]Modbus TCP Client - RTU[U+8F49]TCP[U+6A4B][U+63A5][U+6A21][U+7D44]"""
     
     def __init__(self, config_file="vp_config.json"):
-        # 載入配置
+        # [U+8F09][U+5165][U+914D][U+7F6E]
         self.config = self.load_config(config_file)
         
-        # 核心組件
+        # [U+6838][U+5FC3][U+7D44][U+4EF6]
         self.vibration_plate: Optional[VibrationPlate] = None
         self.modbus_client: Optional[ModbusTcpClient] = None
         self.running = False
         
-        # 狀態變數
+        # [U+72C0][U+614B][U+8B8A][U+6578]
         self.connected_to_server = False
         self.connected_to_device = False
         self.last_command_id = 0
         self.executing_command = False
         
-        # 執行緒控制
+        # [U+57F7][U+884C][U+7DD2][U+63A7][U+5236]
         self.main_loop_thread = None
         self.loop_lock = threading.Lock()
         
-        # 統計計數
+        # [U+7D71][U+8A08][U+8A08][U+6578]
         self.operation_count = 0
         self.error_count = 0
         self.connection_count = 0
         self.start_time = time.time()
         
-        # 寄存器映射 (基地址 + 偏移)
+        # [U+5BC4][U+5B58][U+5668][U+6620][U+5C04] ([U+57FA][U+5730][U+5740] + [U+504F][U+79FB])
         self.base_address = self.config['modbus_mapping']['base_address']
         self.init_register_mapping()
         
     def load_config(self, config_file: str) -> Dict[str, Any]:
-        """載入配置檔案"""
+        """[U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848]"""
         default_config = {
-            "module_id": "震動盤模組",
+            "module_id": "[U+9707][U+52D5][U+76E4][U+6A21][U+7D44]",
             "device_connection": {
                 "ip": "192.168.1.7",
                 "port": 1000,
@@ -78,72 +78,72 @@ class VibrationPlateModbusClient:
         }
         
         try:
-            # 取得當前執行檔案的目錄
+            # [U+53D6][U+5F97][U+7576][U+524D][U+57F7][U+884C][U+6A94][U+6848][U+7684][U+76EE][U+9304]
             current_dir = os.path.dirname(os.path.abspath(__file__))
             config_path = os.path.join(current_dir, config_file)
             
             if os.path.exists(config_path):
                 with open(config_path, 'r', encoding='utf-8') as f:
                     loaded_config = json.load(f)
-                    # 合併配置
+                    # [U+5408][U+4F75][U+914D][U+7F6E]
                     default_config.update(loaded_config)
-                print(f"已載入配置檔案: {config_path}")
+                print(f"[U+5DF2][U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848]: {config_path}")
             else:
-                # 創建預設配置檔案在執行檔案同層目錄
+                # [U+5275][U+5EFA][U+9810][U+8A2D][U+914D][U+7F6E][U+6A94][U+6848][U+5728][U+57F7][U+884C][U+6A94][U+6848][U+540C][U+5C64][U+76EE][U+9304]
                 with open(config_path, 'w', encoding='utf-8') as f:
                     json.dump(default_config, f, indent=2, ensure_ascii=False)
-                print(f"已創建預設配置檔案: {config_path}")
+                print(f"[U+5DF2][U+5275][U+5EFA][U+9810][U+8A2D][U+914D][U+7F6E][U+6A94][U+6848]: {config_path}")
         except Exception as e:
-            print(f"載入配置檔案失敗: {e}")
+            print(f"[U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848][U+5931][U+6557]: {e}")
             
         return default_config
     
     def init_register_mapping(self):
-        """初始化寄存器映射"""
+        """[U+521D][U+59CB][U+5316][U+5BC4][U+5B58][U+5668][U+6620][U+5C04]"""
         base = self.base_address
         
-        # 狀態寄存器區 (只讀) base+0 ~ base+14
+        # [U+72C0][U+614B][U+5BC4][U+5B58][U+5668][U+5340] ([U+53EA][U+8B80]) base+0 ~ base+14
         self.status_registers = {
-            'module_status': base + 0,          # 模組狀態
-            'device_connection': base + 1,      # 設備連接狀態
-            'device_status': base + 2,          # 設備狀態
-            'error_code': base + 3,             # 錯誤代碼
-            'current_action_low': base + 4,     # 當前動作低位
-            'current_action_high': base + 5,    # 當前動作高位
-            'target_action_low': base + 6,      # 目標動作低位
-            'target_action_high': base + 7,     # 目標動作高位
-            'command_status': base + 8,         # 指令執行狀態
-            'comm_error_count': base + 9,       # 通訊錯誤計數
-            'brightness_status': base + 10,     # 背光亮度狀態
-            'backlight_status': base + 11,      # 背光開關狀態
-            'vibration_status': base + 12,      # 震動狀態
-            'reserved_13': base + 13,           # 保留
-            'timestamp': base + 14              # 時間戳
+            'module_status': base + 0,          # [U+6A21][U+7D44][U+72C0][U+614B]
+            'device_connection': base + 1,      # [U+8A2D][U+5099][U+9023][U+63A5][U+72C0][U+614B]
+            'device_status': base + 2,          # [U+8A2D][U+5099][U+72C0][U+614B]
+            'error_code': base + 3,             # [U+932F][U+8AA4][U+4EE3][U+78BC]
+            'current_action_low': base + 4,     # [U+7576][U+524D][U+52D5][U+4F5C][U+4F4E][U+4F4D]
+            'current_action_high': base + 5,    # [U+7576][U+524D][U+52D5][U+4F5C][U+9AD8][U+4F4D]
+            'target_action_low': base + 6,      # [U+76EE][U+6A19][U+52D5][U+4F5C][U+4F4E][U+4F4D]
+            'target_action_high': base + 7,     # [U+76EE][U+6A19][U+52D5][U+4F5C][U+9AD8][U+4F4D]
+            'command_status': base + 8,         # [U+6307][U+4EE4][U+57F7][U+884C][U+72C0][U+614B]
+            'comm_error_count': base + 9,       # [U+901A][U+8A0A][U+932F][U+8AA4][U+8A08][U+6578]
+            'brightness_status': base + 10,     # [U+80CC][U+5149][U+4EAE][U+5EA6][U+72C0][U+614B]
+            'backlight_status': base + 11,      # [U+80CC][U+5149][U+958B][U+95DC][U+72C0][U+614B]
+            'vibration_status': base + 12,      # [U+9707][U+52D5][U+72C0][U+614B]
+            'reserved_13': base + 13,           # [U+4FDD][U+7559]
+            'timestamp': base + 14              # [U+6642][U+9593][U+6233]
         }
         
-        # 指令寄存器區 (讀寫) base+20 ~ base+24
+        # [U+6307][U+4EE4][U+5BC4][U+5B58][U+5668][U+5340] ([U+8B80][U+5BEB]) base+20 ~ base+24
         self.command_registers = {
-            'command_code': base + 20,          # 指令代碼
-            'param1': base + 21,                # 參數1 (強度/亮度)
-            'param2': base + 22,                # 參數2 (頻率)
-            'command_id': base + 23,            # 指令ID
-            'reserved': base + 24               # 保留
+            'command_code': base + 20,          # [U+6307][U+4EE4][U+4EE3][U+78BC]
+            'param1': base + 21,                # [U+53C3][U+6578]1 ([U+5F37][U+5EA6]/[U+4EAE][U+5EA6])
+            'param2': base + 22,                # [U+53C3][U+6578]2 ([U+983B][U+7387])
+            'command_id': base + 23,            # [U+6307][U+4EE4]ID
+            'reserved': base + 24               # [U+4FDD][U+7559]
         }
         
-        # 所有寄存器
+        # [U+6240][U+6709][U+5BC4][U+5B58][U+5668]
         self.all_registers = {**self.status_registers, **self.command_registers}
         
-        logger.info(f"寄存器映射初始化完成 - 基地址: {base}")
-        print(f"震動盤模組寄存器映射:")
-        print(f"  基地址: {base}")
-        print(f"  狀態寄存器: {base} ~ {base + 14}")
-        print(f"  指令寄存器: {base + 20} ~ {base + 24}")
-        print(f"  模組狀態({base}): 0=離線, 1=閒置, 2=執行中, 3=初始化, 4=錯誤")
-        print(f"  設備連接({base + 1}): 0=斷開, 1=已連接")
-        print(f"  指令執行狀態({base + 8}): 0=空閒, 1=執行中")
+        logger.info(f"[U+5BC4][U+5B58][U+5668][U+6620][U+5C04][U+521D][U+59CB][U+5316][U+5B8C][U+6210] - [U+57FA][U+5730][U+5740]: {base}")
+        print(f"[U+9707][U+52D5][U+76E4][U+6A21][U+7D44][U+5BC4][U+5B58][U+5668][U+6620][U+5C04]:")
+        print(f"  [U+57FA][U+5730][U+5740]: {base}")
+        print(f"  [U+72C0][U+614B][U+5BC4][U+5B58][U+5668]: {base} ~ {base + 14}")
+        print(f"  [U+6307][U+4EE4][U+5BC4][U+5B58][U+5668]: {base + 20} ~ {base + 24}")
+        print(f"  [U+6A21][U+7D44][U+72C0][U+614B]({base}): 0=[U+96E2][U+7DDA], 1=[U+9592][U+7F6E], 2=[U+57F7][U+884C][U+4E2D], 3=[U+521D][U+59CB][U+5316], 4=[U+932F][U+8AA4]")
+        print(f"  [U+8A2D][U+5099][U+9023][U+63A5]({base + 1}): 0=[U+65B7][U+958B], 1=[U+5DF2][U+9023][U+63A5]")
+        print(f"  [U+6307][U+4EE4][U+57F7][U+884C][U+72C0][U+614B]({base + 8}): 0=[U+7A7A][U+9592], 1=[U+57F7][U+884C][U+4E2D]")
     
     def connect_main_server(self) -> bool:
-        """連接到主Modbus TCP服務器"""
+        """[U+9023][U+63A5][U+5230][U+4E3B]Modbus TCP[U+670D][U+52D9][U+5668]"""
         try:
             if self.modbus_client:
                 self.modbus_client.close()
@@ -158,22 +158,22 @@ class VibrationPlateModbusClient:
             if self.modbus_client.connect():
                 self.connected_to_server = True
                 self.connection_count += 1
-                print(f"連接到主服務器成功: {server_config['host']}:{server_config['port']}")
+                print(f"[U+9023][U+63A5][U+5230][U+4E3B][U+670D][U+52D9][U+5668][U+6210][U+529F]: {server_config['host']}:{server_config['port']}")
                 
-                # 初始化寄存器
+                # [U+521D][U+59CB][U+5316][U+5BC4][U+5B58][U+5668]
                 self.init_status_registers()
                 return True
             else:
-                print("連接到主服務器失敗")
+                print("[U+9023][U+63A5][U+5230][U+4E3B][U+670D][U+52D9][U+5668][U+5931][U+6557]")
                 return False
                 
         except Exception as e:
-            print(f"連接主服務器異常: {e}")
+            print(f"[U+9023][U+63A5][U+4E3B][U+670D][U+52D9][U+5668][U+7570][U+5E38]: {e}")
             self.connected_to_server = False
             return False
     
     def connect_device(self) -> bool:
-        """連接到震動盤設備"""
+        """[U+9023][U+63A5][U+5230][U+9707][U+52D5][U+76E4][U+8A2D][U+5099]"""
         try:
             if self.vibration_plate:
                 self.vibration_plate.disconnect()
@@ -188,37 +188,37 @@ class VibrationPlateModbusClient:
             
             if self.vibration_plate.is_connected():
                 self.connected_to_device = True
-                print(f"連接到震動盤成功: {device_config['ip']}:{device_config['port']}")
+                print(f"[U+9023][U+63A5][U+5230][U+9707][U+52D5][U+76E4][U+6210][U+529F]: {device_config['ip']}:{device_config['port']}")
                 
-                # 初始化設備
+                # [U+521D][U+59CB][U+5316][U+8A2D][U+5099]
                 self.vibration_plate.set_backlight_brightness(128)
                 self.vibration_plate.set_backlight(True)
                 
                 return True
             else:
-                print("連接到震動盤失敗")
+                print("[U+9023][U+63A5][U+5230][U+9707][U+52D5][U+76E4][U+5931][U+6557]")
                 return False
                 
         except Exception as e:
-            print(f"連接震動盤異常: {e}")
+            print(f"[U+9023][U+63A5][U+9707][U+52D5][U+76E4][U+7570][U+5E38]: {e}")
             self.connected_to_device = False
             return False
     
     def init_status_registers(self):
-        """初始化狀態寄存器"""
+        """[U+521D][U+59CB][U+5316][U+72C0][U+614B][U+5BC4][U+5B58][U+5668]"""
         try:
-            # 寫入模組基本資訊
-            self.write_register('module_status', 1)  # 閒置狀態
-            self.write_register('error_code', 0)     # 無錯誤
-            self.write_register('command_status', 0) # 空閒
+            # [U+5BEB][U+5165][U+6A21][U+7D44][U+57FA][U+672C][U+8CC7][U+8A0A]
+            self.write_register('module_status', 1)  # [U+9592][U+7F6E][U+72C0][U+614B]
+            self.write_register('error_code', 0)     # [U+7121][U+932F][U+8AA4]
+            self.write_register('command_status', 0) # [U+7A7A][U+9592]
             self.write_register('comm_error_count', self.error_count)
             
-            print("狀態寄存器初始化完成")
+            print("[U+72C0][U+614B][U+5BC4][U+5B58][U+5668][U+521D][U+59CB][U+5316][U+5B8C][U+6210]")
         except Exception as e:
-            print(f"初始化狀態寄存器失敗: {e}")
+            print(f"[U+521D][U+59CB][U+5316][U+72C0][U+614B][U+5BC4][U+5B58][U+5668][U+5931][U+6557]: {e}")
     
     def read_register(self, register_name: str) -> Optional[int]:
-        """讀取寄存器"""
+        """[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668]"""
         if not self.connected_to_server or register_name not in self.all_registers:
             return None
         
@@ -234,10 +234,10 @@ class VibrationPlateModbusClient:
                 return None
                 
         except Exception as e:
-            pass  # 靜默處理讀取錯誤
+            pass  # [U+975C][U+9ED8][U+8655][U+7406][U+8B80][U+53D6][U+932F][U+8AA4]
     
     def write_register(self, register_name: str, value: int) -> bool:
-        """寫入寄存器"""
+        """[U+5BEB][U+5165][U+5BC4][U+5B58][U+5668]"""
         if not self.connected_to_server or register_name not in self.all_registers:
             return False
         
@@ -250,13 +250,13 @@ class VibrationPlateModbusClient:
             return not result.isError()
                 
         except Exception as e:
-            pass  # 靜默處理寫入錯誤
+            pass  # [U+975C][U+9ED8][U+8655][U+7406][U+5BEB][U+5165][U+932F][U+8AA4]
             return False
     
     def execute_command(self, command: int, param1: int, param2: int) -> bool:
-        """執行指令"""
+        """[U+57F7][U+884C][U+6307][U+4EE4]"""
         if not self.connected_to_device:
-            print("設備未連接，無法執行指令")
+            print("[U+8A2D][U+5099][U+672A][U+9023][U+63A5][U+FF0C][U+7121][U+6CD5][U+57F7][U+884C][U+6307][U+4EE4]")
             return False
         
         try:
@@ -265,19 +265,19 @@ class VibrationPlateModbusClient:
             if command == 0:  # NOP
                 success = True
                 
-            elif command == 1:  # 設備啟用 (背光開啟)
+            elif command == 1:  # [U+8A2D][U+5099][U+555F][U+7528] ([U+80CC][U+5149][U+958B][U+555F])
                 success = self.vibration_plate.set_backlight(True)
                 
-            elif command == 2:  # 設備停用 (背光關閉)
+            elif command == 2:  # [U+8A2D][U+5099][U+505C][U+7528] ([U+80CC][U+5149][U+95DC][U+9589])
                 success = self.vibration_plate.set_backlight(False)
                 
-            elif command == 3:  # 停止所有動作
+            elif command == 3:  # [U+505C][U+6B62][U+6240][U+6709][U+52D5][U+4F5C]
                 success = self.vibration_plate.stop()
                 
-            elif command == 4:  # 設定背光亮度
+            elif command == 4:  # [U+8A2D][U+5B9A][U+80CC][U+5149][U+4EAE][U+5EA6]
                 success = self.vibration_plate.set_backlight_brightness(param1)
                 
-            elif command == 5:  # 執行動作 (param1=動作碼, param2=強度)
+            elif command == 5:  # [U+57F7][U+884C][U+52D5][U+4F5C] (param1=[U+52D5][U+4F5C][U+78BC], param2=[U+5F37][U+5EA6])
                 actions = ['stop', 'up', 'down', 'left', 'right', 'upleft', 'downleft',
                           'upright', 'downright', 'horizontal', 'vertical', 'spread']
                 if 0 <= param1 < len(actions):
@@ -287,44 +287,44 @@ class VibrationPlateModbusClient:
                     else:
                         success = self.vibration_plate.execute_action(action, param2, param2)
                 
-            elif command == 6:  # 緊急停止
+            elif command == 6:  # [U+7DCA][U+6025][U+505C][U+6B62]
                 success = self.vibration_plate.stop()
                 
-            elif command == 7:  # 錯誤重置
+            elif command == 7:  # [U+932F][U+8AA4][U+91CD][U+7F6E]
                 self.error_count = 0
                 success = True
                 
-            # 震動盤專用指令 (11-30)
+            # [U+9707][U+52D5][U+76E4][U+5C08][U+7528][U+6307][U+4EE4] (11-30)
             elif 11 <= command <= 30:
                 success = self.execute_vp_specific_command(command, param1, param2)
             
             if success:
                 self.operation_count += 1
-                print(f"指令執行成功: cmd={command}, p1={param1}, p2={param2}")
+                print(f"[U+6307][U+4EE4][U+57F7][U+884C][U+6210][U+529F]: cmd={command}, p1={param1}, p2={param2}")
             else:
                 self.error_count += 1
-                print(f"指令執行失敗: cmd={command}, p1={param1}, p2={param2}")
+                print(f"[U+6307][U+4EE4][U+57F7][U+884C][U+5931][U+6557]: cmd={command}, p1={param1}, p2={param2}")
                 
             return success
             
         except Exception as e:
-            print(f"執行指令異常: {e}")
+            print(f"[U+57F7][U+884C][U+6307][U+4EE4][U+7570][U+5E38]: {e}")
             self.error_count += 1
             return False
     
     def execute_vp_specific_command(self, command: int, param1: int, param2: int) -> bool:
-        """執行震動盤專用指令"""
+        """[U+57F7][U+884C][U+9707][U+52D5][U+76E4][U+5C08][U+7528][U+6307][U+4EE4]"""
         try:
-            if command == 11:  # 設定動作參數
+            if command == 11:  # [U+8A2D][U+5B9A][U+52D5][U+4F5C][U+53C3][U+6578]
                 actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft',
                           'upright', 'downright', 'horizontal', 'vertical', 'spread']
                 if 0 <= param1 < len(actions):
                     return self.vibration_plate.set_action_parameters(actions[param1], param2)
                     
-            elif command == 12:  # 背光切換
+            elif command == 12:  # [U+80CC][U+5149][U+5207][U+63DB]
                 return self.vibration_plate.set_backlight(bool(param1))
                 
-            elif command == 13:  # 執行特定動作並設定參數
+            elif command == 13:  # [U+57F7][U+884C][U+7279][U+5B9A][U+52D5][U+4F5C][U+4E26][U+8A2D][U+5B9A][U+53C3][U+6578]
                 actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft',
                           'upright', 'downright', 'horizontal', 'vertical', 'spread']
                 if 0 <= param1 < len(actions) and param1 > 0:
@@ -334,16 +334,16 @@ class VibrationPlateModbusClient:
             return False
             
         except Exception as e:
-            print(f"震動盤專用指令執行失敗: {e}")
+            print(f"[U+9707][U+52D5][U+76E4][U+5C08][U+7528][U+6307][U+4EE4][U+57F7][U+884C][U+5931][U+6557]: {e}")
             return False
     
     def update_status_registers(self):
-        """更新狀態寄存器"""
+        """[U+66F4][U+65B0][U+72C0][U+614B][U+5BC4][U+5B58][U+5668]"""
         try:
-            # 更新連接狀態
+            # [U+66F4][U+65B0][U+9023][U+63A5][U+72C0][U+614B]
             self.write_register('device_connection', 1 if self.connected_to_device else 0)
             
-            # 更新設備狀態
+            # [U+66F4][U+65B0][U+8A2D][U+5099][U+72C0][U+614B]
             if self.connected_to_device:
                 vp_status = self.vibration_plate.get_status()
                 self.write_register('device_status', 1 if vp_status['connected'] else 0)
@@ -353,32 +353,32 @@ class VibrationPlateModbusClient:
                 self.write_register('device_status', 0)
                 self.write_register('vibration_status', 0)
             
-            # 更新模組狀態
+            # [U+66F4][U+65B0][U+6A21][U+7D44][U+72C0][U+614B]
             if self.executing_command:
-                self.write_register('module_status', 2)  # 執行中
+                self.write_register('module_status', 2)  # [U+57F7][U+884C][U+4E2D]
             elif not self.connected_to_device:
-                self.write_register('module_status', 0)  # 離線
+                self.write_register('module_status', 0)  # [U+96E2][U+7DDA]
             elif self.error_count > 10:
-                self.write_register('module_status', 4)  # 錯誤
+                self.write_register('module_status', 4)  # [U+932F][U+8AA4]
             else:
-                self.write_register('module_status', 1)  # 閒置
+                self.write_register('module_status', 1)  # [U+9592][U+7F6E]
             
-            # 更新錯誤計數和時間戳
+            # [U+66F4][U+65B0][U+932F][U+8AA4][U+8A08][U+6578][U+548C][U+6642][U+9593][U+6233]
             self.write_register('comm_error_count', self.error_count)
             self.write_register('timestamp', int(time.time()) & 0xFFFF)
             
         except Exception as e:
-            pass  # 靜默處理狀態更新錯誤
+            pass  # [U+975C][U+9ED8][U+8655][U+7406][U+72C0][U+614B][U+66F4][U+65B0][U+932F][U+8AA4]
     
     def process_commands(self):
-        """處理指令 (狀態機交握)"""
+        """[U+8655][U+7406][U+6307][U+4EE4] ([U+72C0][U+614B][U+6A5F][U+4EA4][U+63E1])"""
         try:
-            # 讀取新指令ID
+            # [U+8B80][U+53D6][U+65B0][U+6307][U+4EE4]ID
             new_command_id = self.read_register('command_id')
             if new_command_id is None or new_command_id == self.last_command_id:
                 return
             
-            # 檢測到新指令
+            # [U+6AA2][U+6E2C][U+5230][U+65B0][U+6307][U+4EE4]
             command_code = self.read_register('command_code')
             param1 = self.read_register('param1')
             param2 = self.read_register('param2')
@@ -386,48 +386,48 @@ class VibrationPlateModbusClient:
             if command_code is None:
                 return
             
-            print(f"收到新指令: ID={new_command_id}, CMD={command_code}, P1={param1}, P2={param2}")
+            print(f"[U+6536][U+5230][U+65B0][U+6307][U+4EE4]: ID={new_command_id}, CMD={command_code}, P1={param1}, P2={param2}")
             
-            # 設置執行狀態
+            # [U+8A2D][U+7F6E][U+57F7][U+884C][U+72C0][U+614B]
             self.executing_command = True
-            self.write_register('command_status', 1)  # 執行中
+            self.write_register('command_status', 1)  # [U+57F7][U+884C][U+4E2D]
             
-            # 執行指令
+            # [U+57F7][U+884C][U+6307][U+4EE4]
             success = self.execute_command(command_code, param1 or 0, param2 or 0)
             
-            # 更新結果
+            # [U+66F4][U+65B0][U+7D50][U+679C]
             if success:
                 self.write_register('error_code', 0)
             else:
-                self.write_register('error_code', 1)  # 執行失敗
+                self.write_register('error_code', 1)  # [U+57F7][U+884C][U+5931][U+6557]
             
-            # 清除執行狀態
+            # [U+6E05][U+9664][U+57F7][U+884C][U+72C0][U+614B]
             self.executing_command = False
-            self.write_register('command_status', 0)  # 空閒
+            self.write_register('command_status', 0)  # [U+7A7A][U+9592]
             
-            # 清除指令寄存器
+            # [U+6E05][U+9664][U+6307][U+4EE4][U+5BC4][U+5B58][U+5668]
             self.write_register('command_code', 0)
             self.write_register('param1', 0)
             self.write_register('param2', 0)
             self.write_register('command_id', 0)
             
-            # 更新指令ID
+            # [U+66F4][U+65B0][U+6307][U+4EE4]ID
             self.last_command_id = new_command_id
             
         except Exception as e:
-            print(f"處理指令失敗: {e}")
+            print(f"[U+8655][U+7406][U+6307][U+4EE4][U+5931][U+6557]: {e}")
             self.executing_command = False
             self.write_register('command_status', 0)
             self.error_count += 1
     
     def main_loop(self):
-        """主循環"""
+        """[U+4E3B][U+5FAA][U+74B0]"""
         loop_interval = self.config['timing']['fast_loop_interval']
         
         while self.running:
             try:
                 with self.loop_lock:
-                    # 檢查連接狀態
+                    # [U+6AA2][U+67E5][U+9023][U+63A5][U+72C0][U+614B]
                     if not self.connected_to_server:
                         if not self.connect_main_server():
                             time.sleep(1)
@@ -438,53 +438,53 @@ class VibrationPlateModbusClient:
                             time.sleep(1)
                             continue
                     
-                    # 處理指令
+                    # [U+8655][U+7406][U+6307][U+4EE4]
                     self.process_commands()
                     
-                    # 更新狀態
+                    # [U+66F4][U+65B0][U+72C0][U+614B]
                     self.update_status_registers()
                 
                 time.sleep(loop_interval)
                 
             except Exception as e:
-                print(f"主循環異常: {e}")
+                print(f"[U+4E3B][U+5FAA][U+74B0][U+7570][U+5E38]: {e}")
                 self.error_count += 1
                 time.sleep(0.5)
     
     def start(self) -> bool:
-        """啟動模組"""
+        """[U+555F][U+52D5][U+6A21][U+7D44]"""
         if self.running:
-            print("模組已在運行中")
+            print("[U+6A21][U+7D44][U+5DF2][U+5728][U+904B][U+884C][U+4E2D]")
             return False
         
         try:
-            # 連接服務器和設備
+            # [U+9023][U+63A5][U+670D][U+52D9][U+5668][U+548C][U+8A2D][U+5099]
             if not self.connect_main_server():
-                print("無法連接到主服務器")
+                print("[U+7121][U+6CD5][U+9023][U+63A5][U+5230][U+4E3B][U+670D][U+52D9][U+5668]")
                 return False
             
             if not self.connect_device():
-                print("無法連接到震動盤設備，將在主循環中重試")
+                print("[U+7121][U+6CD5][U+9023][U+63A5][U+5230][U+9707][U+52D5][U+76E4][U+8A2D][U+5099][U+FF0C][U+5C07][U+5728][U+4E3B][U+5FAA][U+74B0][U+4E2D][U+91CD][U+8A66]")
             
-            # 啟動主循環
+            # [U+555F][U+52D5][U+4E3B][U+5FAA][U+74B0]
             self.running = True
             self.main_loop_thread = threading.Thread(target=self.main_loop, daemon=True)
             self.main_loop_thread.start()
             
-            print("震動盤模組啟動成功")
+            print("[U+9707][U+52D5][U+76E4][U+6A21][U+7D44][U+555F][U+52D5][U+6210][U+529F]")
             return True
             
         except Exception as e:
-            print(f"啟動模組失敗: {e}")
+            print(f"[U+555F][U+52D5][U+6A21][U+7D44][U+5931][U+6557]: {e}")
             return False
     
     def stop(self):
-        """停止模組"""
-        print("正在停止震動盤模組...")
+        """[U+505C][U+6B62][U+6A21][U+7D44]"""
+        print("[U+6B63][U+5728][U+505C][U+6B62][U+9707][U+52D5][U+76E4][U+6A21][U+7D44]...")
         
         self.running = False
         
-        # 停止震動盤
+        # [U+505C][U+6B62][U+9707][U+52D5][U+76E4]
         if self.vibration_plate:
             try:
                 self.vibration_plate.stop()
@@ -492,30 +492,30 @@ class VibrationPlateModbusClient:
             except:
                 pass
         
-        # 更新狀態為離線
+        # [U+66F4][U+65B0][U+72C0][U+614B][U+70BA][U+96E2][U+7DDA]
         if self.connected_to_server:
             try:
-                self.write_register('module_status', 0)  # 離線
+                self.write_register('module_status', 0)  # [U+96E2][U+7DDA]
                 self.write_register('device_connection', 0)
                 self.write_register('command_status', 0)
             except:
                 pass
         
-        # 關閉連接
+        # [U+95DC][U+9589][U+9023][U+63A5]
         if self.modbus_client:
             try:
                 self.modbus_client.close()
             except:
                 pass
         
-        # 等待線程結束
+        # [U+7B49][U+5F85][U+7DDA][U+7A0B][U+7D50][U+675F]
         if self.main_loop_thread and self.main_loop_thread.is_alive():
             self.main_loop_thread.join(timeout=2)
         
-        print("震動盤模組已停止")
+        print("[U+9707][U+52D5][U+76E4][U+6A21][U+7D44][U+5DF2][U+505C][U+6B62]")
     
     def get_status(self) -> Dict[str, Any]:
-        """獲取模組狀態"""
+        """[U+7372][U+53D6][U+6A21][U+7D44][U+72C0][U+614B]"""
         uptime = time.time() - self.start_time
         
         status = {
@@ -541,17 +541,17 @@ class VibrationPlateModbusClient:
 
 
 def main():
-    """主函數"""
+    """[U+4E3B][U+51FD][U+6578]"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    print("震動盤Modbus TCP Client啟動中...")
-    print(f"執行目錄: {current_dir}")
+    print("[U+9707][U+52D5][U+76E4]Modbus TCP Client[U+555F][U+52D5][U+4E2D]...")
+    print(f"[U+57F7][U+884C][U+76EE][U+9304]: {current_dir}")
     
-    # 創建模組實例
+    # [U+5275][U+5EFA][U+6A21][U+7D44][U+5BE6][U+4F8B]
     vp_client = VibrationPlateModbusClient()
     
-    # 信號處理
+    # [U+4FE1][U+865F][U+8655][U+7406]
     def signal_handler(sig, frame):
-        print("收到停止信號")
+        print("[U+6536][U+5230][U+505C][U+6B62][U+4FE1][U+865F]")
         vp_client.stop()
         sys.exit(0)
     
@@ -559,24 +559,24 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     try:
-        # 啟動模組
+        # [U+555F][U+52D5][U+6A21][U+7D44]
         if vp_client.start():
-            print(f"震動盤模組運行中 - 基地址: {vp_client.base_address}")
-            print("寄存器映射:")
-            print(f"  狀態寄存器: {vp_client.base_address} ~ {vp_client.base_address + 14}")
-            print(f"  指令寄存器: {vp_client.base_address + 20} ~ {vp_client.base_address + 24}")
-            print("按 Ctrl+C 停止程序")
+            print(f"[U+9707][U+52D5][U+76E4][U+6A21][U+7D44][U+904B][U+884C][U+4E2D] - [U+57FA][U+5730][U+5740]: {vp_client.base_address}")
+            print("[U+5BC4][U+5B58][U+5668][U+6620][U+5C04]:")
+            print(f"  [U+72C0][U+614B][U+5BC4][U+5B58][U+5668]: {vp_client.base_address} ~ {vp_client.base_address + 14}")
+            print(f"  [U+6307][U+4EE4][U+5BC4][U+5B58][U+5668]: {vp_client.base_address + 20} ~ {vp_client.base_address + 24}")
+            print("[U+6309] Ctrl+C [U+505C][U+6B62][U+7A0B][U+5E8F]")
             
-            # 保持運行
+            # [U+4FDD][U+6301][U+904B][U+884C]
             while vp_client.running:
                 time.sleep(1)
         else:
-            print("模組啟動失敗")
+            print("[U+6A21][U+7D44][U+555F][U+52D5][U+5931][U+6557]")
             
     except KeyboardInterrupt:
-        print("\n收到中斷信號")
+        print("\n[U+6536][U+5230][U+4E2D][U+65B7][U+4FE1][U+865F]")
     except Exception as e:
-        print(f"運行異常: {e}")
+        print(f"[U+904B][U+884C][U+7570][U+5E38]: {e}")
     finally:
         vp_client.stop()
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-vibration_plate.py - 震動盤控制模組
-支援ModbusTCP通訊協定，提供完整的震動盤控制功能
+vibration_plate.py - [U+9707][U+52D5][U+76E4][U+63A7][U+5236][U+6A21][U+7D44]
+[U+652F][U+63F4]ModbusTCP[U+901A][U+8A0A][U+5354][U+5B9A][U+FF0C][U+63D0][U+4F9B][U+5B8C][U+6574][U+7684][U+9707][U+52D5][U+76E4][U+63A7][U+5236][U+529F][U+80FD]
 """
 
 from pymodbus.client import ModbusTcpClient
@@ -12,11 +12,11 @@ from typing import Dict, Any, Optional, List
 
 class VibrationPlate:
     """
-    震動盤控制API類別
-    支援ModbusTCP通訊協定
+    [U+9707][U+52D5][U+76E4][U+63A7][U+5236]API[U+985E][U+5225]
+    [U+652F][U+63F4]ModbusTCP[U+901A][U+8A0A][U+5354][U+5B9A]
     """
     
-    # 動作編碼映射
+    # [U+52D5][U+4F5C][U+7DE8][U+78BC][U+6620][U+5C04]
     ACTION_MAP = {
         'stop': 0,
         'up': 1,
@@ -32,21 +32,21 @@ class VibrationPlate:
         'spread': 11
     }
     
-    # 寄存器位址定義
+    # [U+5BC4][U+5B58][U+5668][U+4F4D][U+5740][U+5B9A][U+7FA9]
     REGISTERS = {
-        'single_action_trigger': 4,      # 單一動作觸發
-        'vibration_status': 6,           # 震動盤狀態
-        'backlight_test': 58,            # 背光測試開關
-        'backlight_brightness': 46,      # 背光亮度
+        'single_action_trigger': 4,      # [U+55AE][U+4E00][U+52D5][U+4F5C][U+89F8][U+767C]
+        'vibration_status': 6,           # [U+9707][U+52D5][U+76E4][U+72C0][U+614B]
+        'backlight_test': 58,            # [U+80CC][U+5149][U+6E2C][U+8A66][U+958B][U+95DC]
+        'backlight_brightness': 46,      # [U+80CC][U+5149][U+4EAE][U+5EA6]
         
-        # 強度寄存器 (20-30)
+        # [U+5F37][U+5EA6][U+5BC4][U+5B58][U+5668] (20-30)
         'strength': {
             'up': 20, 'down': 21, 'left': 22, 'right': 23,
             'upleft': 24, 'downleft': 25, 'upright': 26, 'downright': 27,
             'horizontal': 28, 'vertical': 29, 'spread': 30
         },
         
-        # 頻率寄存器 (60-70)
+        # [U+983B][U+7387][U+5BC4][U+5B58][U+5668] (60-70)
         'frequency': {
             'up': 60, 'down': 61, 'left': 62, 'right': 63,
             'upleft': 64, 'downleft': 65, 'upright': 66, 'downright': 67,
@@ -56,13 +56,13 @@ class VibrationPlate:
 
     def __init__(self, ip: str, port: int, slave_id: int, auto_connect: bool = True):
         """
-        初始化震動盤控制器
+        [U+521D][U+59CB][U+5316][U+9707][U+52D5][U+76E4][U+63A7][U+5236][U+5668]
         
         Args:
-            ip: ModbusTCP伺服器IP位址
-            port: ModbusTCP伺服器埠口
-            slave_id: 從機ID
-            auto_connect: 是否自動連線
+            ip: ModbusTCP[U+4F3A][U+670D][U+5668]IP[U+4F4D][U+5740]
+            port: ModbusTCP[U+4F3A][U+670D][U+5668][U+57E0][U+53E3]
+            slave_id: [U+5F9E][U+6A5F]ID
+            auto_connect: [U+662F][U+5426][U+81EA][U+52D5][U+9023][U+7DDA]
         """
         self.ip = ip
         self.port = port
@@ -71,23 +71,23 @@ class VibrationPlate:
         self.connected = False
         self.lock = threading.Lock()
         
-        # 狀態快取
+        # [U+72C0][U+614B][U+5FEB][U+53D6]
         self.current_action = 'stop'
         self.last_brightness = 128
         self.last_backlight_state = True
         self.action_parameters = {}
         
-        # 初始化動作參數
+        # [U+521D][U+59CB][U+5316][U+52D5][U+4F5C][U+53C3][U+6578]
         self.init_action_parameters()
         
-        # 設定日誌
+        # [U+8A2D][U+5B9A][U+65E5][U+8A8C]
         self.logger = logging.getLogger(f"VibrationPlate_{ip}")
         
         if auto_connect:
             self.connect()
 
     def init_action_parameters(self):
-        """初始化動作參數"""
+        """[U+521D][U+59CB][U+5316][U+52D5][U+4F5C][U+53C3][U+6578]"""
         actions = ['up', 'down', 'left', 'right', 'upleft', 'downleft',
                   'upright', 'downright', 'horizontal', 'vertical', 'spread']
         
@@ -98,7 +98,7 @@ class VibrationPlate:
             }
 
     def connect(self) -> bool:
-        """連線到ModbusTCP伺服器"""
+        """[U+9023][U+7DDA][U+5230]ModbusTCP[U+4F3A][U+670D][U+5668]"""
         try:
             if self.client:
                 self.client.close()
@@ -107,41 +107,41 @@ class VibrationPlate:
             
             if self.client.connect():
                 self.connected = True
-                self.logger.info(f"成功連線到震動盤 {self.ip}:{self.port} (從機ID: {self.slave_id})")
+                self.logger.info(f"[U+6210][U+529F][U+9023][U+7DDA][U+5230][U+9707][U+52D5][U+76E4] {self.ip}:{self.port} ([U+5F9E][U+6A5F]ID: {self.slave_id})")
                 
-                # 連線成功後讀取當前狀態
+                # [U+9023][U+7DDA][U+6210][U+529F][U+5F8C][U+8B80][U+53D6][U+7576][U+524D][U+72C0][U+614B]
                 self.read_current_status()
                 
                 return True
             else:
                 self.connected = False
-                self.logger.error(f"無法連線到震動盤 {self.ip}:{self.port}")
+                self.logger.error(f"[U+7121][U+6CD5][U+9023][U+7DDA][U+5230][U+9707][U+52D5][U+76E4] {self.ip}:{self.port}")
                 return False
                 
         except Exception as e:
             self.connected = False
-            self.logger.error(f"連線異常: {e}")
+            self.logger.error(f"[U+9023][U+7DDA][U+7570][U+5E38]: {e}")
             return False
 
     def disconnect(self):
-        """中斷連線"""
+        """[U+4E2D][U+65B7][U+9023][U+7DDA]"""
         try:
             if self.client:
-                # 停止所有動作
+                # [U+505C][U+6B62][U+6240][U+6709][U+52D5][U+4F5C]
                 self.stop()
                 self.client.close()
                 self.connected = False
-                self.logger.info("震動盤連線已中斷")
+                self.logger.info("[U+9707][U+52D5][U+76E4][U+9023][U+7DDA][U+5DF2][U+4E2D][U+65B7]")
         except Exception as e:
-            self.logger.error(f"中斷連線時發生錯誤: {e}")
+            self.logger.error(f"[U+4E2D][U+65B7][U+9023][U+7DDA][U+6642][U+767C][U+751F][U+932F][U+8AA4]: {e}")
 
     def is_connected(self) -> bool:
-        """檢查連線狀態"""
+        """[U+6AA2][U+67E5][U+9023][U+7DDA][U+72C0][U+614B]"""
         if not self.client:
             return False
         
         try:
-            # 嘗試讀取一個寄存器來檢查連線
+            # [U+5617][U+8A66][U+8B80][U+53D6][U+4E00][U+500B][U+5BC4][U+5B58][U+5668][U+4F86][U+6AA2][U+67E5][U+9023][U+7DDA]
             result = self.client.read_holding_registers(
                 address=self.REGISTERS['vibration_status'],
                 count=1,
@@ -158,17 +158,17 @@ class VibrationPlate:
 
     def write_register(self, address: int, value: int) -> bool:
         """
-        寫入單個寄存器
+        [U+5BEB][U+5165][U+55AE][U+500B][U+5BC4][U+5B58][U+5668]
         
         Args:
-            address: 寄存器位址
-            value: 寫入值
+            address: [U+5BC4][U+5B58][U+5668][U+4F4D][U+5740]
+            value: [U+5BEB][U+5165][U+503C]
             
         Returns:
-            bool: 操作是否成功
+            bool: [U+64CD][U+4F5C][U+662F][U+5426][U+6210][U+529F]
         """
         if not self.is_connected():
-            self.logger.warning("設備未連線，嘗試重新連線...")
+            self.logger.warning("[U+8A2D][U+5099][U+672A][U+9023][U+7DDA][U+FF0C][U+5617][U+8A66][U+91CD][U+65B0][U+9023][U+7DDA]...")
             if not self.connect():
                 return False
 
@@ -181,29 +181,29 @@ class VibrationPlate:
                 )
                 
                 if response.isError():
-                    self.logger.error(f"寫入寄存器 {address} 失敗: {response}")
+                    self.logger.error(f"[U+5BEB][U+5165][U+5BC4][U+5B58][U+5668] {address} [U+5931][U+6557]: {response}")
                     return False
                 else:
-                    self.logger.debug(f"寄存器 {address} 設定為 {value}")
+                    self.logger.debug(f"[U+5BC4][U+5B58][U+5668] {address} [U+8A2D][U+5B9A][U+70BA] {value}")
                     return True
                     
         except Exception as e:
-            self.logger.error(f"寫入寄存器異常: {e}")
+            self.logger.error(f"[U+5BEB][U+5165][U+5BC4][U+5B58][U+5668][U+7570][U+5E38]: {e}")
             self.connected = False
             return False
 
     def read_register(self, address: int) -> Optional[int]:
         """
-        讀取單個寄存器
+        [U+8B80][U+53D6][U+55AE][U+500B][U+5BC4][U+5B58][U+5668]
         
         Args:
-            address: 寄存器位址
+            address: [U+5BC4][U+5B58][U+5668][U+4F4D][U+5740]
             
         Returns:
-            int or None: 寄存器值，失敗返回None
+            int or None: [U+5BC4][U+5B58][U+5668][U+503C][U+FF0C][U+5931][U+6557][U+8FD4][U+56DE]None
         """
         if not self.is_connected():
-            self.logger.warning("設備未連線，嘗試重新連線...")
+            self.logger.warning("[U+8A2D][U+5099][U+672A][U+9023][U+7DDA][U+FF0C][U+5617][U+8A66][U+91CD][U+65B0][U+9023][U+7DDA]...")
             if not self.connect():
                 return None
 
@@ -216,26 +216,26 @@ class VibrationPlate:
                 )
                 
                 if response.isError():
-                    self.logger.error(f"讀取寄存器 {address} 失敗: {response}")
+                    self.logger.error(f"[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668] {address} [U+5931][U+6557]: {response}")
                     return None
                 else:
                     return response.registers[0]
                     
         except Exception as e:
-            self.logger.error(f"讀取寄存器異常: {e}")
+            self.logger.error(f"[U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+7570][U+5E38]: {e}")
             self.connected = False
             return None
 
     def read_multiple_registers(self, start_address: int, count: int) -> Optional[List[int]]:
         """
-        批量讀取寄存器
+        [U+6279][U+91CF][U+8B80][U+53D6][U+5BC4][U+5B58][U+5668]
         
         Args:
-            start_address: 起始位址
-            count: 讀取數量
+            start_address: [U+8D77][U+59CB][U+4F4D][U+5740]
+            count: [U+8B80][U+53D6][U+6578][U+91CF]
             
         Returns:
-            list or None: 寄存器值列表，失敗返回None
+            list or None: [U+5BC4][U+5B58][U+5668][U+503C][U+5217][U+8868][U+FF0C][U+5931][U+6557][U+8FD4][U+56DE]None
         """
         if not self.is_connected():
             if not self.connect():
@@ -250,41 +250,41 @@ class VibrationPlate:
                 )
                 
                 if response.isError():
-                    self.logger.error(f"批量讀取寄存器失敗: {response}")
+                    self.logger.error(f"[U+6279][U+91CF][U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+5931][U+6557]: {response}")
                     return None
                 else:
                     return response.registers
                     
         except Exception as e:
-            self.logger.error(f"批量讀取寄存器異常: {e}")
+            self.logger.error(f"[U+6279][U+91CF][U+8B80][U+53D6][U+5BC4][U+5B58][U+5668][U+7570][U+5E38]: {e}")
             self.connected = False
             return None
 
     def read_current_status(self):
-        """讀取當前狀態"""
+        """[U+8B80][U+53D6][U+7576][U+524D][U+72C0][U+614B]"""
         try:
-            # 讀取背光亮度
+            # [U+8B80][U+53D6][U+80CC][U+5149][U+4EAE][U+5EA6]
             brightness = self.read_register(self.REGISTERS['backlight_brightness'])
             if brightness is not None:
                 self.last_brightness = brightness
             
-            # 讀取震動狀態
+            # [U+8B80][U+53D6][U+9707][U+52D5][U+72C0][U+614B]
             vibration_status = self.read_register(self.REGISTERS['vibration_status'])
             if vibration_status is not None:
                 self.current_action = 'stop' if vibration_status == 0 else 'running'
             
-            # 讀取動作參數
+            # [U+8B80][U+53D6][U+52D5][U+4F5C][U+53C3][U+6578]
             self.read_action_parameters()
             
         except Exception as e:
-            self.logger.error(f"讀取當前狀態失敗: {e}")
+            self.logger.error(f"[U+8B80][U+53D6][U+7576][U+524D][U+72C0][U+614B][U+5931][U+6557]: {e}")
 
     def read_action_parameters(self):
-        """讀取所有動作參數"""
+        """[U+8B80][U+53D6][U+6240][U+6709][U+52D5][U+4F5C][U+53C3][U+6578]"""
         try:
-            # 讀取強度寄存器
+            # [U+8B80][U+53D6][U+5F37][U+5EA6][U+5BC4][U+5B58][U+5668]
             strength_registers = self.read_multiple_registers(20, 11)
-            # 讀取頻率寄存器
+            # [U+8B80][U+53D6][U+983B][U+7387][U+5BC4][U+5B58][U+5668]
             frequency_registers = self.read_multiple_registers(60, 11)
             
             if strength_registers and frequency_registers:
@@ -298,54 +298,54 @@ class VibrationPlate:
                     }
                     
         except Exception as e:
-            self.logger.error(f"讀取動作參數失敗: {e}")
+            self.logger.error(f"[U+8B80][U+53D6][U+52D5][U+4F5C][U+53C3][U+6578][U+5931][U+6557]: {e}")
 
     def set_backlight(self, state: bool) -> bool:
         """
-        設定背光開關
+        [U+8A2D][U+5B9A][U+80CC][U+5149][U+958B][U+95DC]
         
         Args:
-            state: True開啟，False關閉
+            state: True[U+958B][U+555F][U+FF0C]False[U+95DC][U+9589]
             
         Returns:
-            bool: 操作是否成功
+            bool: [U+64CD][U+4F5C][U+662F][U+5426][U+6210][U+529F]
         """
         success = self.write_register(self.REGISTERS['backlight_test'], int(bool(state)))
         if success:
             self.last_backlight_state = state
-            self.logger.info(f"背光{'開啟' if state else '關閉'}")
+            self.logger.info(f"[U+80CC][U+5149]{'[U+958B][U+555F]' if state else '[U+95DC][U+9589]'}")
         return success
 
     def set_backlight_brightness(self, brightness: int) -> bool:
         """
-        設定背光亮度
+        [U+8A2D][U+5B9A][U+80CC][U+5149][U+4EAE][U+5EA6]
         
         Args:
-            brightness: 亮度值 (0-255)
+            brightness: [U+4EAE][U+5EA6][U+503C] (0-255)
             
         Returns:
-            bool: 操作是否成功
+            bool: [U+64CD][U+4F5C][U+662F][U+5426][U+6210][U+529F]
         """
         brightness = max(0, min(255, int(brightness)))
         success = self.write_register(self.REGISTERS['backlight_brightness'], brightness)
         if success:
             self.last_brightness = brightness
-            self.logger.info(f"背光亮度設定為: {brightness}")
+            self.logger.info(f"[U+80CC][U+5149][U+4EAE][U+5EA6][U+8A2D][U+5B9A][U+70BA]: {brightness}")
         return success
 
     def trigger_action(self, action: str) -> bool:
         """
-        觸發指定動作
+        [U+89F8][U+767C][U+6307][U+5B9A][U+52D5][U+4F5C]
         
         Args:
-            action: 動作名稱或編碼
+            action: [U+52D5][U+4F5C][U+540D][U+7A31][U+6216][U+7DE8][U+78BC]
             
         Returns:
-            bool: 操作是否成功
+            bool: [U+64CD][U+4F5C][U+662F][U+5426][U+6210][U+529F]
         """
         if isinstance(action, str):
             if action not in self.ACTION_MAP:
-                self.logger.error(f"未知動作: {action}")
+                self.logger.error(f"[U+672A][U+77E5][U+52D5][U+4F5C]: {action}")
                 return False
             action_code = self.ACTION_MAP[action]
         else:
@@ -354,28 +354,28 @@ class VibrationPlate:
         success = self.write_register(self.REGISTERS['single_action_trigger'], action_code)
         if success:
             self.current_action = action if isinstance(action, str) else str(action_code)
-            self.logger.info(f"觸發動作: {action} (代碼: {action_code})")
+            self.logger.info(f"[U+89F8][U+767C][U+52D5][U+4F5C]: {action} ([U+4EE3][U+78BC]: {action_code})")
         return success
 
     def set_action_parameters(self, action: str, strength: int = None, frequency: int = None) -> bool:
         """
-        設定動作參數
+        [U+8A2D][U+5B9A][U+52D5][U+4F5C][U+53C3][U+6578]
         
         Args:
-            action: 動作名稱
-            strength: 強度值 (0-255)
-            frequency: 頻率值 (0-255)
+            action: [U+52D5][U+4F5C][U+540D][U+7A31]
+            strength: [U+5F37][U+5EA6][U+503C] (0-255)
+            frequency: [U+983B][U+7387][U+503C] (0-255)
             
         Returns:
-            bool: 操作是否成功
+            bool: [U+64CD][U+4F5C][U+662F][U+5426][U+6210][U+529F]
         """
         if action not in self.REGISTERS['strength']:
-            self.logger.error(f"未知動作: {action}")
+            self.logger.error(f"[U+672A][U+77E5][U+52D5][U+4F5C]: {action}")
             return False
             
         success = True
         
-        # 更新本地快取
+        # [U+66F4][U+65B0][U+672C][U+5730][U+5FEB][U+53D6]
         if action not in self.action_parameters:
             self.action_parameters[action] = {'strength': 100, 'frequency': 100}
         
@@ -383,7 +383,7 @@ class VibrationPlate:
             strength = max(0, min(255, int(strength)))
             if self.write_register(self.REGISTERS['strength'][action], strength):
                 self.action_parameters[action]['strength'] = strength
-                self.logger.debug(f"設定 {action} 強度: {strength}")
+                self.logger.debug(f"[U+8A2D][U+5B9A] {action} [U+5F37][U+5EA6]: {strength}")
             else:
                 success = False
             
@@ -391,7 +391,7 @@ class VibrationPlate:
             frequency = max(0, min(255, int(frequency)))
             if self.write_register(self.REGISTERS['frequency'][action], frequency):
                 self.action_parameters[action]['frequency'] = frequency
-                self.logger.debug(f"設定 {action} 頻率: {frequency}")
+                self.logger.debug(f"[U+8A2D][U+5B9A] {action} [U+983B][U+7387]: {frequency}")
             else:
                 success = False
                 
@@ -399,51 +399,51 @@ class VibrationPlate:
 
     def execute_action(self, action: str, strength: int = None, frequency: int = None, duration: float = None) -> bool:
         """
-        執行動作（設定參數並觸發）
+        [U+57F7][U+884C][U+52D5][U+4F5C][U+FF08][U+8A2D][U+5B9A][U+53C3][U+6578][U+4E26][U+89F8][U+767C][U+FF09]
         
         Args:
-            action: 動作名稱
-            strength: 強度值 (0-255)
-            frequency: 頻率值 (0-255)
-            duration: 持續時間(秒)，None表示不自動停止
+            action: [U+52D5][U+4F5C][U+540D][U+7A31]
+            strength: [U+5F37][U+5EA6][U+503C] (0-255)
+            frequency: [U+983B][U+7387][U+503C] (0-255)
+            duration: [U+6301][U+7E8C][U+6642][U+9593]([U+79D2])[U+FF0C]None[U+8868][U+793A][U+4E0D][U+81EA][U+52D5][U+505C][U+6B62]
             
         Returns:
-            bool: 操作是否成功
+            bool: [U+64CD][U+4F5C][U+662F][U+5426][U+6210][U+529F]
         """
-        # 設定參數
+        # [U+8A2D][U+5B9A][U+53C3][U+6578]
         if strength is not None or frequency is not None:
             if not self.set_action_parameters(action, strength, frequency):
-                self.logger.warning(f"設定 {action} 參數失敗，但仍嘗試執行動作")
+                self.logger.warning(f"[U+8A2D][U+5B9A] {action} [U+53C3][U+6578][U+5931][U+6557][U+FF0C][U+4F46][U+4ECD][U+5617][U+8A66][U+57F7][U+884C][U+52D5][U+4F5C]")
         
-        # 觸發動作
+        # [U+89F8][U+767C][U+52D5][U+4F5C]
         if not self.trigger_action(action):
             return False
         
-        # 如果指定了持續時間，則延時後停止
+        # [U+5982][U+679C][U+6307][U+5B9A][U+4E86][U+6301][U+7E8C][U+6642][U+9593][U+FF0C][U+5247][U+5EF6][U+6642][U+5F8C][U+505C][U+6B62]
         if duration is not None and duration > 0:
             def stop_after_delay():
                 time.sleep(duration)
                 self.stop()
                 
             threading.Thread(target=stop_after_delay, daemon=True).start()
-            self.logger.info(f"動作 {action} 將在 {duration} 秒後停止")
+            self.logger.info(f"[U+52D5][U+4F5C] {action} [U+5C07][U+5728] {duration} [U+79D2][U+5F8C][U+505C][U+6B62]")
             
         return True
 
     def stop(self) -> bool:
-        """停止所有動作"""
+        """[U+505C][U+6B62][U+6240][U+6709][U+52D5][U+4F5C]"""
         success = self.trigger_action('stop')
         if success:
             self.current_action = 'stop'
-            self.logger.info("所有動作已停止")
+            self.logger.info("[U+6240][U+6709][U+52D5][U+4F5C][U+5DF2][U+505C][U+6B62]")
         return success
 
     def get_status(self) -> Dict[str, Any]:
         """
-        取得震動盤狀態
+        [U+53D6][U+5F97][U+9707][U+52D5][U+76E4][U+72C0][U+614B]
         
         Returns:
-            dict: 狀態資訊
+            dict: [U+72C0][U+614B][U+8CC7][U+8A0A]
         """
         status = {
             'connected': self.is_connected(),
@@ -463,32 +463,32 @@ class VibrationPlate:
             return status
             
         try:
-            # 讀取即時震動狀態
+            # [U+8B80][U+53D6][U+5373][U+6642][U+9707][U+52D5][U+72C0][U+614B]
             vibration_status = self.read_register(self.REGISTERS['vibration_status'])
             if vibration_status is not None:
                 status['vibration_active'] = bool(vibration_status)
                 
-            # 讀取即時背光亮度
+            # [U+8B80][U+53D6][U+5373][U+6642][U+80CC][U+5149][U+4EAE][U+5EA6]
             brightness = self.read_register(self.REGISTERS['backlight_brightness'])
             if brightness is not None:
                 status['backlight_brightness'] = brightness
                 self.last_brightness = brightness
                 
-            # 更新動作參數
+            # [U+66F4][U+65B0][U+52D5][U+4F5C][U+53C3][U+6578]
             self.read_action_parameters()
             status['action_parameters'] = self.action_parameters.copy()
             
         except Exception as e:
-            self.logger.error(f"讀取狀態失敗: {e}")
+            self.logger.error(f"[U+8B80][U+53D6][U+72C0][U+614B][U+5931][U+6557]: {e}")
                 
         return status
 
     def get_action_list(self) -> List[str]:
-        """取得所有可用動作列表"""
+        """[U+53D6][U+5F97][U+6240][U+6709][U+53EF][U+7528][U+52D5][U+4F5C][U+5217][U+8868]"""
         return list(self.ACTION_MAP.keys())
 
     def get_register_map(self) -> Dict[str, Any]:
-        """取得寄存器映射資訊"""
+        """[U+53D6][U+5F97][U+5BC4][U+5B58][U+5668][U+6620][U+5C04][U+8CC7][U+8A0A]"""
         return {
             'action_map': self.ACTION_MAP,
             'registers': self.REGISTERS,
@@ -500,7 +500,7 @@ class VibrationPlate:
         }
 
     def test_connection(self) -> Dict[str, Any]:
-        """測試連線"""
+        """[U+6E2C][U+8A66][U+9023][U+7DDA]"""
         test_result = {
             'success': False,
             'message': '',
@@ -508,42 +508,42 @@ class VibrationPlate:
         }
         
         try:
-            # 測試基本連線
+            # [U+6E2C][U+8A66][U+57FA][U+672C][U+9023][U+7DDA]
             if not self.is_connected():
                 if not self.connect():
-                    test_result['message'] = f"無法連線到 {self.ip}:{self.port}"
+                    test_result['message'] = f"[U+7121][U+6CD5][U+9023][U+7DDA][U+5230] {self.ip}:{self.port}"
                     return test_result
             
-            # 測試讀取寄存器
+            # [U+6E2C][U+8A66][U+8B80][U+53D6][U+5BC4][U+5B58][U+5668]
             vibration_status = self.read_register(self.REGISTERS['vibration_status'])
             brightness = self.read_register(self.REGISTERS['backlight_brightness'])
             
             if vibration_status is not None and brightness is not None:
                 test_result['success'] = True
-                test_result['message'] = "連線測試成功"
+                test_result['message'] = "[U+9023][U+7DDA][U+6E2C][U+8A66][U+6210][U+529F]"
                 test_result['details'] = {
                     'vibration_status': vibration_status,
                     'backlight_brightness': brightness,
                     'connected': True
                 }
             else:
-                test_result['message'] = "無法讀取設備寄存器"
+                test_result['message'] = "[U+7121][U+6CD5][U+8B80][U+53D6][U+8A2D][U+5099][U+5BC4][U+5B58][U+5668]"
                 
         except Exception as e:
-            test_result['message'] = f"連線測試失敗: {e}"
+            test_result['message'] = f"[U+9023][U+7DDA][U+6E2C][U+8A66][U+5931][U+6557]: {e}"
             
         return test_result
 
     def __enter__(self):
-        """上下文管理器入口"""
+        """[U+4E0A][U+4E0B][U+6587][U+7BA1][U+7406][U+5668][U+5165][U+53E3]"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """上下文管理器出口"""
+        """[U+4E0A][U+4E0B][U+6587][U+7BA1][U+7406][U+5668][U+51FA][U+53E3]"""
         self.disconnect()
 
     def __del__(self):
-        """析構函數"""
+        """[U+6790][U+69CB][U+51FD][U+6578]"""
         try:
             self.disconnect()
         except:

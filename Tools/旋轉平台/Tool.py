@@ -10,7 +10,7 @@ class ModbusRTU:
     def __init__(self):
         self.serial_conn = None
         
-    def connect(self, port, baudrate=115200):
+    def connect(self, port, baudrate=19200):
         try:
             self.serial_conn = serial.Serial(
                 port=port,
@@ -294,7 +294,7 @@ class MotorControlApp:
         """切換連接狀態"""
         if not self.is_connected:
             port = self.port_var.get()
-            if self.modbus.connect(port, 115200):
+            if self.modbus.connect(port, 19200):
                 self.is_connected = True
                 self.connect_btn.configure(text="斷開")
                 self.enable_controls(True)

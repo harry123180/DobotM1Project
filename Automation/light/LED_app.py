@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-LED_app.py - LED控制器Web UI應用
-純ModbusTCP Client實現，參考VP_app.py架構
+LED_app.py - LED[U+63A7][U+5236][U+5668]Web UI[U+61C9][U+7528]
+[U+7D14]ModbusTCP Client[U+5BE6][U+73FE][U+FF0C][U+53C3][U+8003]VP_app.py[U+67B6][U+69CB]
 """
 
 import os
@@ -15,40 +15,40 @@ from pymodbus.client import ModbusTcpClient
 import logging
 
 class LEDWebApp:
-    """LED控制器Web應用 - 純ModbusTCP Client"""
+    """LED[U+63A7][U+5236][U+5668]Web[U+61C9][U+7528] - [U+7D14]ModbusTCP Client"""
     
     def __init__(self, config_file="led_app_config.json"):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.config_file = os.path.join(self.current_dir, config_file)
         self.load_config()
         
-        # Flask應用初始化 - 模板路徑設為執行檔同層的templates目錄
+        # Flask[U+61C9][U+7528][U+521D][U+59CB][U+5316] - [U+6A21][U+677F][U+8DEF][U+5F91][U+8A2D][U+70BA][U+57F7][U+884C][U+6A94][U+540C][U+5C64][U+7684]templates[U+76EE][U+9304]
         template_dir = os.path.join(self.current_dir, 'templates')
         self.app = Flask(__name__, template_folder=template_dir)
         self.app.config['SECRET_KEY'] = 'led_controller_web_secret_key'
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
         
-        # Modbus TCP Client (連接主服務器)
+        # Modbus TCP Client ([U+9023][U+63A5][U+4E3B][U+670D][U+52D9][U+5668])
         self.modbus_client = None
         self.connected_to_server = False
         self.base_address = self.config["modbus_mapping"]["base_address"]
         
-        # 狀態監控
+        # [U+72C0][U+614B][U+76E3][U+63A7]
         self.monitor_thread = None
         self.monitoring = False
         
-        # 設置路由和事件
+        # [U+8A2D][U+7F6E][U+8DEF][U+7531][U+548C][U+4E8B][U+4EF6]
         self.setup_routes()
         self.setup_socketio_events()
         
-        # 設置日誌
+        # [U+8A2D][U+7F6E][U+65E5][U+8A8C]
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
     
     def load_config(self):
-        """載入配置檔案"""
+        """[U+8F09][U+5165][U+914D][U+7F6E][U+6A94][U+6848]"""
         default_config = {
-            "module_id": "LED控制器Web UI",
+            "module_id": "LED[U+63A7][U+5236][U+5668]Web UI",
             "tcp_server": {
                 "host": "127.0.0.1",
                 "port": 502,
@@ -74,22 +74,22 @@ class LEDWebApp:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     self.config = json.load(f)
             except Exception as e:
-                self.logger.error(f"載入配置失敗: {e}")
+                self.logger.error(f"[U+8F09][U+5165][U+914D][U+7F6E][U+5931][U+6557]: {e}")
                 self.config = default_config
         else:
             self.config = default_config
             self.save_config()
     
     def save_config(self):
-        """保存配置檔案"""
+        """[U+4FDD][U+5B58][U+914D][U+7F6E][U+6A94][U+6848]"""
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            self.logger.error(f"保存配置失敗: {e}")
+            self.logger.error(f"[U+4FDD][U+5B58][U+914D][U+7F6E][U+5931][U+6557]: {e}")
     
     def connect_server(self) -> bool:
-        """連接Modbus TCP服務器"""
+        """[U+9023][U+63A5]Modbus TCP[U+670D][U+52D9][U+5668]"""
         try:
             if self.modbus_client and self.modbus_client.connected:
                 return True
@@ -103,42 +103,42 @@ class LEDWebApp:
             
             if self.modbus_client.connect():
                 self.connected_to_server = True
-                self.logger.info(f"連接服務器成功: {tcp_config['host']}:{tcp_config['port']}")
+                self.logger.info(f"[U+9023][U+63A5][U+670D][U+52D9][U+5668][U+6210][U+529F]: {tcp_config['host']}:{tcp_config['port']}")
                 return True
             else:
                 self.connected_to_server = False
                 return False
                 
         except Exception as e:
-            self.logger.error(f"連接服務器失敗: {e}")
+            self.logger.error(f"[U+9023][U+63A5][U+670D][U+52D9][U+5668][U+5931][U+6557]: {e}")
             self.connected_to_server = False
             return False
     
     def read_status(self) -> dict:
-        """讀取LED狀態 (從LED_main.py的寄存器)"""
+        """[U+8B80][U+53D6]LED[U+72C0][U+614B] ([U+5F9E]LED_main.py[U+7684][U+5BC4][U+5B58][U+5668])"""
         try:
             if not self.connected_to_server:
                 if not self.connect_server():
-                    return {"error": "無法連接服務器"}
+                    return {"error": "[U+7121][U+6CD5][U+9023][U+63A5][U+670D][U+52D9][U+5668]"}
             
-            # 讀取狀態寄存器 (500-515)
+            # [U+8B80][U+53D6][U+72C0][U+614B][U+5BC4][U+5B58][U+5668] (500-515)
             result = self.modbus_client.read_holding_registers(
                 address=self.base_address,
                 count=16,
                 slave=self.config["tcp_server"]["unit_id"]
             )
             if result.isError():
-                return {"error": "讀取狀態失敗"}
+                return {"error": "[U+8B80][U+53D6][U+72C0][U+614B][U+5931][U+6557]"}
             
             registers = result.registers
             
             status_map = {
-                0: "離線", 1: "閒置", 2: "執行中", 3: "初始化", 4: "錯誤"
+                0: "[U+96E2][U+7DDA]", 1: "[U+9592][U+7F6E]", 2: "[U+57F7][U+884C][U+4E2D]", 3: "[U+521D][U+59CB][U+5316]", 4: "[U+932F][U+8AA4]"
             }
             
             return {
-                "module_status": status_map.get(registers[0], "未知"),
-                "device_connection": "已連接" if registers[1] else "斷開",
+                "module_status": status_map.get(registers[0], "[U+672A][U+77E5]"),
+                "device_connection": "[U+5DF2][U+9023][U+63A5]" if registers[1] else "[U+65B7][U+958B]",
                 "active_channels": registers[2],
                 "error_code": registers[3],
                 "channels": {
@@ -154,11 +154,11 @@ class LEDWebApp:
             }
             
         except Exception as e:
-            self.logger.error(f"讀取狀態失敗: {e}")
+            self.logger.error(f"[U+8B80][U+53D6][U+72C0][U+614B][U+5931][U+6557]: {e}")
             return {"error": str(e)}
     
     def send_command(self, command: int, param1: int = 0, param2: int = 0) -> bool:
-        """發送指令到LED_main.py"""
+        """[U+767C][U+9001][U+6307][U+4EE4][U+5230]LED_main.py"""
         try:
             if not self.connected_to_server:
                 if not self.connect_server():
@@ -178,11 +178,11 @@ class LEDWebApp:
             return not result.isError()
             
         except Exception as e:
-            self.logger.error(f"發送指令失敗: {e}")
+            self.logger.error(f"[U+767C][U+9001][U+6307][U+4EE4][U+5931][U+6557]: {e}")
             return False
     
     def setup_routes(self):
-        """設置Flask路由"""
+        """[U+8A2D][U+7F6E]Flask[U+8DEF][U+7531]"""
         
         @self.app.route('/')
         def index():
@@ -205,11 +205,11 @@ class LEDWebApp:
             brightness = data.get('brightness', 0)
             
             if not (1 <= channel <= 4):
-                return jsonify({"success": False, "error": "通道號必須在1-4之間"})
+                return jsonify({"success": False, "error": "[U+901A][U+9053][U+865F][U+5FC5][U+9808][U+5728]1-4[U+4E4B][U+9593]"})
             if not (0 <= brightness <= 511):
-                return jsonify({"success": False, "error": "亮度必須在0-511之間"})
+                return jsonify({"success": False, "error": "[U+4EAE][U+5EA6][U+5FC5][U+9808][U+5728]0-511[U+4E4B][U+9593]"})
             
-            # 指令4: 設定單一通道亮度
+            # [U+6307][U+4EE4]4: [U+8A2D][U+5B9A][U+55AE][U+4E00][U+901A][U+9053][U+4EAE][U+5EA6]
             success = self.send_command(4, channel, brightness)
             return jsonify({"success": success})
         
@@ -219,9 +219,9 @@ class LEDWebApp:
             channel = data.get('channel', 1)
             
             if not (1 <= channel <= 4):
-                return jsonify({"success": False, "error": "通道號必須在1-4之間"})
+                return jsonify({"success": False, "error": "[U+901A][U+9053][U+865F][U+5FC5][U+9808][U+5728]1-4[U+4E4B][U+9593]"})
             
-            # 指令5: 開啟單一通道
+            # [U+6307][U+4EE4]5: [U+958B][U+555F][U+55AE][U+4E00][U+901A][U+9053]
             success = self.send_command(5, channel, 0)
             return jsonify({"success": success})
         
@@ -231,47 +231,47 @@ class LEDWebApp:
             channel = data.get('channel', 1)
             
             if not (1 <= channel <= 4):
-                return jsonify({"success": False, "error": "通道號必須在1-4之間"})
+                return jsonify({"success": False, "error": "[U+901A][U+9053][U+865F][U+5FC5][U+9808][U+5728]1-4[U+4E4B][U+9593]"})
             
-            # 指令6: 關閉單一通道
+            # [U+6307][U+4EE4]6: [U+95DC][U+9589][U+55AE][U+4E00][U+901A][U+9053]
             success = self.send_command(6, channel, 0)
             return jsonify({"success": success})
         
         @self.app.route('/api/all_on', methods=['POST'])
         def api_all_on():
-            # 指令1: 全部開啟
+            # [U+6307][U+4EE4]1: [U+5168][U+90E8][U+958B][U+555F]
             success = self.send_command(1, 0, 0)
             return jsonify({"success": success})
         
         @self.app.route('/api/all_off', methods=['POST'])
         def api_all_off():
-            # 指令2: 全部關閉
+            # [U+6307][U+4EE4]2: [U+5168][U+90E8][U+95DC][U+9589]
             success = self.send_command(2, 0, 0)
             return jsonify({"success": success})
         
         @self.app.route('/api/reset', methods=['POST'])
         def api_reset():
-            # 指令3: 重置設備
+            # [U+6307][U+4EE4]3: [U+91CD][U+7F6E][U+8A2D][U+5099]
             success = self.send_command(3, 0, 0)
             return jsonify({"success": success})
         
         @self.app.route('/api/error_reset', methods=['POST'])
         def api_error_reset():
-            # 指令7: 錯誤重置
+            # [U+6307][U+4EE4]7: [U+932F][U+8AA4][U+91CD][U+7F6E]
             success = self.send_command(7, 0, 0)
             return jsonify({"success": success})
     
     def setup_socketio_events(self):
-        """設置SocketIO事件"""
+        """[U+8A2D][U+7F6E]SocketIO[U+4E8B][U+4EF6]"""
         
         @self.socketio.on('connect')
         def handle_connect():
-            print('客戶端已連接')
+            print('[U+5BA2][U+6236][U+7AEF][U+5DF2][U+9023][U+63A5]')
             emit('status', self.read_status())
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            print('客戶端已斷開')
+            print('[U+5BA2][U+6236][U+7AEF][U+5DF2][U+65B7][U+958B]')
         
         @self.socketio.on('get_status')
         def handle_get_status():
@@ -287,7 +287,7 @@ class LEDWebApp:
                 success = self.send_command(4, channel, brightness)
                 emit('command_result', {"success": success, "command": "set_brightness"})
             else:
-                emit('command_result', {"success": False, "error": "參數範圍錯誤"})
+                emit('command_result', {"success": False, "error": "[U+53C3][U+6578][U+7BC4][U+570D][U+932F][U+8AA4]"})
         
         @self.socketio.on('channel_control')
         def handle_channel_control(data):
@@ -295,7 +295,7 @@ class LEDWebApp:
             action = data.get('action', 'off')
             
             if not (1 <= channel <= 4):
-                emit('command_result', {"success": False, "error": "通道號錯誤"})
+                emit('command_result', {"success": False, "error": "[U+901A][U+9053][U+865F][U+932F][U+8AA4]"})
                 return
             
             if action == 'on':
@@ -323,48 +323,48 @@ class LEDWebApp:
             emit('command_result', {"success": success, "command": action})
     
     def status_monitor(self):
-        """狀態監控線程"""
+        """[U+72C0][U+614B][U+76E3][U+63A7][U+7DDA][U+7A0B]"""
         while self.monitoring:
             try:
                 status = self.read_status()
                 self.socketio.emit('status_update', status)
                 time.sleep(self.config["ui_settings"]["refresh_interval"])
             except Exception as e:
-                self.logger.error(f"狀態監控錯誤: {e}")
+                self.logger.error(f"[U+72C0][U+614B][U+76E3][U+63A7][U+932F][U+8AA4]: {e}")
                 time.sleep(1)
     
     def start_monitoring(self):
-        """啟動狀態監控"""
+        """[U+555F][U+52D5][U+72C0][U+614B][U+76E3][U+63A7]"""
         if not self.monitoring:
             self.monitoring = True
             self.monitor_thread = threading.Thread(target=self.status_monitor, daemon=True)
             self.monitor_thread.start()
     
     def stop_monitoring(self):
-        """停止狀態監控"""
+        """[U+505C][U+6B62][U+72C0][U+614B][U+76E3][U+63A7]"""
         self.monitoring = False
         if self.monitor_thread:
             self.monitor_thread.join(timeout=2)
     
     def run(self):
-        """運行Web應用"""
+        """[U+904B][U+884C]Web[U+61C9][U+7528]"""
         web_config = self.config["web_server"]
         
-        print(f"LED控制器Web應用啟動中...")
-        print(f"模組ID: {self.config['module_id']}")
-        print(f"Web服務器: http://{web_config['host']}:{web_config['port']}")
-        print(f"Modbus服務器地址: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
-        print(f"LED控制器基地址: {self.base_address}")
-        print("架構: 純ModbusTCP Client -> LED_main.py")
+        print(f"LED[U+63A7][U+5236][U+5668]Web[U+61C9][U+7528][U+555F][U+52D5][U+4E2D]...")
+        print(f"[U+6A21][U+7D44]ID: {self.config['module_id']}")
+        print(f"Web[U+670D][U+52D9][U+5668]: http://{web_config['host']}:{web_config['port']}")
+        print(f"Modbus[U+670D][U+52D9][U+5668][U+5730][U+5740]: {self.config['tcp_server']['host']}:{self.config['tcp_server']['port']}")
+        print(f"LED[U+63A7][U+5236][U+5668][U+57FA][U+5730][U+5740]: {self.base_address}")
+        print("[U+67B6][U+69CB]: [U+7D14]ModbusTCP Client -> LED_main.py")
         
-        # 嘗試連接服務器
+        # [U+5617][U+8A66][U+9023][U+63A5][U+670D][U+52D9][U+5668]
         self.connect_server()
         
-        # 啟動狀態監控
+        # [U+555F][U+52D5][U+72C0][U+614B][U+76E3][U+63A7]
         if self.config["ui_settings"]["auto_refresh"]:
             self.start_monitoring()
         
-        # 運行Flask應用
+        # [U+904B][U+884C]Flask[U+61C9][U+7528]
         self.socketio.run(
             self.app,
             host=web_config["host"],
@@ -373,18 +373,18 @@ class LEDWebApp:
         )
 
 def main():
-    """主函數"""
-    print("LED控制器Web UI啟動中...")
-    print("架構: Web UI -> ModbusTCP Client -> LED_main.py")
+    """[U+4E3B][U+51FD][U+6578]"""
+    print("LED[U+63A7][U+5236][U+5668]Web UI[U+555F][U+52D5][U+4E2D]...")
+    print("[U+67B6][U+69CB]: Web UI -> ModbusTCP Client -> LED_main.py")
     
     app = LEDWebApp()
     try:
         app.run()
     except KeyboardInterrupt:
-        print("\n收到停止信號...")
+        print("\n[U+6536][U+5230][U+505C][U+6B62][U+4FE1][U+865F]...")
         app.stop_monitoring()
     except Exception as e:
-        print(f"應用錯誤: {e}")
+        print(f"[U+61C9][U+7528][U+932F][U+8AA4]: {e}")
         app.stop_monitoring()
 
 if __name__ == "__main__":
