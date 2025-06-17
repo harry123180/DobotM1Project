@@ -340,6 +340,11 @@ class CameraCalibrationTool:
                      font=ctk.CTkFont(family=self.font_family),
                      command=self.import_extrinsic_npy).pack(side="left", padx=5)
         
+        # 新增導出當前外參按鈕
+        ctk.CTkButton(extrinsic_btn_frame, text="導出當前外參",
+                     font=ctk.CTkFont(family=self.font_family),
+                     command=self.export_current_extrinsic).pack(side="left", padx=5)
+        
     def create_points_controls(self, parent):
         """創建點位數據控制面板"""
         # 添加單個點位
@@ -999,6 +1004,69 @@ s = -t_z / (R₃ᵀ × [X_norm, Y_norm, 1]ᵀ)
                     messagebox.showinfo("成功", "估算外參導出成功！(JSON格式)")
                 except Exception as e:
                     messagebox.showerror("錯誤", f"導出失敗: {str(e)}")
+    
+    def export_current_extrinsic(self):
+        """導出當前外參"""
+        try:
+            # 確保從UI更新當前參數
+            self.update_parameters_from_entries()
+            
+            # 選擇保存格式
+            save_format = messagebox.askyesno("選擇格式", "選擇保存格式:\n是 - NPY格式\n否 - JSON格式")
+            
+            # 生成時間戳記
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            if save_format:  # NPY格式
+                file_path = filedialog.asksaveasfilename(
+                    title="保存當前外參 (NPY格式)",
+                    defaultextension=".npy",
+                    filetypes=[("NPY files", "*.npy"), ("All files", "*.*")]
+                )
+                
+                if file_path:
+                    try:
+                        # 如果用戶沒有指定檔名，使用預設檔名
+                        if not file_path.endswith('.npy'):
+                            file_path = f"extrinsic_{timestamp}.npy"
+                        
+                        extrinsic_data = {
+                            'rvec': self.rvec,
+                            'tvec': self.tvec,
+                            'algorithm': 'Manual_Adjustment',
+                            'timestamp': timestamp
+                        }
+                        np.save(file_path, extrinsic_data)
+                        messagebox.showinfo("成功", "當前外參導出成功！(NPY格式)")
+                    except Exception as e:
+                        messagebox.showerror("錯誤", f"導出失敗: {str(e)}")
+            else:  # JSON格式
+                file_path = filedialog.asksaveasfilename(
+                    title="保存當前外參 (JSON格式)",
+                    defaultextension=".json",
+                    filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+                )
+                
+                if file_path:
+                    try:
+                        # 如果用戶沒有指定檔名，使用預設檔名
+                        if not file_path.endswith('.json'):
+                            file_path = f"extrinsic_{timestamp}.json"
+                        
+                        extrinsic_data = {
+                            'rotation_vector': self.rvec.tolist(),
+                            'translation_vector': self.tvec.tolist(),
+                            'algorithm': 'Manual_Adjustment',
+                            'timestamp': timestamp
+                        }
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            json.dump(extrinsic_data, f, indent=4, ensure_ascii=False)
+                        messagebox.showinfo("成功", "當前外參導出成功！(JSON格式)")
+                    except Exception as e:
+                        messagebox.showerror("錯誤", f"導出失敗: {str(e)}")
+                        
+        except Exception as e:
+            messagebox.showerror("錯誤", f"導出當前外參時發生錯誤: {str(e)}")
     
     def update_visualization(self, *args):
         """更新可視化"""
