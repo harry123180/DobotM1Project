@@ -1,82 +1,137 @@
-# DobotM1Project
-## 一些寫給自己的重要訊息
+# Dobot M1 Pro 學習專案
 
-* 機械臂的LAN1 IP是 **192.168.1.6** LAN2 IP是**192.168.2.6**
-* Python開發環境3.12.4
-* pytorch版本 2.4.1
-* 顯示卡型號RTX 4060Ti
-* CUDA版本12.1.0
-* cuDnn版本9.1.0
-* 測試單GPU多模型的執行速度
-opencvtest.py 測試完成mks driver done 
+Dobot M1 Pro 四軸工業機械臂的 Python 控制範例與學習資源。
 
+## 機械臂規格
 
-# 待辦事項
+- **型號**: Dobot M1 Pro (四軸 SCARA)
+- **控制器版本**: V1.5.5.0+
+- **通訊協議**: TCP/IP
+- **預設 IP**: 192.168.1.6 (LAN1) / 192.168.2.6 (LAN2)
 
-1. 相機標定
-2. 影像流觸發運算
+## 快速開始
 
+### 1. 環境準備
 
-
-| 機械臂 | 欄位2 | 欄位3 |
-| :-- | --: |:--:|
-| 置左  | 置右 | 置中 |
-# 原始圖像尺寸
-2592 x 1944
-## 重投影误差 (Reprojection Error)
-
-$$ RE = 0.21439245149643946 $$
-
-## 内参矩阵 (Intrinsic Parameters)
-$$
-\mathbf{K} =
-\begin{bmatrix}
-5527.91522 & 0.00000 & 1249.56097 \\
-0.00000 & 5523.37409 & 997.41524 \\
-0.00000 & 0.00000 & 1.00000
-\end{bmatrix}
-$$
-
-## 畸变系数 (Distortion Coefficients)
-$$
-\mathbf{D} =
-\begin{bmatrix}
--0.06833483 & 0.00056340 & 0.00137019 & 0.00055740 & 4.80949681
-\end{bmatrix}
-$$
-
-# 當前檔案結構 
+```bash
+pip install -r requirements.txt
 ```
-├─converted_jpgs
-├─DobotDemo
-│  ├─files
-│  │  └─__pycache__
-│  ├─images
-│  ├─picture
-│  └─__pycache__
-├─MVSdemo
-│  └─BasicDemo
-│      └─__pycache__
-└─Mycode
-    ├─chessboard <這邊放標記完的棋盤格JPG>
-    ├─converted_jpgs <這邊放還沒標記棋盤格JPG>
-    ├─datafile  <海康原圖bmp 格式>
-    ├─files <不動>
-    │  └─__pycache__
-    ├─__pycache__
-    ├─procces.py <處理內部參數計算>    
+
+### 2. 連接機械臂
+
+```python
+from Automation.M1Pro.dobot_api import DobotApiDashboard, DobotApiMove
+
+# 建立連接
+dashboard = DobotApiDashboard("192.168.1.6", 29999)
+move = DobotApiMove("192.168.1.6", 30003)
+
+# 使能機械臂
+dashboard.EnableRobot()
+```
+
+### 3. 基本運動控制
+
+```python
+# 設置速度 (1-100%)
+dashboard.SpeedFactor(50)
+
+# 關節運動 (MovJ) - 點到點最快路徑
+move.MovJ(300, 200, 200, 0)
+
+# 直線運動 (MovL) - 直線軌跡
+move.MovL(400, 200, 200, 0)
+
+# 等待運動完成
+move.Sync()
+
+# 下使能並關閉連接
+dashboard.DisableRobot()
+dashboard.close()
+move.close()
+```
+
+## TCP 端口說明
+
+| 端口 | 功能 | 用途 |
+|------|------|------|
+| 29999 | Dashboard | 設置、狀態查詢、IO控制 |
+| 30003 | Move | 運動指令 |
+| 30004 | Realtime | 即時反饋 (8ms週期) |
+
+## 常用 API
+
+### Dashboard (29999) - 控制與狀態
+
+```python
+dashboard.EnableRobot()      # 使能
+dashboard.DisableRobot()     # 下使能
+dashboard.ClearError()       # 清除告警
+dashboard.EmergencyStop()    # 緊急停止
+dashboard.RobotMode()        # 查詢狀態
+dashboard.GetPose()          # 獲取座標
+dashboard.GetAngle()         # 獲取關節角度
+dashboard.DO(index, status)  # 數位輸出
+dashboard.DI(index)          # 數位輸入
+```
+
+### Move (30003) - 運動控制
+
+```python
+move.MovJ(x, y, z, r)        # 關節運動
+move.MovL(x, y, z, r)        # 直線運動
+move.JointMovJ(j1,j2,j3,j4)  # 關節座標運動
+move.MoveJog("J1+")          # 點動
+move.MoveJog()               # 停止點動
+move.Sync()                  # 等待完成
+```
+
+## 機械臂狀態碼
+
+```python
+status = dashboard.RobotMode()
+# 4: 未使能
+# 5: 使能且空閒 (可執行運動)
+# 7: 運行中
+# 9: 有告警 (需 ClearError)
+# 10: 暫停中
+```
+
+## 專案結構
 
 ```
-| 末端執行器     |     DH夾爪 |  DH夾爪     |
-| --------      | -------    | -------    |
-| 1       | 紅色       |      24V      |
-| 2      | 白色       |     INPUT1     |
-| 3         | 棕色       |     INPUT2    |    
-| 11         | 橙色       |   OUTPUTI   |    
-| 12         | 黄色       |   OUTPUT2  |    
-| 15         | 黑色       |    GND     |    
-| 10         | 藍色       |    485_B     |  
-| 9         | 綠色       |    485_A   |  
-![alt text](image.png)
+DobotM1Project/
+├── README.md                 # 本文件
+├── CLAUDE.md                 # Claude Code 參考
+├── requirements.txt          # Python 依賴
+├── Automation/
+│   └── M1Pro/
+│       ├── dobot_api.py      # 核心 API (重要!)
+│       └── DobotAPI.md       # 完整 API 文檔
+├── ExampleCode/
+│   └── DobotDemo/            # 官方範例程式
+└── 一些文檔/
+    └── 關於DobotM1Pro/
+        ├── Dobot M1 Pro用户手册V1.4.pdf
+        └── TCP_IP远程控制接口文档.pdf
+```
 
-![alt text](image-1.png)
+## 學習路徑
+
+1. **閱讀官方手冊** - `一些文檔/關於DobotM1Pro/`
+2. **理解 API** - `Automation/M1Pro/DobotAPI.md`
+3. **運行範例** - `ExampleCode/DobotDemo/`
+4. **實際操作** - 從簡單的 MovJ/MovL 開始
+
+## 安全注意事項
+
+- 首次運行前確認機械臂周圍無障礙物
+- 使用低速度 (`SpeedFactor(10)`) 進行測試
+- 熟悉緊急停止按鈕位置
+- 出現告警時先 `ClearError()` 再 `Continue()`
+
+## 參考資源
+
+- [Dobot 官方網站](https://www.dobot.cc/)
+- `Automation/M1Pro/DobotAPI.md` - 完整 API 說明
+- `一些文檔/關於DobotM1Pro/TCP_IP远程控制接口文档.pdf` - 官方通訊協議
